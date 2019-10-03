@@ -14,8 +14,8 @@
 
 
 import numpy as np
-import KagomeFunctions_3dot1 as kf # library allowing to work on kagome
-import Kagome_Drawing_2dot5 as kdraw # library allowing to plot kagome and its reciprocal lattice
+import KagomeFunctions as kf # library allowing to work on kagome
+import KagomeDrawing as kdraw # library allowing to plot kagome and its reciprocal lattice
 import matplotlib.pyplot as plt
 #import numba
 

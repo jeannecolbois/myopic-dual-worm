@@ -33,7 +33,7 @@ cd $SCR
 module load intel
 module load python/3.6.5
 
-time python3 RunBasis_GSCorrelations_3dot1dot6_C.py --L 12 --J1 1 --J2 0 --J3 0 --J4 0 --nst 10000 --nsm {0} --nips 20 --nb 500 --t_list 0.01 0.1 1 10 --nt_list 28 29 29 --log_tlist --nmaxiter 10 --stat_temps_lims 0.01 0.02 --energy --magnetisation --correlations --nthreads 14 --output J1_L12_nsm{0}_r{2}
+time python3 RunBasis_GSCorrelations.py --L 12 --J1 1 --J2 0 --J3 0 --J4 0 --nst 10000 --nsm {0} --nips 20 --nb 500 --t_list 0.01 0.1 1 10 --nt_list 28 29 29 --log_tlist --nmaxiter 10 --stat_temps_lims 0.01 0.02 --energy --magnetisation --correlations --nthreads 14 --output J1_L12_nsm{0}_r{2}
 
 ##create the results directory in home
 mkdir $HDR
