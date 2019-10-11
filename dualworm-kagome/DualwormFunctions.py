@@ -147,7 +147,7 @@ def Hamiltonian(couplings, d_ijl, ijl_d, L):
     '''
     hamiltonian = [J1]
     if 'J2' in couplings: # checks if key in dict.keys() but more efficiently (hash)
-        J2 = couplings['J2']);
+        J2 = couplings['J2'];
         d_J2d = lattice.d_J2d(d_ijl, ijl_d, L)
         hamiltonian.append((J2, d_J2d))
 
@@ -157,7 +157,7 @@ def Hamiltonian(couplings, d_ijl, ijl_d, L):
         hamiltonian.append((J3,d_J3d))
             
     if 'J3st' in couplings:
-        J3st = couplings[]'J3st'];
+        J3st = couplings['J3st'];
         J3st = J3st/2.0 # we are going to write two paths going each way!
         d_J3std = lattice.d_J3std(d_ijl, ijl_d, L)
         hamiltonian.append((J3st,d_J3std))
