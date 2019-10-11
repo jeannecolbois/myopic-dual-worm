@@ -114,6 +114,28 @@ def windingtable(d_ijl, L):
 # In[ ]:
 
 
+def latticeinit(L):
+    #dual bond table and dictionary:
+    (d_ijl, ijl_d) = lattice.createdualtable(L)
+    #spin site table and dictionary
+    (s_ijl, ijl_s) = lattice.createspinsitetable(L)
+    #two spin sites surrounding each dual bond
+    (d_2s, s2_d) = lattice.dualbondspinsitelinks(d_ijl, ijl_s, L)
+    #dual bond - dual bond connection through entry sites
+    d_nd = lattice.nsitesconnections(d_ijl, ijl_d)
+    #dual bond - dual bond connection through vertex sites
+    d_vd = lattice.vsitesconnections(d_ijl, ijl_d, L)
+    #for each dual bond, is it taking into account in winding number 1 or 2?
+    d_wn = lattice.windingtable(d_ijl, L)
+    #list of spin site indices and dual bond indices for the loop allowing to update the spin state
+    (sidlist, didlist) = lattice.spins_dimers_for_update(s_ijl, ijl_s, s2_d, L)
+    
+    return d_ijl, ijl_d, s_ijl, ijl_s, d_2s, s2_d, d_nd, d_vd, d_wn, sidlist, didlist
+
+
+# In[ ]:
+
+
 def Hamiltonian(couplings, d_ijl, ijl_d, L):
     '''
         Hamitlonian returns a list of couples (coupling value, interaction 
@@ -125,23 +147,23 @@ def Hamiltonian(couplings, d_ijl, ijl_d, L):
     '''
     hamiltonian = [J1]
     if 'J2' in couplings: # checks if key in dict.keys() but more efficiently (hash)
-        J2 = couplings('J2');
+        J2 = couplings['J2']);
         d_J2d = lattice.d_J2d(d_ijl, ijl_d, L)
         hamiltonian.append((J2, d_J2d))
 
     if 'J3' in couplings:
-        J3 = couplings('J3');
+        J3 = couplings['J3'];
         d_J3d = lattice.d_J3d(d_ijl, ijl_d, L)
         hamiltonian.append((J3,d_J3d))
             
     if 'J3st' in couplings:
-        J3st = couplings('J3st');
+        J3st = couplings[]'J3st'];
         J3st = J3st/2.0 # we are going to write two paths going each way!
         d_J3std = lattice.d_J3std(d_ijl, ijl_d, L)
         hamiltonian.append((J3st,d_J3std))
     
     if 'J4' in couplings:
-        J4 = couplings('J4');
+        J4 = couplings['J4'];
         d_J4d = lattice.d_J4d(d_ijl, ijl_d, L)
         hamiltonian.append((J4,d_J4d))
         
