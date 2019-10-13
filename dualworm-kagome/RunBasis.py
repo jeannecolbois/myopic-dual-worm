@@ -217,7 +217,7 @@ backup.params.nthreads = nthreads = args.nthreads
 #states = list(states)
 
 kw = {'nb':nb,'num_in_bin':num_in_bin, 'iterworm':iterworm,
-      'nitemax':nmaxiter,'saveloops':saveloops,'check':check,
+      'nitermax':nmaxiter,'check':check,
       'statsfunctions':statsfunctions,
       'nt':nt, 'stat_temps':stat_temps, 'hamiltonian':hamiltonian,
       'd_nd':d_nd,'d_vd':d_vd,'d_wn':d_wn, 'd_2s':d_2s, 's2_d':s2_d,
@@ -252,7 +252,7 @@ print(backup.results.namefunctions)
 check = 1 #turn to spins and check match works
 
 kw = {'nb':nb,'num_in_bin':num_in_bin, 'iterworm':iterworm,
-      'nitemax':nmaxiter,'saveloops':saveloops,'check':check,
+      'nitermax':nmaxiter,'check':check,
       'statsfunctions':statsfunctions,
       'nt':nt, 'stat_temps':stat_temps, 'hamiltonian':hamiltonian,
       'd_nd':d_nd,'d_vd':d_vd,'d_wn':d_wn, 'd_2s':d_2s, 's2_d':s2_d,
