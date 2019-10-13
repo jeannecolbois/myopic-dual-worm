@@ -113,7 +113,7 @@ def latticeinit(L):
     #two spin sites surrounding each dual bond
     (d_2s, s2_d) = lattice.dualbondspinsitelinks(d_ijl, ijl_s, L)
     #dual bond - dual bond connection through entry sites
-    d_nd = lattice.nsitesconnections(d_ijl, ijl_d)
+    d_nd = lattice.nsitesconnections(d_ijl, ijl_d, L)
     #dual bond - dual bond connection through vertex sites
     d_vd = lattice.vsitesconnections(d_ijl, ijl_d, L)
     #for each dual bond, is it taking into account in winding number 1 or 2?
@@ -135,7 +135,7 @@ def Hamiltonian(couplings, d_ijl, ijl_d, L):
         value (use like a matlab struct)
         > hamiltonian = [J1, (J2, d_J2d), (J3, d_J3d), ...]
     '''
-    hamiltonian = [J1]
+    hamiltonian = [couplings['J1']]
     if 'J2' in couplings: # checks if key in dict.keys() but more efficiently (hash)
         J2 = couplings['J2'];
         d_J2d = lattice.d_J2d(d_ijl, ijl_d, L)
@@ -365,7 +365,7 @@ def dist_sitepairs(s_pos,  n1, n2, Leff):
 
 # In[ ]:
 
-def NeighboursList(L, distmax)
+def NeighboursList(L, distmax):
     '''
         Returns a list of distances between sites (smaller than distmax)
         with respect to the lattice reference sites (e.g. 3 for kagome),
@@ -558,24 +558,6 @@ def states_dimers2spins(sidlist, didlist, L, states):
 
 ############ EVOLUTION ############
 
-
-# In[ ]:
-
-class statistics(Thread)
-    '''
-        This class allows to make each thread evolve independently 
-        and save the loops
-    '''
-    def __init__(self, t, iterworm): #constructor
-        Thread.__init__(self) # call to the thread constructor
-        self.t = t # temperature index
-        self.num = iterworm
-        self.updates = list() # list of the updates which are created
-        self.updatelengths = list() #list of length of updates
-        
-    def run
-
-
 # In[ ]:
 
 def statistics(tid, resid, bid, states, statesen, statestables,
@@ -727,8 +709,8 @@ def mcs_swaps(temp_loops, temp_lenloops, states, spinstates, statesen,
     # verifications
     
     if len(statsfunctions) != 0 or check:
-    for t in stat_temps:
-        assert len(onestatecheck(spinstates[t], states[t], d_2s)) == 0,        'Loss of consistency at temperature index {0}'.format(t)
+    	for t in stat_temps:
+        	assert len(onestatecheck(spinstates[t], states[t], d_2s)) == 0,'Loss of consistency at temperature index {0}'.format(t)
     ttot = time()
     print('Time for mcsevolve = {0}'.format(t_join))
     print('Time for tempering = {0}'.format(t_tempering))

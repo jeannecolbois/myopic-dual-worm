@@ -117,7 +117,7 @@ print('J3st ', J3st)
 print('J4', J4)
 
 couplings = {'J1': J1, 'J2':J2, 'J3':J3, 'J3st':J3st, 'J4':J4}
-hamiltonian = dw.Hamiltonian(couplings,d_ilj, ijl_d, L)
+hamiltonian = dw.Hamiltonian(couplings,d_ijl, ijl_d, L)
 
 ## Temperatures to simulate
 t_list = [t for t in args.t_list]
