@@ -12,6 +12,8 @@ import Observables as obs
 import pickle
 from safe import safe
 
+from time import time
+
 import argparse
 
 
