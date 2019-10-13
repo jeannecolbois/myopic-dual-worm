@@ -5,7 +5,7 @@
 
 import numpy as np
 import dimers as dim
-import DualWormFunctions as dw
+import DualwormFunctions as dw
 import StartStates as strst
 import Observables as obs
 
