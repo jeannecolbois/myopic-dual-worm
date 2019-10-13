@@ -260,8 +260,7 @@ kw = {'nb':nb,'num_in_bin':num_in_bin, 'iterworm':iterworm,
 #states = list(states)
 # Run measurements
 t1 = time()
-((backup.results.meanstat, backup.results.swaps) = (meanstat, swaps) = 
- dw.mcs_swaps(states, spinstates,energies, betas, stat_temps,**kw))
+(backup.results.meanstat, backup.results.swaps) = (meanstat, swaps) = dw.mcs_swaps(states, spinstates,energies, betas, stat_temps,**kw)
 t2 = time()
 print('Time for all measurements steps = ', t2-t1)
 
