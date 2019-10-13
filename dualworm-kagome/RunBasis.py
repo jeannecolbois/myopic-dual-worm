@@ -45,7 +45,7 @@ parser.add_argument('--nb', type = int, default = 20,
                     help = 'number of bins')
 
 #PARALLELISATION
-parser.add_argument('--nthreads', type = int, default = 4,
+parser.add_argument('--ncores', type = int, default = 4,
                     help = 'number of threads to use')
 
 #WORM PARAMETERS
@@ -212,7 +212,7 @@ statsfunctions = [] #don't compute any statistics
 check = 0 #don't turn to spins to check
 print('Number of thermalisation steps = ', num_in_bin*nb)
 backup.params.thermsteps = num_in_bin*nb
-backup.params.nthreads = nthreads = args.nthreads
+backup.params.ncores = ncores = args.ncores
 #launch thermalisation
 #states = list(states)
 
@@ -255,7 +255,8 @@ kw = {'nb':nb,'num_in_bin':num_in_bin, 'iterworm':iterworm,
       'statsfunctions':statsfunctions,
       'nt':nt, 'hamiltonian':hamiltonian,
       'd_nd':d_nd,'d_vd':d_vd,'d_wn':d_wn, 'd_2s':d_2s, 's2_d':s2_d,
-      'sidlist':sidlist,'didlist':didlist,'s_ijl':s_ijl, 'L':L}
+      'sidlist':sidlist,'didlist':didlist,'s_ijl':s_ijl, 'L':L,
+      'ncores':ncores}
 #states = list(states)
 # Run measurements
 t1 = time()

@@ -638,6 +638,7 @@ def mcs_swaps(states, spinstates, statesen,
                 ---- system size
                 's_ijl': see s_ijl
                 'L': system size
+                'ncores':ncores
         < states, spins states = tables that will be updated as the new 
         states and spinstates get computed
         < statesen : energy of the states
@@ -661,7 +662,8 @@ def mcs_swaps(states, spinstates, statesen,
     s2_d = kwargs.get('s2_d',None)
     sidlist = kwargs.get('sidlist',None)
     didlist = kwargs.get('didlist',None)
-    L = kwargs.get('L', None) 
+    L = kwargs.get('L', None)
+    ncores = kwargs.get('ncores',4)
     
     ## Define the table for statistics
     statstables = [(np.zeros((len(stat_temps), nb)).tolist(), 
@@ -681,7 +683,7 @@ def mcs_swaps(states, spinstates, statesen,
         # Note that states, betas, statesen get updated
         t1 = time()
         dim.mcsevolve(hamiltonian, states, betas, statesen, d_nd, d_vd, 
-                      d_wn, iterworm, nitermax, nthreads)
+                      d_wn, iterworm, nitermax, ncores)
         t2 = time()
         t_join += (t2-t1)/itermcs
         #### TEMPERING perform "parallel" tempering
