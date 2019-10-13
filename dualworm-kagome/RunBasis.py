@@ -219,14 +219,13 @@ backup.params.nthreads = nthreads = args.nthreads
 kw = {'nb':nb,'num_in_bin':num_in_bin, 'iterworm':iterworm,
       'nitermax':nmaxiter,'check':check,
       'statsfunctions':statsfunctions,
-      'nt':nt, 'stat_temps':stat_temps, 'hamiltonian':hamiltonian,
+      'nt':nt, 'hamiltonian':hamiltonian,
       'd_nd':d_nd,'d_vd':d_vd,'d_wn':d_wn, 'd_2s':d_2s, 's2_d':s2_d,
       'sidlist':sidlist,'didlist':didlist,'s_ijl':s_ijl, 'L':L}
 
 
 t1 = time()
-(meanstatth, swapsth) = dw.mcs_swaps(states, spinstates, energies, betas,
-                                     [], **kw)
+(meanstatth, swapsth) = dw.mcs_swaps(states, spinstates, energies, betas, [], **kw)
 t2 = time()
 #states = np.array(states)
 backup.results.swapsth = swapsth
@@ -254,7 +253,7 @@ check = 1 #turn to spins and check match works
 kw = {'nb':nb,'num_in_bin':num_in_bin, 'iterworm':iterworm,
       'nitermax':nmaxiter,'check':check,
       'statsfunctions':statsfunctions,
-      'nt':nt, 'stat_temps':stat_temps, 'hamiltonian':hamiltonian,
+      'nt':nt, 'hamiltonian':hamiltonian,
       'd_nd':d_nd,'d_vd':d_vd,'d_wn':d_wn, 'd_2s':d_2s, 's2_d':s2_d,
       'sidlist':sidlist,'didlist':didlist,'s_ijl':s_ijl, 'L':L}
 #states = list(states)
