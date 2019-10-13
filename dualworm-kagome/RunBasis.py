@@ -136,7 +136,7 @@ print('Random initialisation = ', randominit)
 backup.params.same = same = args.same
 
 print('Same initialisation for all temperatures = ', same)
-    #kf.statesinit(number of temperatures, dual bond table, spin surrounding dual bonds, spin site table, hamiltonian list, random starting state, same type of starting state for all temperatures)
+    #dw.statesinit(number of temperatures, dual bond table, spin surrounding dual bonds, spin site table, hamiltonian list, random starting state, same type of starting state for all temperatures)
 (states, energies) = strst.statesinit(nt, d_ijl, d_2s, s_ijl, hamiltonian, randominit, same)
 
 
@@ -145,7 +145,7 @@ new_en_states = [dim.hamiltonian(hamiltonian, states[t]) for t in range(nt)]
 for t in range(nt):
     if np.absolute(energies[t]-new_en_states[t]) > 1.0e-5:
         print('RunBasis: Issue at temperature index', t)
-if not kf.statescheck(spinstates, states, d_2s):
+if not dw.statescheck(spinstates, states, d_2s):
     mistakes = [dw.onestatecheck(spinstate, state, d_2s) for spinstate, state in zip(spinstates, states)]
     print('Mistakes: ', mistakes)
 
