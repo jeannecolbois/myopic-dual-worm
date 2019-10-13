@@ -3,10 +3,9 @@
 
 # In[ ]:
 
-
-import numpy as p
+import numpy as np
 import dimers as dim
-import DualwormFunctions as dw
+import DualWormFunctions as dw
 import StartStates as strst
 import Observables as obs
 
@@ -17,7 +16,6 @@ import argparse
 
 
 # In[ ]:
-
 
 ### PARSING
 parser = argparse.ArgumentParser()
@@ -88,7 +86,6 @@ args = parser.parse_args()
 
 # In[ ]:
 
-
 ### PREPARE SAVING
 backup = safe()
 backup.params = safe()
@@ -96,7 +93,6 @@ backup.results = safe()
 
 
 # In[ ]:
-
 
 ### SIMULATIONS INITIATLISATION
 backup.params.L = L = args.L
@@ -155,7 +151,6 @@ if not kf.statescheck(spinstates, states, d_2s):
 
 
 # In[ ]:
-
 
 ### INITIALISATION FOR THE MEASUREMENTS
 
@@ -288,4 +283,5 @@ backup.results.spinstates = spinstates
 #Save the backup object in a file
 pickle.dump(backup, open(args.output + '.pkl','wb'))
 print('Job done')
+
 

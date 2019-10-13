@@ -113,7 +113,7 @@ def latticeinit(L):
     #two spin sites surrounding each dual bond
     (d_2s, s2_d) = lattice.dualbondspinsitelinks(d_ijl, ijl_s, L)
     #dual bond - dual bond connection through entry sites
-    d_nd = lattice.nsitesconnections(d_ijl, ijl_d, L)
+    d_nd = lattice.nsitesconnections(d_ijl, ijl_d,L)
     #dual bond - dual bond connection through vertex sites
     d_vd = lattice.vsitesconnections(d_ijl, ijl_d, L)
     #for each dual bond, is it taking into account in winding number 1 or 2?
@@ -558,6 +558,7 @@ def states_dimers2spins(sidlist, didlist, L, states):
 
 ############ EVOLUTION ############
 
+
 # In[ ]:
 
 def statistics(tid, resid, bid, states, statesen, statestables,
@@ -709,8 +710,8 @@ def mcs_swaps(temp_loops, temp_lenloops, states, spinstates, statesen,
     # verifications
     
     if len(statsfunctions) != 0 or check:
-    	for t in stat_temps:
-        	assert len(onestatecheck(spinstates[t], states[t], d_2s)) == 0,'Loss of consistency at temperature index {0}'.format(t)
+        for t in stat_temps:
+            assert len(onestatecheck(spinstates[t], states[t], d_2s)) == 0,            'Loss of consistency at temperature index {0}'.format(t)
     ttot = time()
     print('Time for mcsevolve = {0}'.format(t_join))
     print('Time for tempering = {0}'.format(t_tempering))
