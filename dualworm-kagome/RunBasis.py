@@ -215,8 +215,18 @@ backup.params.thermsteps = num_in_bin*nb
 backup.params.nthreads = nthreads = args.nthreads
 #launch thermalisation
 #states = list(states)
+
+kw = {'nb':nb,'num_in_bin':num_in_bin, 'iterworm':iterworm,
+      'nitemax':nmaxiter,'saveloops':saveloops,'check':check,
+      'statsfunctions':statsfunctions,
+      'nt':nt, 'stat_temps':stat_temps, 'hamiltonian':hamiltonian,
+      'd_nd':d_nd,'d_vd':d_vd,'d_wn':d_wn, 'd_2s':d_2s, 's2_d':s2_d,
+      'sidlist':sidlist,'didlist':didlist,'s_ijl':s_ijl, 'L':L}
+
+
 t1 = time()
-(meanstatth, swapsth) = dw.mcs_swaps(nb, num_in_bin, iterworm, check, statsfunctions, nt, stat_temps, hamiltonian, d_nd, d_vd, d_wn, d_2s, s2_d, sidlist, didlist, L, states, spinstates, energies, betas, s_ijl, nmaxiter, nthreads)
+(meanstatth, swapsth) = dw.mcs_swaps(states, spinstates, energies, betas,
+                                     [], **kw)
 t2 = time()
 #states = np.array(states)
 backup.results.swapsth = swapsth
@@ -241,10 +251,17 @@ backup.results.namefunctions = observableslist #TODO set functions corresponding
 print(backup.results.namefunctions)
 check = 1 #turn to spins and check match works
 
+kw = {'nb':nb,'num_in_bin':num_in_bin, 'iterworm':iterworm,
+      'nitemax':nmaxiter,'saveloops':saveloops,'check':check,
+      'statsfunctions':statsfunctions,
+      'nt':nt, 'stat_temps':stat_temps, 'hamiltonian':hamiltonian,
+      'd_nd':d_nd,'d_vd':d_vd,'d_wn':d_wn, 'd_2s':d_2s, 's2_d':s2_d,
+      'sidlist':sidlist,'didlist':didlist,'s_ijl':s_ijl, 'L':L}
 #states = list(states)
 # Run measurements
 t1 = time()
-(backup.results.meanstat, backup.results.swaps) = (meanstat, swaps) = dw.mcs_swaps(nb, num_in_bin, iterworm, check, statsfunctions, nt, stat_temps, hamiltonian, d_nd, d_vd, d_wn, d_2s, s2_d, sidlist, didlist, L, states, spinstates, energies, betas, s_ijl, nmaxiter, nthreads)
+((backup.results.meanstat, backup.results.swaps) = (meanstat, swaps) = 
+ dw.mcs_swaps(states, spinstates,energies, betas, stat_temps,**kw))
 t2 = time()
 print('Time for all measurements steps = ', t2-t1)
 

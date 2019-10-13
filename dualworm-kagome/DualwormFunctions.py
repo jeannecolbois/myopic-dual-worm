@@ -613,24 +613,19 @@ def tempering(nt, statesen, betas, states):
 
 # In[ ]:
 
-def mcs_swaps(temp_loops, temp_lenloops, states, spinstates, statesen, 
+def mcs_swaps(states, spinstates, statesen, 
               betas, stat_temps, **kwargs):
     '''
         < keyword arguments:
                 'nb' : number of bins
                 'num_in_bin' : number of meas in each bin
                 'iterworm' : number of worm iterations per sweep
-                ---- saving loops
-                'saveloops' : table of 0 or 1 (don't save or save) stating 
-                whether 
-                to save some loops at the given temperature
-                ----
+                'nitermax' : limiting the size of worms
                 'check' : whether to check or not that the states remained 
                 consistent
                 ---- thermodynamic
                 'statsfunctions':
                 'nt':
-                'stat_temps':
                 ---- tables for loop building (worm algorithm)
                 'hamiltonian': see hamiltonian function
                 'd_nd': see nsitesconnections function
@@ -641,9 +636,8 @@ def mcs_swaps(temp_loops, temp_lenloops, states, spinstates, statesen,
                 'sidlist': see spin_dimers_for_update function
                 'didlist': see spin_dimers_for_update function
                 ---- system size
+                's_ijl': see s_ijl
                 'L': system size
-        < temp_loops, temp_lenloops = tables to save the loops and the 
-        lengths of the loops
         < states, spins states = tables that will be updated as the new 
         states and spinstates get computed
         < statesen : energy of the states
@@ -653,7 +647,8 @@ def mcs_swaps(temp_loops, temp_lenloops, states, spinstates, statesen,
     nb = kwargs.get('nb', None)
     num_in_bin = kwargs.get('num_in_bin',None)
     iterworm = kwargs.get('iterworm',None)
-    saveloops = kwargs.get('saveloops',None)
+    nitermax = kwargs.get('nitermax',None)
+    s_ijl = kwargs.get('s_ijl',None)
     check = kwargs.get('check', None)
     statsfunctions = kwargs.get('statsfunctions',None)
     nt = kwargs.get('nt',None)
