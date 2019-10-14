@@ -3,11 +3,13 @@
 
 # In[ ]:
 
+
 from DualwormFunctions import compute_energy
 import numpy as np
 
 
 # In[ ]:
+
 
 def candidate(s_ijl):
     spinstate = np.zeros(len(s_ijl))
@@ -148,6 +150,7 @@ def candidate(s_ijl):
 
 # In[ ]:
 
+
 def state7shaped(s_ijl):
     spinstate7 = np.random.randint(0, 2, size=len(s_ijl))*2 - 1
 
@@ -185,6 +188,7 @@ def state7shaped(s_ijl):
 
 
 # In[ ]:
+
 
 def LargeJ2Init(spinstates, nt, s_ijl, same):
     version = np.random.randint(0,3)
@@ -289,6 +293,7 @@ def LargeJ2Init(spinstates, nt, s_ijl, same):
 
 # In[ ]:
 
+
 def LargeJ2VersionInit(spinstates, nt, s_ijl, version):
     for t in range(nt):
         sign = np.random.randint(0,2)*2-1
@@ -389,6 +394,7 @@ def LargeJ2VersionInit(spinstates, nt, s_ijl, version):
 
 # In[ ]:
 
+
 def IntermediateInit(spinstates, nt, s_ijl):
     for t in range(nt):
         sign = np.random.randint(0,2)*2-1
@@ -465,6 +471,7 @@ def IntermediateInit(spinstates, nt, s_ijl):
 
 # In[ ]:
 
+
 def LargeJ3Init(spinstates, nt, s_ijl):
     for t in range(nt):
         sign = np.random.randint(0,2)*2-1
@@ -506,6 +513,7 @@ def LargeJ3Init(spinstates, nt, s_ijl):
 
 
 # In[ ]:
+
 
 def DipolarToJ4Init(spinstates, nt, s_ijl):
     for t in range(nt):
@@ -644,6 +652,7 @@ def DipolarToJ4Init(spinstates, nt, s_ijl):
 
 # In[ ]:
 
+
 def statesinit(nt, d_ijl, d_2s, s_ijl, hamiltonian, random = True, same = False):
     '''
        This function associates a dimer state to each dual bond. By default, this is done by first associating randomly a spin to
@@ -713,7 +722,8 @@ def statesinit(nt, d_ijl, d_2s, s_ijl, hamiltonian, random = True, same = False)
         else:
             print('  >>> D2J4 init')
             DipolarToJ4Init(spinstates, nt, s_ijl)
-
+    states = np.array(states)
+    spinstates = np.array(spinstates)
     #initialise the dimer state according to the spin state
     for t in range(nt):
         for id_dim in range(len(d_ijl)):
@@ -726,5 +736,6 @@ def statesinit(nt, d_ijl, d_2s, s_ijl, hamiltonian, random = True, same = False)
                 states[t][id_dim] = -1
     en_states = [compute_energy(hamiltonian, states[t]) for t in range(nt)] # energy computed via the function in c++
 
+    en_states = np.array(en_states)
     return states, en_states
 

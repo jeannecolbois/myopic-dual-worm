@@ -3,6 +3,7 @@
 
 # In[ ]:
 
+
 import numpy as np
 import dimers as dim
 import DualwormFunctions as dw
@@ -18,6 +19,7 @@ import argparse
 
 
 # In[ ]:
+
 
 ### PARSING
 parser = argparse.ArgumentParser()
@@ -88,6 +90,7 @@ args = parser.parse_args()
 
 # In[ ]:
 
+
 ### PREPARE SAVING
 backup = safe()
 backup.params = safe()
@@ -95,6 +98,7 @@ backup.results = safe()
 
 
 # In[ ]:
+
 
 ### SIMULATIONS INITIATLISATION
 backup.params.L = L = args.L
@@ -141,6 +145,7 @@ print('Same initialisation for all temperatures = ', same)
     #dw.statesinit(number of temperatures, dual bond table, spin surrounding dual bonds, spin site table, hamiltonian list, random starting state, same type of starting state for all temperatures)
 (states, energies) = strst.statesinit(nt, d_ijl, d_2s, s_ijl, hamiltonian, randominit, same)
 
+print('States', states[0])
 
 spinstates = dw.states_dimers2spins(sidlist, didlist, L, states)
 new_en_states = [dim.hamiltonian(hamiltonian, states[t]) for t in range(nt)]
@@ -153,6 +158,7 @@ if not dw.statescheck(spinstates, states, d_2s):
 
 
 # In[ ]:
+
 
 ### INITIALISATION FOR THE MEASUREMENTS
 
@@ -301,5 +307,4 @@ backup.results.spinstates = spinstates
 #Save the backup object in a file
 pickle.dump(backup, open(args.output + '.pkl','wb'))
 print('Job done')
-
 
