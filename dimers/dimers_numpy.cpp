@@ -1,4 +1,4 @@
-#include <python3.5/Python.h> // methods in the API
+#include <Python.h> // methods in the API
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include "numpy/arrayobject.h" // interact with numpy arrays
 #include <cmath>
@@ -218,7 +218,7 @@ static PyObject* dimers_mcsevolve(PyObject *self, PyObject *args) {
     if(ok == false) return nullptr;
      if(!PyList_Check(list_obj)) {
         PyErr_Format(PyExc_ValueError,
-                         "DIMERS.cpp : Give mea list to work with, I'm line %d", \
+                         "DIMERS.cpp : Give me a list to work with, I'm line %d", \
                          __LINE__);
         return nullptr;
      }
@@ -231,7 +231,7 @@ static PyObject* dimers_mcsevolve(PyObject *self, PyObject *args) {
     PyArrayObject *states_array = (PyArrayObject*) PyArray_FROM_OTF(states_obj, NPY_INT32, NPY_ARRAY_INOUT_ARRAY);
     if(states_array == nullptr) {
         Py_XDECREF(states_array);
-        PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d", __LINE__);
+        PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d (NPY array?)", __LINE__);
         return nullptr;
     }
 
@@ -254,7 +254,7 @@ static PyObject* dimers_mcsevolve(PyObject *self, PyObject *args) {
     PyArrayObject *betas_array = (PyArrayObject*) PyArray_FROM_OTF(betas_obj, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
     if(betas_array == nullptr) {
         Py_XDECREF(betas_array);
-        PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d", __LINE__);
+        PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d (NPY array?)", __LINE__);
         return nullptr;
     }
 
@@ -279,7 +279,7 @@ static PyObject* dimers_mcsevolve(PyObject *self, PyObject *args) {
     PyArrayObject *energies_array = (PyArrayObject*) PyArray_FROM_OTF(energies_obj, NPY_DOUBLE, NPY_ARRAY_INOUT_ARRAY); //INOUT: we want to update the energies
     if(energies_array == nullptr) {
         Py_XDECREF(energies_array);
-        PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d", __LINE__);
+        PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d (NPY array?)", __LINE__);
         return nullptr;
     }
 
