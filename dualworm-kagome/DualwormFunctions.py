@@ -605,7 +605,8 @@ def statistics(tid, resid, bid, states, statesen, statstables,
     #   Hence, we can feed the statistics threads with only the temperatures indices for which we are interested in
     #   the statistics.
 
-    spinstates[tid] = onestate_dimers2spins(sidlist,didlist,L,states[tid]) # new spins state
+    # Perform the update before computing statistics
+    #spinstates[tid] = onestate_dimers2spins(sidlist,didlist,L,states[tid]) # new spins state
    
     for stat_id in range(len(statstables)): #stat_id: index of the statistical
         #function you're currently looking at
@@ -733,6 +734,8 @@ def mcs_swaps(states, spinstates, statesen,
         #### STATS update the statistics
         bid = it//num_in_bin
         if len(statsfunctions) != 0 or check:
+            dim.updatespinstates(states, spinstates, np.array(stat_temps),
+                                 np.array(sidlist), np.array(didlist))
             for resid,tid in enumerate(stat_temps):
                 statistics(tid, resid, bid, states, statesen, statstables,
                            spinstates,statsfunctions, sidlist, didlist, L, s_ijl, ijl_s, num_in_bin, stlen)

@@ -1,4 +1,6 @@
 dimers/build
+dimers/*.txt
 tests/
 dualworm-kagome/__pycache__/
-dualworm-kagome/test.out.pkl
+dualworm-kagome/*.pkl
+dualworm-kagome/*.out
