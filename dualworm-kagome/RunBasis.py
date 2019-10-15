@@ -3,6 +3,7 @@
 
 # In[ ]:
 
+
 import numpy as np
 import dimers as dim
 import DualwormFunctions as dw
@@ -18,6 +19,7 @@ import argparse
 
 
 # In[ ]:
+
 
 if __name__ == "__main__":
 
@@ -92,6 +94,7 @@ if __name__ == "__main__":
 
 # In[ ]:
 
+
 def main(args):
     ### PREPARE SAVING
     backup = safe()
@@ -150,155 +153,157 @@ def main(args):
     if not dw.statescheck(spinstates, states, d_2s):
         mistakes = [dw.onestatecheck(spinstate, state, d_2s) for spinstate, state in zip(spinstates, states)]
         print('Mistakes: ', mistakes)
+    ### INITIALISATION FOR THE MEASUREMENTS
+
+    # Observables to measure
+    observables = []
+    observableslist = []
+    backup.params.energy = energy = args.energy
+    if energy:
+        observables.append(obs.energy)
+        observableslist.append('Energy')
+    backup.params.magnetisation = magnetisation = args.magnetisation
+    if magnetisation:
+        observables.append(obs.magnetisation)
+        observableslist.append('Magnetisation')
+    backup.params.correlations = correlations = args.correlations
+    backup.params.all_correlations = all_correlations = args.all_correlations
+    if correlations:
+        observables.append(obs.si)
+        observableslist.append('Si')
+        if all_correlations:
+            observables.append(obs.allcorrelations)
+            observableslist.append('All_Correlations')
+        else:
+            observables.append(obs.centralcorrelations)
+            observableslist.append('Central_Correlations')
+
+    print('List of measurements to be performed:', observableslist)
+
+    # Temperatures to measure
+    if args.stat_temps_lims is None:
+        #by default, we measure the whole temperature range
+        stat_temps = range(nt)
+    else: # if args.stat_temps is not none
+        vals = []
+        stat_temps = []
+        # we need to turn the stat_temps_lims into actual lists of indices
+        for val in args.stat_temps_lims:
+            vals.append(np.abs(temperatures-val).argmin())
+            print(val, vals)
+        l = len(vals)
+        assert(l%2 == 0)
+        for i in range(0, l, 2):
+            stat_temps += list(range(vals[i], vals[i+1]+1))
+
+    print('List of temperature indices to measure:', stat_temps)
+    backup.params.stat_temps = stat_temps
+    assert len(stat_temps) <= nt, 'The number of temperature indices to measure cannot be bigger than the number of temperatures.'
+
+
+    ## THERMALISATION
+    #preparation
+    nb = 1 # only one bin, no statistics
+    num_in_bin = args.nst# mcs iterations per bins
+    iterworm = nips = args.nips #number of worm iterations before considering swaps
+    nmaxiter = args.nmaxiter
+    statsfunctions = [] #don't compute any statistics
+    check = 0 #don't turn to spins to check
+    print('Number of thermalisation steps = ', num_in_bin*nb)
+    backup.params.thermsteps = num_in_bin*nb
+    backup.params.ncores = ncores = args.ncores
+    #launch thermalisation
+    #states = list(states)
+
+    kw = {'nb':nb,'num_in_bin':num_in_bin, 'iterworm':iterworm,
+          'nitermax':nmaxiter,'check':check,
+          'statsfunctions':statsfunctions,
+          'nt':nt, 'hamiltonian':hamiltonian,
+          'd_nd':d_nd,'d_vd':d_vd,'d_wn':d_wn, 'd_2s':d_2s, 's2_d':s2_d,
+          'sidlist':sidlist,'didlist':didlist,'s_ijl':s_ijl,'ijl_s':ijl_s, 'L':L}
+
+
+    t1 = time()
+    (meanstatth, swapsth) = dw.mcs_swaps(states, spinstates, energies, betas, [], **kw)
+    t2 = time()
+    #states = np.array(states)
+    backup.results.swapsth = swapsth
+    print('Time for all thermalisation steps = ', t2-t1)
+
+    spinstates = dw.states_dimers2spins(sidlist, didlist, L, states)
+    new_en_states = [dim.hamiltonian(hamiltonian, states[t]) for t in range(nt)]
+    for t in range(nt):
+        if np.absolute(energies[t]-new_en_states[t]) > 1.0e-5:
+            print('RunBasis: Issue at temperature index', t)
+
+
+    ## MEASUREMENT PREPARATION 
+
+    # Preparation to call the method
+    backup.params.nb = nb = args.nb # number of bins
+    backup.params.num_in_bin = num_in_bin = args.nsm//nb
+    print('Number of measurement steps = ', num_in_bin*nb) # number of iterations = nb * num_in_bin 
+    iterworm = nips #number of worm iterations before considering swaps and measuring the state again
+    statsfunctions = observables #TODO set functions
+    backup.results.namefunctions = observableslist #TODO set functions corresponding to the above
+    print(backup.results.namefunctions)
+    check = 1 #turn to spins and check match works
+
+    kw = {'nb':nb,'num_in_bin':num_in_bin, 'iterworm':iterworm,
+          'nitermax':nmaxiter,'check':check,
+          'statsfunctions':statsfunctions,
+          'nt':nt, 'hamiltonian':hamiltonian,
+          'd_nd':d_nd,'d_vd':d_vd,'d_wn':d_wn, 'd_2s':d_2s, 's2_d':s2_d,
+          'sidlist':sidlist,'didlist':didlist,'s_ijl':s_ijl,'ijl_s':ijl_s,'L':L,
+          'ncores':ncores}
+    #states = list(states)
+    # Run measurements
+    t1 = time()
+    (backup.results.meanstat, backup.results.swaps) = (meanstat, swaps) = dw.mcs_swaps(states, spinstates,energies, betas, stat_temps,**kw)
+    t2 = time()
+    print('Time for all measurements steps = ', t2-t1)
+
+    #states = np.array(states)
+    spinstates = dw.states_dimers2spins(sidlist, didlist, L, states)
+    new_en_states = [dim.hamiltonian(hamiltonian, states[t]) for t in range(nt)]
+    for t in range(nt):
+        if np.absolute(energies[t]-new_en_states[t]) > 1.0e-5:
+            print('RunBasis: Issue at temperature index', t)
+
+
+    ## STATISTICS ##
+
+    t_meanfunc = list() #for each function, for each temperature, mean of the state function
+    t_varmeanfunc = list() #for each function, for each temperature, variance of the state function
+    numsites = len(s_ijl)
+
+    for idtuple, stattuple in enumerate(meanstat):
+        # means:
+        t_meanfunc.append((np.array(stattuple[0]).sum(1)/nb, np.array(stattuple[1]).sum(1)/nb))
+
+        #variances:
+        tuplevar1 = [0 for t in stat_temps]
+        tuplevar2 = [0 for t in stat_temps]
+        for resid, t in enumerate(stat_temps):
+            for b in range(nb):
+                tuplevar1[resid] += ((stattuple[0][resid][b] - t_meanfunc[idtuple][0][resid]) ** 2)/(nb * (nb - 1))
+                tuplevar2[resid] += ((stattuple[1][resid][b] - t_meanfunc[idtuple][1][resid]) ** 2)/(nb * (nb - 1))
+        t_varmeanfunc.append((tuplevar1, tuplevar2))
+
+    # Additional results for the correlations are handled directly in AnalysisBasis_3dot1dot5
+
+    #Save the final results
+    backup.results.t_meanfunc = t_meanfunc
+    backup.results.t_varmeanfunc = t_varmeanfunc
+    backup.results.states = states
+    backup.results.spinstates = spinstates
+    #Save the backup object in a file
+    pickle.dump(backup, open(args.output + '.pkl','wb'))
+    print('Job done')
 
 
 # In[ ]:
 
-### INITIALISATION FOR THE MEASUREMENTS
-
-# Observables to measure
-observables = []
-observableslist = []
-backup.params.energy = energy = args.energy
-if energy:
-    observables.append(obs.energy)
-    observableslist.append('Energy')
-backup.params.magnetisation = magnetisation = args.magnetisation
-if magnetisation:
-    observables.append(obs.magnetisation)
-    observableslist.append('Magnetisation')
-backup.params.correlations = correlations = args.correlations
-backup.params.all_correlations = all_correlations = args.all_correlations
-if correlations:
-    observables.append(obs.si)
-    observableslist.append('Si')
-    if all_correlations:
-        observables.append(obs.allcorrelations)
-        observableslist.append('All_Correlations')
-    else:
-        observables.append(obs.centralcorrelations)
-        observableslist.append('Central_Correlations')
-
-print('List of measurements to be performed:', observableslist)
-
-# Temperatures to measure
-if args.stat_temps_lims is None:
-    #by default, we measure the whole temperature range
-    stat_temps = range(nt)
-else: # if args.stat_temps is not none
-    vals = []
-    stat_temps = []
-    # we need to turn the stat_temps_lims into actual lists of indices
-    for val in args.stat_temps_lims:
-        vals.append(np.abs(temperatures-val).argmin())
-        print(val, vals)
-    l = len(vals)
-    assert(l%2 == 0)
-    for i in range(0, l, 2):
-        stat_temps += list(range(vals[i], vals[i+1]+1))
-
-print('List of temperature indices to measure:', stat_temps)
-backup.params.stat_temps = stat_temps
-assert len(stat_temps) <= nt, 'The number of temperature indices to measure cannot be bigger than the number of temperatures.'
 
 
-## THERMALISATION
-#preparation
-nb = 1 # only one bin, no statistics
-num_in_bin = args.nst# mcs iterations per bins
-iterworm = nips = args.nips #number of worm iterations before considering swaps
-nmaxiter = args.nmaxiter
-statsfunctions = [] #don't compute any statistics
-check = 0 #don't turn to spins to check
-print('Number of thermalisation steps = ', num_in_bin*nb)
-backup.params.thermsteps = num_in_bin*nb
-backup.params.ncores = ncores = args.ncores
-#launch thermalisation
-#states = list(states)
-
-kw = {'nb':nb,'num_in_bin':num_in_bin, 'iterworm':iterworm,
-      'nitermax':nmaxiter,'check':check,
-      'statsfunctions':statsfunctions,
-      'nt':nt, 'hamiltonian':hamiltonian,
-      'd_nd':d_nd,'d_vd':d_vd,'d_wn':d_wn, 'd_2s':d_2s, 's2_d':s2_d,
-      'sidlist':sidlist,'didlist':didlist,'s_ijl':s_ijl, 'L':L}
-
-
-t1 = time()
-(meanstatth, swapsth) = dw.mcs_swaps(states, spinstates, energies, betas, [], **kw)
-t2 = time()
-#states = np.array(states)
-backup.results.swapsth = swapsth
-print('Time for all thermalisation steps = ', t2-t1)
-
-spinstates = dw.states_dimers2spins(sidlist, didlist, L, states)
-new_en_states = [dim.hamiltonian(hamiltonian, states[t]) for t in range(nt)]
-for t in range(nt):
-    if np.absolute(energies[t]-new_en_states[t]) > 1.0e-5:
-        print('RunBasis: Issue at temperature index', t)
-
-
-## MEASUREMENT PREPARATION 
-
-# Preparation to call the method
-backup.params.nb = nb = args.nb # number of bins
-backup.params.num_in_bin = num_in_bin = args.nsm//nb
-print('Number of measurement steps = ', num_in_bin*nb) # number of iterations = nb * num_in_bin 
-iterworm = nips #number of worm iterations before considering swaps and measuring the state again
-statsfunctions = observables #TODO set functions
-backup.results.namefunctions = observableslist #TODO set functions corresponding to the above
-print(backup.results.namefunctions)
-check = 1 #turn to spins and check match works
-
-kw = {'nb':nb,'num_in_bin':num_in_bin, 'iterworm':iterworm,
-      'nitermax':nmaxiter,'check':check,
-      'statsfunctions':statsfunctions,
-      'nt':nt, 'hamiltonian':hamiltonian,
-      'd_nd':d_nd,'d_vd':d_vd,'d_wn':d_wn, 'd_2s':d_2s, 's2_d':s2_d,
-      'sidlist':sidlist,'didlist':didlist,'s_ijl':s_ijl, 'L':L,
-      'ncores':ncores}
-#states = list(states)
-# Run measurements
-t1 = time()
-(backup.results.meanstat, backup.results.swaps) = (meanstat, swaps) = dw.mcs_swaps(states, spinstates,energies, betas, stat_temps,**kw)
-t2 = time()
-print('Time for all measurements steps = ', t2-t1)
-
-#states = np.array(states)
-spinstates = dw.states_dimers2spins(sidlist, didlist, L, states)
-new_en_states = [dim.hamiltonian(hamiltonian, states[t]) for t in range(nt)]
-for t in range(nt):
-    if np.absolute(energies[t]-new_en_states[t]) > 1.0e-5:
-        print('RunBasis: Issue at temperature index', t)
-
-
-## STATISTICS ##
-
-t_meanfunc = list() #for each function, for each temperature, mean of the state function
-t_varmeanfunc = list() #for each function, for each temperature, variance of the state function
-numsites = len(s_ijl)
-
-for idtuple, stattuple in enumerate(meanstat):
-    # means:
-    t_meanfunc.append((np.array(stattuple[0]).sum(1)/nb, np.array(stattuple[1]).sum(1)/nb))
-
-    #variances:
-    tuplevar1 = [0 for t in stat_temps]
-    tuplevar2 = [0 for t in stat_temps]
-    for resid, t in enumerate(stat_temps):
-        for b in range(nb):
-            tuplevar1[resid] += ((stattuple[0][resid][b] - t_meanfunc[idtuple][0][resid]) ** 2)/(nb * (nb - 1))
-            tuplevar2[resid] += ((stattuple[1][resid][b] - t_meanfunc[idtuple][1][resid]) ** 2)/(nb * (nb - 1))
-    t_varmeanfunc.append((tuplevar1, tuplevar2))
-
-# Additional results for the correlations are handled directly in AnalysisBasis_3dot1dot5
-
-#Save the final results
-backup.results.t_meanfunc = t_meanfunc
-backup.results.t_varmeanfunc = t_varmeanfunc
-backup.results.states = states
-backup.results.spinstates = spinstates
-#Save the backup object in a file
-pickle.dump(backup, open(args.output + '.pkl','wb'))
-print('Job done')
 
