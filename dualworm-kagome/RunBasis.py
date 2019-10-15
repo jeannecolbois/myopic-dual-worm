@@ -21,80 +21,6 @@ import argparse
 # In[ ]:
 
 
-if __name__ == "__main__":
-
-    ### PARSING
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument('--L', type = int, default = 4, help = 'Lattice side size')
-
-    # COUPLINGS
-    parser.add_argument('--J1', type = float, default = 1.0,
-                        help = 'NN coupling') # nearest-neighbour coupling
-    parser.add_argument('--J2', type = float, default = 0.0,
-                        help = '2nd NN coupling') # 2nd NN coupling
-    parser.add_argument('--J3', type = float, default = 0.0,
-                        help = '3rd NN coupling') # 3rd NN coupling
-    parser.add_argument('--J4', type = float, default = 0.0,
-                        help = '4th NN coupling')
-
-    #NUMBER OF STEPS AND ITERATIONS
-    parser.add_argument('--nst', type = int, default = 100,
-                        help = 'number of thermalisation steps') # number of thermalisation steps
-    parser.add_argument('--nsm', type = int, default = 100,
-                        help = 'number of measurements steps') # number of measurement steps
-    parser.add_argument('--nips', type = int, default = 10,
-                        help = 'number of worm constructions per MC step')
-    parser.add_argument('--nb', type = int, default = 20,
-                        help = 'number of bins')
-
-    #PARALLELISATION
-    parser.add_argument('--ncores', type = int, default = 4,
-                        help = 'number of threads to use')
-
-    #WORM PARAMETERS
-    parser.add_argument('--nmaxiter', type = int, default = 10,
-                        help = '''maximal number of segments in a loop update over the
-                        size of the lattice (1 = 1times the number of dualbonds in the
-                        lattice)''')
-    parser.add_argument('--randominit', default = False, action ='store_true',
-                        help = 'intialise the states randomly')
-    parser.add_argument('--same', default = False, action = 'store_true',
-                        help = '''initialise all temperatures with the same
-                        state (debug purposes)''')
-
-    #TEMPERATURE PARAMETERS
-    parser.add_argument('--t_list', nargs = '+', type = float, default = [0.5, 15.0],
-                        help = 'list of limiting temperature values')
-    parser.add_argument('--nt_list', nargs = '+', type = int, default = [28],
-                        help = 'list of number of temperatures in between the given limiting temperatures')
-    parser.add_argument('--log_tlist', default = False, action='store_true',
-                        help = 'state whether you want the temperature be spaced log-like or linear-like (activate if you want log)')
-    parser.add_argument('--stat_temps_lims', nargs = '+', type = float,
-                        help = '''limiting temperatures for the various ranges of
-                        measurements''') 
-                        #default will be set to none, and then we can decide what to do later on.
-
-    #CORRELATIONS PARAMETER
-    parser.add_argument('--energy', default = False, action = 'store_true',
-                        help = 'activate if you want to save the energy')
-    parser.add_argument('--magnetisation', default = False, action = 'store_true',
-                        help = 'activate if you want to save the magnetisation')
-    parser.add_argument('--correlations', default = False, action = 'store_true',
-                        help = 'activate if you want to save either central or all correlations')
-    parser.add_argument('--all_correlations', default = False, action = 'store_true',
-                        help = '''activate if you want to save the correlations for all non-equivalent
-                        pairs of sites. Otherwise, will save central correlations.''')
-    #SAVE
-    parser.add_argument('--output', type = str, default = "randomoutput.dat", help = 'saving filename (.pkl will be added)')
-    args = parser.parse_args()
-    
-    main(args)
-
-
-# In[ ]:
-
-
 def main(args):
     ### PREPARE SAVING
     backup = safe()
@@ -305,5 +231,73 @@ def main(args):
 # In[ ]:
 
 
+if __name__ == "__main__":
 
+    ### PARSING
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('--L', type = int, default = 4, help = 'Lattice side size')
+
+    # COUPLINGS
+    parser.add_argument('--J1', type = float, default = 1.0,
+                        help = 'NN coupling') # nearest-neighbour coupling
+    parser.add_argument('--J2', type = float, default = 0.0,
+                        help = '2nd NN coupling') # 2nd NN coupling
+    parser.add_argument('--J3', type = float, default = 0.0,
+                        help = '3rd NN coupling') # 3rd NN coupling
+    parser.add_argument('--J4', type = float, default = 0.0,
+                        help = '4th NN coupling')
+
+    #NUMBER OF STEPS AND ITERATIONS
+    parser.add_argument('--nst', type = int, default = 100,
+                        help = 'number of thermalisation steps') # number of thermalisation steps
+    parser.add_argument('--nsm', type = int, default = 100,
+                        help = 'number of measurements steps') # number of measurement steps
+    parser.add_argument('--nips', type = int, default = 10,
+                        help = 'number of worm constructions per MC step')
+    parser.add_argument('--nb', type = int, default = 20,
+                        help = 'number of bins')
+
+    #PARALLELISATION
+    parser.add_argument('--ncores', type = int, default = 4,
+                        help = 'number of threads to use')
+
+    #WORM PARAMETERS
+    parser.add_argument('--nmaxiter', type = int, default = 10,
+                        help = '''maximal number of segments in a loop update over the
+                        size of the lattice (1 = 1times the number of dualbonds in the
+                        lattice)''')
+    parser.add_argument('--randominit', default = False, action ='store_true',
+                        help = 'intialise the states randomly')
+    parser.add_argument('--same', default = False, action = 'store_true',
+                        help = '''initialise all temperatures with the same
+                        state (debug purposes)''')
+
+    #TEMPERATURE PARAMETERS
+    parser.add_argument('--t_list', nargs = '+', type = float, default = [0.5, 15.0],
+                        help = 'list of limiting temperature values')
+    parser.add_argument('--nt_list', nargs = '+', type = int, default = [28],
+                        help = 'list of number of temperatures in between the given limiting temperatures')
+    parser.add_argument('--log_tlist', default = False, action='store_true',
+                        help = 'state whether you want the temperature be spaced log-like or linear-like (activate if you want log)')
+    parser.add_argument('--stat_temps_lims', nargs = '+', type = float,
+                        help = '''limiting temperatures for the various ranges of
+                        measurements''') 
+                        #default will be set to none, and then we can decide what to do later on.
+
+    #CORRELATIONS PARAMETER
+    parser.add_argument('--energy', default = False, action = 'store_true',
+                        help = 'activate if you want to save the energy')
+    parser.add_argument('--magnetisation', default = False, action = 'store_true',
+                        help = 'activate if you want to save the magnetisation')
+    parser.add_argument('--correlations', default = False, action = 'store_true',
+                        help = 'activate if you want to save either central or all correlations')
+    parser.add_argument('--all_correlations', default = False, action = 'store_true',
+                        help = '''activate if you want to save the correlations for all non-equivalent
+                        pairs of sites. Otherwise, will save central correlations.''')
+    #SAVE
+    parser.add_argument('--output', type = str, default = "randomoutput.dat", help = 'saving filename (.pkl will be added)')
+    args = parser.parse_args()
+    
+    main(args)
 
