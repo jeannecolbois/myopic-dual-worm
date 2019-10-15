@@ -72,59 +72,16 @@ def allcorrelations(state, en_state, spinstate, s_ijl):
 
 def centralcorrelations(state, en_state, spinstate, s_ijl):
     L = np.sqrt(len(s_ijl)/9)
-    
-    corr = np.zeros(len(s_ijl))
     ref_spin = [0, 0, 0]
+    
+    corr = spinstate
     for s, (i,j,l) in enumerate(s_ijl):
-        corr[s] = spinstate[s]
         if i == L and j == L:
             ref_spin[l] = spinstate[s]
     central_corr = [(ref_spin[0]*corr).tolist(), (ref_spin[1]*corr).tolist(), (ref_spin[2]*corr).tolist()]
     
     return np.array(central_corr) 
 
-
-
-#def corr0(state, en_state, spinstate, s_ijl):
-#    corr = np.zeros(len(s_ijl))
-#    ref_spin0 = 0
-#    L = np.sqrt(len(s_ijl)/9)
-#    for s, (i, j, l) in enumerate(s_ijl):
-#        corr[s] = spinstate[s]
-#        if i == L and j == L:
-#            if l==0:
-#                ref_spin0 = spinstate[s]
-#    return corr * ref_spin0
-#
-#
-## In[ ]:
-#
-#
-#def corr1(state, en_state, spinstate, s_ijl):
-#    corr = np.zeros(len(s_ijl))
-#    ref_spin1 = 0
-#    L = np.sqrt(len(s_ijl)/9)
-#    for s, (i, j, l) in enumerate(s_ijl):
-#        corr[s] = spinstate[s]
-#        if i == L and j == L:
-#            if l==1:
-#                ref_spin1 = spinstate[s]
-#    return corr * ref_spin1
-#
-#
-## In[ ]:
-#
-#
-#def corr2(state, en_state, spinstate, s_ijl):
-#    corr = np.zeros(len(s_ijl))
-#    ref_spin2 = 0
-#    L = np.sqrt(len(s_ijl)/9)
-#    for s, (i, j, l) in enumerate(s_ijl):
-#        corr[s] = spinstate[s]
-#        if i == L and j == L:
-#            if l==2:
-#                ref_spin2 = spinstate[s]
-#    return corr * ref_spin2
 
 def si(state, en_state, spinstate, s_ijl):
     si = np.zeros(len(s_ijl))

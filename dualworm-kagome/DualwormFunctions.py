@@ -3,7 +3,6 @@
 
 # In[ ]:
 
-
 import numpy as np
 import dimers as dim
 import KagomeFunctions as lattice
@@ -12,7 +11,6 @@ from time import time
 
 
 # In[ ]:
-
 
 def createdualtable(L):
     '''
@@ -30,7 +28,6 @@ def createdualtable(L):
 
 # In[ ]:
 
-
 def createspinsitetable(L):
     '''
         Creates the table of spin sites corresponding to a real space 
@@ -47,7 +44,6 @@ def createspinsitetable(L):
 
 # In[ ]:
 
-
 def dualbondspinsitelinks(d_ijl, ijl_s, L):
     '''
         For a lattice with side size L, this function  returns two tables:
@@ -59,7 +55,6 @@ def dualbondspinsitelinks(d_ijl, ijl_s, L):
 
 
 # In[ ]:
-
 
 def spins_dimers_for_update(s_ijl, ijl_s, s2_d, L):
     '''
@@ -75,7 +70,6 @@ def spins_dimers_for_update(s_ijl, ijl_s, s2_d, L):
 
 # In[ ]:
 
-
 def nsitesconnections(d_ijl, ijl_d, L):
     '''
         For each dual bond, which are the other dual bonds which are 
@@ -87,7 +81,6 @@ def nsitesconnections(d_ijl, ijl_d, L):
 
 
 # In[ ]:
-
 
 def vsitesconnections(d_ijl, ijl_d, L):
     '''
@@ -101,7 +94,6 @@ def vsitesconnections(d_ijl, ijl_d, L):
 
 # In[ ]:
 
-
 def windingtable(d_ijl, L):
     '''
         For each dual bond, is it on one of the two lines which are used 
@@ -112,7 +104,6 @@ def windingtable(d_ijl, L):
 
 
 # In[ ]:
-
 
 def latticeinit(L):
     #dual bond table and dictionary:
@@ -134,7 +125,6 @@ def latticeinit(L):
 
 
 # In[ ]:
-
 
 def Hamiltonian(couplings, d_ijl, ijl_d, L):
     '''
@@ -172,7 +162,6 @@ def Hamiltonian(couplings, d_ijl, ijl_d, L):
 
 # In[ ]:
 
-
 def compute_energy(hamiltonian, state, latsize = 1):
     '''
         Computes the energy of the state state given the hamiltonian 
@@ -183,7 +172,6 @@ def compute_energy(hamiltonian, state, latsize = 1):
 
 
 # In[ ]:
-
 
 def GivenNeiNrj(state, power, D, J1supp, nei, distances, distances_spins):
     nrj = 0
@@ -198,7 +186,6 @@ def GivenNeiNrj(state, power, D, J1supp, nei, distances, distances_spins):
 
 # In[ ]:
 
-
 def NeiFromNeiToNrj(state, power, D, J1supp, neimin, neimax, distances, 
                     distances_spins):
     nrj = 0
@@ -208,7 +195,6 @@ def NeiFromNeiToNrj(state, power, D, J1supp, neimin, neimax, distances,
 
 
 # In[ ]:
-
 
 def FiniteDistNrj(state, power, D, J1supp, neimax, distances, distances_spins):
     '''
@@ -223,7 +209,6 @@ def FiniteDistNrj(state, power, D, J1supp, neimax, distances, distances_spins):
 
 
 # In[ ]:
-
 
 def TruncatedNrj(state, n1, n2, Leff, power, s_pos, D, J1supp):
     '''
@@ -245,7 +230,6 @@ def TruncatedNrj(state, n1, n2, Leff, power, s_pos, D, J1supp):
 
 
 # In[ ]:
-
 
 def EwaldSum(state, pairslist, s_pos, klat, D, alpha, S, J1supp):
     '''
@@ -299,12 +283,10 @@ def EwaldSum(state, pairslist, s_pos, klat, D, alpha, S, J1supp):
 
 # In[ ]:
 
-
 ############### Neighbour pairs #####################
 
 
 # In[ ]:
-
 
 def reducedgraph(L, s_ijl, ijl_s):
     '''
@@ -314,7 +296,6 @@ def reducedgraph(L, s_ijl, ijl_s):
 
 
 # In[ ]:
-
 
 def sitepairslist(srefs, s_pos, n1, n2, Leff, distmax):
     '''
@@ -360,7 +341,6 @@ def sitepairslist(srefs, s_pos, n1, n2, Leff, distmax):
 
 # In[ ]:
 
-
 def dist_sitepairs(s_pos,  n1, n2, Leff):
     '''
         Using sitepairslist, this function returns a list of (sorted) distances and 
@@ -384,7 +364,6 @@ def dist_sitepairs(s_pos,  n1, n2, Leff):
 
 
 # In[ ]:
-
 
 def NeighboursList(L, distmax):
     '''
@@ -438,12 +417,10 @@ def NeighboursList(L, distmax):
 
 # In[ ]:
 
-
 ############## STATES INIT ##############################3
 
 
 # In[ ]:
-
 
 def create_temperatures(nt_list, t_list):
     assert(len(t_list) == len(nt_list) + 1)
@@ -462,7 +439,6 @@ def create_temperatures(nt_list, t_list):
 
 
 # In[ ]:
-
 
 def create_log_temperatures(nt_list, t_list):
     assert(len(t_list) == len(nt_list) + 1)
@@ -487,7 +463,6 @@ def create_log_temperatures(nt_list, t_list):
 
 
 # In[ ]:
-
 
 def statesinit(nt, d_ijl, d_2s, s_ijl, hamiltonian, same = False):
     '''
@@ -520,7 +495,6 @@ def statesinit(nt, d_ijl, d_2s, s_ijl, hamiltonian, same = False):
 
 # In[ ]:
 
-
 def onestatecheck(spinstate, state, d_2s):
     '''
         This function checks whether the dimer state and the spin 
@@ -540,7 +514,6 @@ def onestatecheck(spinstate, state, d_2s):
 
 # In[ ]:
 
-
 def statescheck(spinstates, states, d_2s):
     '''
         This function checks whether the dimer stateS and the spin 
@@ -554,7 +527,6 @@ def statescheck(spinstates, states, d_2s):
 
 # In[ ]:
 
-
 def onestate_dimers2spins(sidlist, didlist, L, state):
     '''
         For a known state of the dual lattice (i.e. for each bond, is 
@@ -566,15 +538,12 @@ def onestate_dimers2spins(sidlist, didlist, L, state):
     #initialise the first spin randomly
     s_val =  np.random.randint(0, 2)*2-1
     s = spinstate[sidlist[0]] = s_val
-    for it in range(0, len(sidlist)-1):
-        db_id = didlist[it]
-        spin_id = sidlist[it+1]
+    for it, (db_id, spin_id) in enumerate(zip(didlist,sidlist[1:])):
         s = spinstate[spin_id] = s * state[db_id]
     return spinstate
 
 
 # In[ ]:
-
 
 def states_dimers2spins(sidlist, didlist, L, states):
     spinstates = []
@@ -585,12 +554,10 @@ def states_dimers2spins(sidlist, didlist, L, states):
 
 # In[ ]:
 
-
 ############ EVOLUTION ############
 
 
 # In[ ]:
-
 
 def statistics(tid, resid, bid, states, statesen, statstables,
                spinstates,statsfunctions, sidlist, didlist, L, s_ijl, num_in_bin):
@@ -621,7 +588,6 @@ def statistics(tid, resid, bid, states, statesen, statstables,
 
 # In[ ]:
 
-
 def tempering(nt, statesen, betas, states, swaps):
     for t in range(nt-1, 0, -1):
         #throw a dice
@@ -645,7 +611,6 @@ def tempering(nt, statesen, betas, states, swaps):
 
 
 # In[ ]:
-
 
 def mcs_swaps(states, spinstates, statesen, 
               betas, stat_temps, **kwargs):
