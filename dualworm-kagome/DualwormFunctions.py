@@ -555,32 +555,27 @@ def statescheck(spinstates, states, d_2s):
 # In[ ]:
 
 
-def onestate_dimers2spins(sidlist, didlist, L, state):
+def onestate_dimers2spins(sidlist, didlist, states, spinstates, tid, ncores):
     '''
         For a known state of the dual lattice (i.e. for each bond, is 
         there or not a dimer), returns the corresponding
         spin state.
     '''
-    #initialise the spins in a meaningless way
-    spinstate = [0 for _ in range(len(sidlist))]
-    #initialise the first spin randomly
-    s_val =  np.random.randint(0, 2)*2-1
-    s = spinstate[sidlist[0]] = s_val
-    for it, (db_id, spin_id) in enumerate(zip(didlist,sidlist[1:])):
-        s = spinstate[spin_id] = s * state[db_id]
-        
-    spinstate = np.array(spinstate)
-    return spinstate
+    stat_temps = [nt]
+    dim.updatespinstates(states, spinstates, np.array(stat_temps, dtype='int32'),
+                                 np.array(sidlist, dtype='int32'), np.array(didlist, dtype='int32'), ncores)
+    return
 
 
 # In[ ]:
 
 
-def states_dimers2spins(sidlist, didlist, L, states):
-    spinstates = []
-    for state in states:
-        spinstates.append(onestate_dimers2spins(sidlist, didlist, L, state))
-    return spinstates
+def states_dimers2spins(sidlist, didlist, states, spinstates,nt,ncores):
+    stat_temps = list(range(nt))
+    dim.updatespinstates(states, spinstates, np.array(stat_temps, dtype='int32'),
+                                 np.array(sidlist, dtype='int32'), np.array(didlist, dtype='int32'), ncores)
+    
+    return np.array(spinstates, dtype='int32')
 
 
 # In[ ]:
@@ -595,7 +590,7 @@ def states_dimers2spins(sidlist, didlist, L, states):
 def statistics(tid, resid, bid, states, statesen, statstables,
                spinstates,statsfunctions, sidlist, didlist, L, s_ijl, ijl_s, num_in_bin, stlen):
     '''
-        This function updates the statistics in statstables and the spinstates given the states,
+        This function updates the statistics in statstables given the states,
         the states energy, the statistical functions, the list of spins and dimers for updates,
         the system size and the number of states in a bin
     '''
@@ -604,8 +599,6 @@ def statistics(tid, resid, bid, states, statesen, statstables,
     #   if no measurement is performed, since the code runs on dimer configurations.
     #   Hence, we can feed the statistics threads with only the temperatures indices for which we are interested in
     #   the statistics.
-
-    spinstates[tid] = onestate_dimers2spins(sidlist,didlist,L,states[tid]) # new spins state
    
     for stat_id in range(len(statstables)): #stat_id: index of the statistical
         #function you're currently looking at
@@ -617,6 +610,33 @@ def statistics(tid, resid, bid, states, statesen, statstables,
         #storage depends on the result index
         
         statstables[stat_id][1][resid][bid] += (func_per_site ** 2) / num_in_bin
+
+
+# In[ ]:
+
+
+#def magnstatistics(tid, resid, bid, states, statesen, statstables, magnstatstables,
+#               spinstates,magnstatsfunctions, sidlist, didlist, L, s_ijl, ijl_s, num_in_bin, stlen):
+#    '''
+#        This function updates the magnetisation-dependent statistics in magnstatstables given the states,
+#        the states energy, the statistical functions interesting for magn, the list of spins and dimers for updates,
+#        the system size and the number of states in a bin
+#    '''
+#    # compute the magnetisation
+#    statsfunction
+#    # get the corresponding magnetisation bin
+#    
+#    for stat_id in range(len(magnstatstables)):
+#        #function you're currently looking at
+#        func_per_site = statsfunctions[stat_id](stlen, states[tid], statesen[tid], 
+#                                                spinstates[tid], s_ijl, ijl_s) 
+#        #evaluation depends on the temperature index
+#        
+#        magnstatstables[magnbin][stat_id][0][resid][bid] += func_per_site / num_in_bin 
+#        #storage depends on the result index
+#        
+#        statstables[magn[stat_id][1][resid][bid] += (func_per_site ** 2) / num_in_bin
+#    
 
 
 # In[ ]:
@@ -733,6 +753,8 @@ def mcs_swaps(states, spinstates, statesen,
         #### STATS update the statistics
         bid = it//num_in_bin
         if len(statsfunctions) != 0 or check:
+            dim.updatespinstates(states, spinstates, np.array(stat_temps, dtype='int32'),
+                                 np.array(sidlist, dtype='int32'), np.array(didlist, dtype='int32'), ncores)
             for resid,tid in enumerate(stat_temps):
                 statistics(tid, resid, bid, states, statesen, statstables,
                            spinstates,statsfunctions, sidlist, didlist, L, s_ijl, ijl_s, num_in_bin, stlen)

@@ -1,12 +1,12 @@
-
 #include <Python.h> // methods in the API
-//#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
-#include <numpy/arrayobject.h> // interact with numpy arrays
+#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+#include "numpy/arrayobject.h" // interact with numpy arrays
 #include <cmath>
 
 #include "hamiltonian.h"
 #include "manydualworms.h"
 #include "mcsevolve.h"
+#include "updatespinstates.h"
 
 
 
@@ -25,10 +25,10 @@ PyObject* getTuple(PyObject *list_obj, int index);
 double parseTupleJ(PyObject *tuple_obj);
 
 // For M
-int* parseTupleM(PyObject *tuple_obj, PyObject **PtrM_array);
+int* parseTupleM(PyObject *tuple_obj, PyArrayObject **PtrM_array);
 
 //*** GET INTERACTIONS ***//
-vector<tuple<double, int*, int, int>> getInteractions(PyObject *list_obj, vector<PyObject*>& Marray_list, bool* ok);
+vector<tuple<double, int*, int, int>> getInteractions(PyObject *list_obj, vector<PyArrayObject*>& Marray_list, bool* ok);
 
 ///////////////////INCLUDE SOME EXTRA MODULARISATION !!!!!!!!!!!!!!!!!!!!!!!!!!!!///////////////////////////////////
 
@@ -46,6 +46,9 @@ static char manydualworms_docstring[] =
         "Updates a dimers state and performs a myopic worm update which takes into account the interactions of the dimers. Returns the energy difference, as well as some statistics on the loops built";
 static char mcsevolve_docstring[] =
 	"From a set of states, performs a myopic worm update of the set of dimer states taking into account the dimers interactions and the temperature associated with each state. Returns ... ";
+static char updatespinstates_docstring[] =
+	"From a set of states, updates the spinstates given the connectivity ";
+
 /* Python interfaces to the C++ functions */
 
 // > Everything is a PyObject
@@ -53,11 +56,13 @@ static char mcsevolve_docstring[] =
 static PyObject* dimers_hamiltonian(PyObject *self, PyObject *args);
 static PyObject* dimers_manydualworms(PyObject *self, PyObject *args);
 static PyObject* dimers_mcsevolve(PyObject *self, PyObject *args);
+static PyObject* dimers_updatespinstates(PyObject *self, PyObject *args);
 /* Module specifications */
 static PyMethodDef module_methods[] = {
     {"hamiltonian", dimers_hamiltonian, METH_VARARGS, hamiltonian_docstring},
     {"manydualworms", dimers_manydualworms, METH_VARARGS, manydualworms_docstring},
     {"mcsevolve", dimers_mcsevolve, METH_VARARGS, mcsevolve_docstring},
+    {"updatespinstates", dimers_updatespinstates, METH_VARARGS, updatespinstates_docstring},
     {nullptr, nullptr, 0, nullptr}
 };
 
@@ -95,9 +100,10 @@ PyMODINIT_FUNC PyInit_dimers(void) {
 //****** HAMILTONIAN *******//
 
 static PyObject* dimers_hamiltonian(PyObject *self, PyObject *args) {
-    PyObject *list_obj, *state_obj;
+    PyObject *list_obj;
+    PyObject *state_obj;
 
-    if(!PyArg_ParseTuple(args,"OO", &list_obj, &state_obj)) //take the list and the state as pointers to PyObjects
+    if(!PyArg_ParseTuple(args,"OO", &list_obj, &state_obj))
         return nullptr;
 
     //----------------------------//
@@ -106,7 +112,7 @@ static PyObject* dimers_hamiltonian(PyObject *self, PyObject *args) {
     // check that the list_obj is indeed a list
     if(!PyList_Check(list_obj)) {
         PyErr_Format(PyExc_ValueError,
-                         "DIMERS.cpp : Give mea list to work with, I'm line %d", \
+                         "DIMERS.cpp : Give me a list to work with, I'm line %d", \
                          __LINE__);
         return nullptr;
     }
@@ -120,7 +126,7 @@ static PyObject* dimers_hamiltonian(PyObject *self, PyObject *args) {
     // if the list is longer than only one element
     int listsize = PyList_Size(list_obj);
     vector<tuple<double, int*, int, int>> interactions(listsize - 1);
-    vector<PyObject*> Marray_list(listsize-1);
+    vector<PyArrayObject*> Marray_list(listsize-1);
 
     bool ok;
     interactions = getInteractions(list_obj, Marray_list, &ok);
@@ -132,7 +138,7 @@ static PyObject* dimers_hamiltonian(PyObject *self, PyObject *args) {
     /* Interpret the pointer to state */
     //---------------------------------//
 
-    PyObject *state_array = PyArray_FROM_OTF(state_obj, NPY_INT32, NPY_IN_ARRAY);
+    PyArrayObject *state_array = (PyArrayObject*) PyArray_FROM_OTF(state_obj, NPY_INT32, NPY_ARRAY_IN_ARRAY);
     if(state_array == nullptr) {
         Py_XDECREF(state_array); // if there was an issue, decrement the reference (i.e. remove a label) if there is one
         PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d", __LINE__);
@@ -183,7 +189,8 @@ static PyObject* dimers_mcsevolve(PyObject *self, PyObject *args) {
      * >> A maximal number of loops occupancy */
 
      //------------------------------------------------------INPUT INTERPRETATION---------------------------------------------------------------------//
-     PyObject *list_obj, *states_obj, *betas_obj, *energies_obj, *d_nd_obj, *d_vd_obj, *d_wn_obj; //*saveloops_obj,
+     PyObject *list_obj;
+     PyObject  *states_obj, *betas_obj, *energies_obj, *d_nd_obj, *d_vd_obj, *d_wn_obj; //*saveloops_obj,
      int niterworm;
      int nmaxiter;
      int nthreads;
@@ -210,14 +217,14 @@ static PyObject* dimers_mcsevolve(PyObject *self, PyObject *args) {
     // if the list is longer than only one element
     int listsize = PyList_Size(list_obj);
     vector<tuple<double, int*, int, int>> interactions(listsize - 1);
-    vector<PyObject*> Marray_list(listsize-1);
+    vector<PyArrayObject*> Marray_list(listsize-1);
 
     bool ok;
     interactions = getInteractions(list_obj, Marray_list, &ok);
     if(ok == false) return nullptr;
      if(!PyList_Check(list_obj)) {
         PyErr_Format(PyExc_ValueError,
-                         "DIMERS.cpp : Give mea list to work with, I'm line %d", \
+                         "DIMERS.cpp : Give me a list to work with, I'm line %d", \
                          __LINE__);
         return nullptr;
      }
@@ -226,11 +233,11 @@ static PyObject* dimers_mcsevolve(PyObject *self, PyObject *args) {
     /* Interpret the table of states */
     //-------------------------------//
 
-    // because we want to be able to update the state as well: NPY_INOUT_ARRAY and not NPY_IN_ARRAY
-    PyObject *states_array = PyArray_FROM_OTF(states_obj, NPY_INT32, NPY_INOUT_ARRAY);
+    // because we want to be able to update the state as well: NPY_ARRAY_INOUT_ARRAY and not NPY_ARRAY_IN_ARRAY
+    PyArrayObject *states_array = (PyArrayObject*) PyArray_FROM_OTF(states_obj, NPY_INT32, NPY_ARRAY_INOUT_ARRAY);
     if(states_array == nullptr) {
         Py_XDECREF(states_array);
-        PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d", __LINE__);
+        PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d (NPY array?)", __LINE__);
         return nullptr;
     }
 
@@ -249,11 +256,11 @@ static PyObject* dimers_mcsevolve(PyObject *self, PyObject *args) {
     /* Interpret the table of temperatures */
     //--------------------------------------//
 
-    // because we want to be able to update the state as well: NPY_INOUT_ARRAY and not NPY_IN_ARRAY
-    PyObject *betas_array = PyArray_FROM_OTF(betas_obj, NPY_DOUBLE, NPY_IN_ARRAY);
+    // because we want to be able to update the state as well: NPY_ARRAY_INOUT_ARRAY and not NPY_ARRAY_IN_ARRAY
+    PyArrayObject *betas_array = (PyArrayObject*) PyArray_FROM_OTF(betas_obj, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
     if(betas_array == nullptr) {
         Py_XDECREF(betas_array);
-        PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d", __LINE__);
+        PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d (NPY array?)", __LINE__);
         return nullptr;
     }
 
@@ -275,10 +282,10 @@ static PyObject* dimers_mcsevolve(PyObject *self, PyObject *args) {
     /* Interpret the table of energies */
     //---------------------------------//
 
-    PyObject *energies_array = PyArray_FROM_OTF(energies_obj, NPY_DOUBLE, NPY_INOUT_ARRAY); //INOUT: we want to update the energies
+    PyArrayObject *energies_array = (PyArrayObject*) PyArray_FROM_OTF(energies_obj, NPY_DOUBLE, NPY_ARRAY_INOUT_ARRAY); //INOUT: we want to update the energies
     if(energies_array == nullptr) {
         Py_XDECREF(energies_array);
-        PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d", __LINE__);
+        PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d (NPY array?)", __LINE__);
         return nullptr;
     }
 
@@ -302,8 +309,8 @@ static PyObject* dimers_mcsevolve(PyObject *self, PyObject *args) {
     /* Interpret the pointers to dimer tables */
     //-----------------------------------------//
 
-    PyObject *d_nd_array = PyArray_FROM_OTF(d_nd_obj, NPY_INT32, NPY_IN_ARRAY); // dimers to dimers via n-sites
-    PyObject *d_vd_array = PyArray_FROM_OTF(d_vd_obj, NPY_INT32, NPY_IN_ARRAY); // dimers to dimers via v-sites
+    PyArrayObject *d_nd_array = (PyArrayObject*) PyArray_FROM_OTF(d_nd_obj, NPY_INT32, NPY_ARRAY_IN_ARRAY); // dimers to dimers via n-sites
+    PyArrayObject *d_vd_array = (PyArrayObject*) PyArray_FROM_OTF(d_vd_obj, NPY_INT32, NPY_ARRAY_IN_ARRAY); // dimers to dimers via v-sites
 
     if(d_nd_array == nullptr || d_vd_array == nullptr) {
         Py_XDECREF(d_nd_array);
@@ -346,7 +353,7 @@ static PyObject* dimers_mcsevolve(PyObject *self, PyObject *args) {
     /* Interpret the pointer to winding number table */
     //------------------------------------------------//
     // get the pointer as numpy array
-    PyObject *d_wn_array = PyArray_FROM_OTF(d_wn_obj, NPY_INT32, NPY_IN_ARRAY);
+    PyArrayObject *d_wn_array = (PyArrayObject*) PyArray_FROM_OTF(d_wn_obj, NPY_INT32, NPY_ARRAY_IN_ARRAY);
 
     if(d_wn_array == nullptr) {
         Py_XDECREF(d_wn_array);
@@ -395,12 +402,168 @@ static PyObject* dimers_mcsevolve(PyObject *self, PyObject *args) {
     for (int i = 0; i < looplengths.size(); i++) {
         PyObject *looplength = Py_BuildValue("i", looplengths[i]);
         PyList_SetItem(looplengthslist, i, looplength);
-    }
+    }*/
 
     /* Build the output */
     PyObject *ret = Py_BuildValue("d", 0);
     return ret;
 }
+//--------------------------------------------------------------------------//
+/////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////
+//******UPDATESPINSTATES *****//
+static PyObject* dimers_updatespinstates(PyObject *self, PyObject *args) {
+    /* What we want to get from the arguments:
+     * >> A table of state objects (numpy table) describing the current states of the systems (table of 1d numpy tables)
+     * >> A table of spinstate objects (numpy table) describing the current states of the systems (table of 1d numpy tables)
+     * >> A numpy table of temperature indices
+     * >> A numpy table of spin indices
+     * >> A numpy table of dimers indices
+     * >> A number of statistics
+     * >> A state size
+     * >> A spinstate size
+     * >> A number of threads
+     * >> A number of iterations, corresponding to size(sidlist) + 1
+
+     */
+
+     //------------------------------------------------------INPUT INTERPRETATION---------------------------------------------------------------------//
+     PyObject  *states_obj, *spinstates_obj, *stat_temps_obj, *sidlist_obj, *didlist_obj; //*saveloops_obj,
+     int nthreads;
+     // take the arguments as pointers + int
+     if(!PyArg_ParseTuple(args,"OOOOOi", &states_obj, &spinstates_obj, &stat_temps_obj, &sidlist_obj, &didlist_obj, &nthreads))
+	   return nullptr;
+
+    //-------------------------------//
+    /* Interpret the table of states */
+    //-------------------------------//
+
+    PyArrayObject *states_array = (PyArrayObject*) PyArray_FROM_OTF(states_obj, NPY_INT32, NPY_ARRAY_IN_ARRAY);
+    if(states_array == nullptr) {
+        Py_XDECREF(states_array);
+        PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d (NPY array?)", __LINE__);
+        return nullptr;
+    }
+
+    //int nt_states = (int)PyArray_DIM(states_array, 0);
+    int statesize = (int)PyArray_DIM(states_array, 1);
+    //check that state has the dimensions expected
+    if(PyArray_NDIM(states_array) != 2) {
+        PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d", __LINE__);
+        return nullptr;
+    }
+
+    //get pointer as Ctype
+    int *states = (int*)PyArray_DATA(states_array);
+
+    //-------------------------------//
+    /* Interpret the table of spins */
+    //-------------------------------//
+
+    // because we want to be able to update the state as well: NPY_ARRAY_INOUT_ARRAY and not NPY_ARRAY_IN_ARRAY
+    PyArrayObject *spinstates_array = (PyArrayObject*) PyArray_FROM_OTF(spinstates_obj, NPY_INT32, NPY_ARRAY_INOUT_ARRAY);
+    if(spinstates_array == nullptr) {
+        Py_XDECREF(spinstates_array);
+        PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d (NPY array?)", __LINE__);
+        return nullptr;
+    }
+
+    //int nt_spinstates = (int)PyArray_DIM(spinstates_array, 0);
+    int spinstatesize = (int)PyArray_DIM(spinstates_array, 1);
+    //check that state has the dimensions expected
+    if(PyArray_NDIM(spinstates_array) != 2) {
+        PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d", __LINE__);
+        return nullptr;
+    }
+
+    //get pointer as Ctype
+    int *spinstates = (int*)PyArray_DATA(spinstates_array);
+
+
+    //--------------------------------------//
+    /* Interpret the table of temperatures */
+    //--------------------------------------//
+
+    PyArrayObject *stat_temps_array = (PyArrayObject*) PyArray_FROM_OTF(stat_temps_obj, NPY_INT32, NPY_ARRAY_IN_ARRAY);
+    if(stat_temps_array == nullptr) {
+        Py_XDECREF(stat_temps_array);
+        PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d (NPY array?)", __LINE__);
+        return nullptr;
+    }
+
+    int nbstat = (int)PyArray_DIM(stat_temps_array, 0);
+    //check that state has the dimensions expected
+    if(PyArray_NDIM(stat_temps_array) != 1) {
+        PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d", __LINE__);
+        return nullptr;
+    }
+    //get pointer as Ctype
+    int *stat_temps = (int*)PyArray_DATA(stat_temps_array);
+
+    //--------------------------------------//
+    /* Interpret the table of sidlist */
+    //--------------------------------------//
+
+    PyArrayObject *sidlist_array = (PyArrayObject*) PyArray_FROM_OTF(sidlist_obj, NPY_INT32, NPY_ARRAY_IN_ARRAY);
+    if(sidlist_array == nullptr) {
+        Py_XDECREF(sidlist_array);
+        PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d (NPY array?)", __LINE__);
+        return nullptr;
+    }
+
+    //int nbits = (int)PyArray_DIM(sidlist_array, 0);
+    //check that state has the dimensions expected
+    if(PyArray_NDIM(sidlist_array) != 1) {
+        PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d", __LINE__);
+        return nullptr;
+    }
+    //get pointer as Ctype
+    int *sidlist = (int*)PyArray_DATA(sidlist_array);
+
+    //--------------------------------------//
+    /* Interpret the table of didlist */
+    //--------------------------------------//
+
+    PyArrayObject *didlist_array = (PyArrayObject*) PyArray_FROM_OTF(didlist_obj, NPY_INT32, NPY_ARRAY_IN_ARRAY);
+    if(didlist_array == nullptr) {
+        Py_XDECREF(didlist_array);
+        PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d (NPY array?)", __LINE__);
+        return nullptr;
+    }
+
+    int nbit = (int)PyArray_DIM(didlist_array, 0);
+    //check that state has the dimensions expected
+    if(PyArray_NDIM(didlist_array) != 1) {
+        PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d", __LINE__);
+        return nullptr;
+    }
+    //get pointer as Ctype
+    int *didlist = (int*)PyArray_DATA(didlist_array);
+  //-----------------------------FUNCTION CALL---------------------------------------------------------------------//
+
+    //------------------------------------//
+    /* Call the updatespinstates C function */
+    //------------------------------------//
+    PyThreadState* threadState = PyEval_SaveThread(); // release the GIL
+    updatespinstates(states, spinstates, stat_temps, sidlist, didlist, nbstat, statesize, spinstatesize, nthreads, nbit);
+    PyEval_RestoreThread(threadState); // claim the GIL
+
+    // Clean up
+    Py_DECREF(states_array);
+    Py_DECREF(spinstates_array);
+    Py_DECREF(sidlist_array);
+    Py_DECREF(didlist_array);
+    Py_DECREF(stat_temps_array);
+      //build output
+
+    /* Build the output */
+    PyObject *ret = Py_BuildValue("d", 0);
+    return ret;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
 //****** MANYDUALWORMS *******//
 static PyObject* dimers_manydualworms(PyObject *self, PyObject *args) {
@@ -412,7 +575,8 @@ static PyObject* dimers_manydualworms(PyObject *self, PyObject *args) {
      * >> A numpy table of which dimers to count for each winding number
      * >> A temperature */
 
-    PyObject *list_obj, *state_obj, *d_nd_obj, *d_vd_obj, *d_wn_obj;
+    PyObject *list_obj;
+    PyObject *state_obj, *d_nd_obj, *d_vd_obj, *d_wn_obj;
     double beta;
     int saveloops;
     int nmaxiter;
@@ -444,7 +608,7 @@ static PyObject* dimers_manydualworms(PyObject *self, PyObject *args) {
     // if the list is longer than only one element
     int listsize = PyList_Size(list_obj);
     vector<tuple<double, int*, int, int>> interactions(listsize - 1);
-    vector<PyObject*> Marray_list(listsize-1);
+    vector<PyArrayObject*> Marray_list(listsize-1);
 
     bool ok;
     interactions = getInteractions(list_obj, Marray_list, &ok);
@@ -454,8 +618,8 @@ static PyObject* dimers_manydualworms(PyObject *self, PyObject *args) {
     /* Interpret the pointer to state */
     //---------------------------------//
 
-    // because we want to be able to update the state as well: NPY_INOUT_ARRAY and not NPY_IN_ARRAY
-    PyObject *state_array = PyArray_FROM_OTF(state_obj, NPY_INT32, NPY_INOUT_ARRAY);
+    // because we want to be able to update the state as well: NPY_ARRAY_INOUT_ARRAY and not NPY_ARRAY_IN_ARRAY
+    PyArrayObject *state_array = (PyArrayObject*) PyArray_FROM_OTF(state_obj, NPY_INT32, NPY_ARRAY_INOUT_ARRAY);
     if(state_array == nullptr) {
         Py_XDECREF(state_array);
         PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d", __LINE__);
@@ -476,8 +640,8 @@ static PyObject* dimers_manydualworms(PyObject *self, PyObject *args) {
     /* Interpret the pointers to dimer tables */
     //-----------------------------------------//
 
-    PyObject *d_nd_array = PyArray_FROM_OTF(d_nd_obj, NPY_INT32, NPY_IN_ARRAY); // dimers to dimers via n-sites
-    PyObject *d_vd_array = PyArray_FROM_OTF(d_vd_obj, NPY_INT32, NPY_IN_ARRAY); // dimers to dimers via v-sites
+    PyArrayObject *d_nd_array = (PyArrayObject*) PyArray_FROM_OTF(d_nd_obj, NPY_INT32, NPY_ARRAY_IN_ARRAY); // dimers to dimers via n-sites
+    PyArrayObject *d_vd_array = (PyArrayObject*) PyArray_FROM_OTF(d_vd_obj, NPY_INT32, NPY_ARRAY_IN_ARRAY); // dimers to dimers via v-sites
 
     if(d_nd_array == nullptr || d_vd_array == nullptr) {
         Py_XDECREF(d_nd_array);
@@ -520,7 +684,7 @@ static PyObject* dimers_manydualworms(PyObject *self, PyObject *args) {
     /* Interpret the pointer to winding number table */
     //------------------------------------------------//
     // get the pointer as numpy array
-    PyObject *d_wn_array = PyArray_FROM_OTF(d_wn_obj, NPY_INT32, NPY_IN_ARRAY);
+    PyArrayObject *d_wn_array = (PyArrayObject*) PyArray_FROM_OTF(d_wn_obj, NPY_INT32, NPY_ARRAY_IN_ARRAY);
 
     if(d_wn_array == nullptr) {
         Py_XDECREF(d_wn_array);
@@ -559,13 +723,13 @@ static PyObject* dimers_manydualworms(PyObject *self, PyObject *args) {
     //build output
 
     PyObject *effective_update_list = PyList_New(effective_update.size()); //list of dual bonds, i.e. list of int
-    for (int i = 0; i < effective_update.size(); i++) {
+    for (unsigned int i = 0; i < effective_update.size(); i++) {
         PyObject *dualbond = Py_BuildValue("i", effective_update[i]);
         PyList_SetItem(effective_update_list, i, dualbond);
     }
 
     PyObject *looplengthslist = PyList_New(looplengths.size()); //list of length of loops, i.e. list of int
-    for (int i = 0; i < looplengths.size(); i++) {
+    for (unsigned int i = 0; i < looplengths.size(); i++) {
         PyObject *looplength = Py_BuildValue("i", looplengths[i]);
         PyList_SetItem(looplengthslist, i, looplength);
     }
@@ -636,7 +800,7 @@ double parseTupleJ(PyObject *tuple_obj) {
 }
 
 // For M
-int* parseTupleM(PyObject *tuple_obj, PyObject **PtrM_array) {
+int* parseTupleM(PyObject *tuple_obj, PyArrayObject **PtrM_array) {
     // Get the M_object
     PyObject *M_obj = PyTuple_GetItem(tuple_obj, 1);
     // check for issues
@@ -646,7 +810,7 @@ int* parseTupleM(PyObject *tuple_obj, PyObject **PtrM_array) {
     }
 
     //interpret as numpy array
-    *PtrM_array = PyArray_FROM_OTF(M_obj, NPY_INT32, NPY_IN_ARRAY); //obj (a_obj), typenum (int),  requirements (C-contiguous)
+    *PtrM_array = (PyArrayObject*) PyArray_FROM_OTF(M_obj, NPY_INT32, NPY_ARRAY_IN_ARRAY); //obj (a_obj), typenum (int),  requirements (C-contiguous)
     if(*PtrM_array == nullptr) {
         Py_XDECREF(*PtrM_array); //decrease the allocation pile if not already null
         PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d", __LINE__);
@@ -667,7 +831,7 @@ int* parseTupleM(PyObject *tuple_obj, PyObject **PtrM_array) {
 }
 
 //*** GET INTERACTIONS ***//
-vector<tuple<double, int*, int, int>> getInteractions(PyObject *list_obj, vector<PyObject*>& Marray_list, bool* ok) {
+vector<tuple<double, int*, int, int>> getInteractions(PyObject *list_obj, vector<PyArrayObject*>& Marray_list, bool* ok) {
     *ok = false;
     int listsize = PyList_Size(list_obj);
     vector<tuple<double, int*, int, int>> interactions(listsize-1);
@@ -701,10 +865,10 @@ vector<tuple<double, int*, int, int>> getInteractions(PyObject *list_obj, vector
 //*** GET LIST ***//
 /*tuple<double, int, vector<tuple<double, int*, int, int>>>  getList(list_obj) {
     //----------------------------//
-    /* Interpret the list input  */
+    // Interpret the list input   //
     //----------------------------//
     // check that the list_obj is indeed a list
-/*    if(!PyList_Check(list_obj)) {
+    if(!PyList_Check(list_obj)) {
          PyErr_Format(PyExc_ValueError,
                          "DIMERS.cpp : Give mea list to work with, I'm line %d", \
                          __LINE__);
@@ -720,7 +884,7 @@ vector<tuple<double, int*, int, int>> getInteractions(PyObject *list_obj, vector
     // if the list is longer than only one element
     int listsize = PyList_Size(list_obj);
     vector<tuple<double, int*, int, int>> interactions(listsize - 1);
-    vector<PyObject*> Marray_list(listsize-1);
+    vector<PyArrayObject*> Marray_list(listsize-1);
 
     bool ok;
     interactions = getInteractions(list_obj, Marray_list, &ok);

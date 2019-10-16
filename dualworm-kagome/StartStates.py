@@ -722,8 +722,8 @@ def statesinit(nt, d_ijl, d_2s, s_ijl, hamiltonian, random = True, same = False)
         else:
             print('  >>> D2J4 init')
             DipolarToJ4Init(spinstates, nt, s_ijl)
-    states = np.array(states)
-    spinstates = np.array(spinstates)
+    states = np.array(states, 'int32')
+    spinstates = np.array(spinstates, 'int32')
     #initialise the dimer state according to the spin state
     for t in range(nt):
         for id_dim in range(len(d_ijl)):
@@ -737,5 +737,6 @@ def statesinit(nt, d_ijl, d_2s, s_ijl, hamiltonian, random = True, same = False)
     en_states = [compute_energy(hamiltonian, states[t]) for t in range(nt)] # energy computed via the function in c++
 
     en_states = np.array(en_states)
-    return states, en_states
+    
+    return states, en_states, spinstates
 

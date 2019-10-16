@@ -69,9 +69,9 @@ def main(args):
 
     print('Same initialisation for all temperatures = ', same)
         #dw.statesinit(number of temperatures, dual bond table, spin surrounding dual bonds, spin site table, hamiltonian list, random starting state, same type of starting state for all temperatures)
-    (states, energies) = strst.statesinit(nt, d_ijl, d_2s, s_ijl, hamiltonian, randominit, same)
-
-    spinstates = dw.states_dimers2spins(sidlist, didlist, L, states)
+    (states, energies, spinstates) = strst.statesinit(nt, d_ijl, d_2s, s_ijl, hamiltonian, randominit, same)
+    backup.params.ncores = ncores = args.ncores
+    dw.states_dimers2spins(sidlist, didlist, states, spinstates,nt,ncores)
     new_en_states = [dim.hamiltonian(hamiltonian, states[t]) for t in range(nt)]
     for t in range(nt):
         if np.absolute(energies[t]-new_en_states[t]) > 1.0e-5:
@@ -156,7 +156,7 @@ def main(args):
     backup.results.swapsth = swapsth
     print('Time for all thermalisation steps = ', t2-t1)
 
-    spinstates = dw.states_dimers2spins(sidlist, didlist, L, states)
+    dw.states_dimers2spins(sidlist, didlist, states, spinstates,nt,ncores)
     new_en_states = [dim.hamiltonian(hamiltonian, states[t]) for t in range(nt)]
     for t in range(nt):
         if np.absolute(energies[t]-new_en_states[t]) > 1.0e-5:
@@ -184,13 +184,14 @@ def main(args):
           'ncores':ncores}
     #states = list(states)
     # Run measurements
+    print(type(spinstates))
     t1 = time()
     (backup.results.meanstat, backup.results.swaps) = (meanstat, swaps) = dw.mcs_swaps(states, spinstates,energies, betas, stat_temps,**kw)
     t2 = time()
     print('Time for all measurements steps = ', t2-t1)
 
     #states = np.array(states)
-    spinstates = dw.states_dimers2spins(sidlist, didlist, L, states)
+    dw.states_dimers2spins(sidlist, didlist, states, spinstates,nt,ncores)
     new_en_states = [dim.hamiltonian(hamiltonian, states[t]) for t in range(nt)]
     for t in range(nt):
         if np.absolute(energies[t]-new_en_states[t]) > 1.0e-5:
@@ -261,6 +262,48 @@ if __name__ == "__main__":
     #PARALLELISATION
     parser.add_argument('--ncores', type = int, default = 4,
                         help = 'number of threads to use')
+
+    #WORM PARAMETERS
+    parser.add_argument('--nmaxiter', type = int, default = 10,
+                        help = '''maximal number of segments in a loop update over the
+                        size of the lattice (1 = 1times the number of dualbonds in the
+                        lattice)''')
+    parser.add_argument('--randominit', default = False, action ='store_true',
+                        help = 'intialise the states randomly')
+    parser.add_argument('--same', default = False, action = 'store_true',
+                        help = '''initialise all temperatures with the same
+                        state (debug purposes)''')
+
+    #TEMPERATURE PARAMETERS
+    parser.add_argument('--t_list', nargs = '+', type = float, default = [0.5, 15.0],
+                        help = 'list of limiting temperature values')
+    parser.add_argument('--nt_list', nargs = '+', type = int, default = [28],
+                        help = 'list of number of temperatures in between the given limiting temperatures')
+    parser.add_argument('--log_tlist', default = False, action='store_true',
+                        help = 'state whether you want the temperature be spaced log-like or linear-like (activate if you want log)')
+    parser.add_argument('--stat_temps_lims', nargs = '+', type = float,
+                        help = '''limiting temperatures for the various ranges of
+                        measurements''') 
+                        #default will be set to none, and then we can decide what to do later on.
+
+    #CORRELATIONS PARAMETER
+    parser.add_argument('--energy', default = False, action = 'store_true',
+                        help = 'activate if you want to save the energy')
+    parser.add_argument('--magnetisation', default = False, action = 'store_true',
+                        help = 'activate if you want to save the magnetisation')
+    parser.add_argument('--correlations', default = False, action = 'store_true',
+                        help = 'activate if you want to save either central or all correlations')
+    parser.add_argument('--all_correlations', default = False, action = 'store_true',
+                        help = '''activate if you want to save the correlations for all non-equivalent
+                        pairs of sites. Otherwise, will save central correlations.''')
+    #SAVE
+    parser.add_argument('--output', type = str, default = "randomoutput.dat", help = 'saving filename (.pkl will be added)')
+    args = parser.parse_args()
+    
+    main(args)
+
+
+# In[ ]:
 
     #WORM PARAMETERS
     parser.add_argument('--nmaxiter', type = int, default = 10,
