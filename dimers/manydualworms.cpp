@@ -2,7 +2,7 @@
 #include <random>
 #include <cmath>
 #include <algorithm>
-
+#include "mersenne.h"
 using namespace std;
 
 tuple<double, vector<int>, vector<int>> manydualworms(double J1, vector<tuple<double, int*, int, int>> interactions, int* state, int statesize, int* d_nd, int n_nd, int* d_vd, int n_vd, int* d_wn, double beta, int saveloops, int nmaxiter, int iterworm) {
@@ -78,14 +78,14 @@ tuple<double, int> dualworm(bool* loopclosed, int* w1, int*w2, double J1, vector
 
     /* PICK UP A DIMER AT RANDOM AND SAVE ITS NUMBER */
     // define random generator
-    static std::random_device true_random;
-    static std::mt19937_64 mersenne_engine(true_random()); // seed with true random
+    // static std::random_device true_random;
+    // static std::mt19937_64 mersenne_engine(true_random()); // seed with true random
 
     // define distribution
     uniform_int_distribution<int> int_distrib(0, statesize-1);
 
     // select a dimer at random
-    int entry_dimer = int_distrib(mersenne_engine);
+    int entry_dimer = int_distrib(random_gen());//using random mersenne generator
     int n_dimer = entry_dimer;
 
     /* LOOP WHILE DIMER =/= FIRST DIMER */
@@ -182,7 +182,7 @@ tuple<double, int> dualworm(bool* loopclosed, int* w1, int*w2, double J1, vector
         // new dimer index: exit dimer
         int e_dimer(0);
         //random parameter
-        double r = uniform_real_distribution<double>(0.0, 1.0)(mersenne_engine);
+        double r = uniform_real_distribution<double>(0.0, 1.0)(random_gen());
 
         // make the move and the corresponding updates
         if(r < T[0]) {
@@ -240,7 +240,7 @@ tuple<double, int> dualworm(bool* loopclosed, int* w1, int*w2, double J1, vector
 
         // if the loop isn't closed, pick one of the n-site connected dimers at random
         if(!found){
-            int id = uniform_int_distribution<int>(0,n_nd-1)(mersenne_engine);
+            int id = uniform_int_distribution<int>(0,n_nd-1)(random_gen());
             n_dimer = n_d[id];
         }
         iter++;

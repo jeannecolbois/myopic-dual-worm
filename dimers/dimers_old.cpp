@@ -1,6 +1,7 @@
+
 #include <Python.h> // methods in the API
-#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
-#include "numpy/arrayobject.h" // interact with numpy arrays
+//#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+#include <numpy/arrayobject.h> // interact with numpy arrays
 #include <cmath>
 
 #include "hamiltonian.h"
@@ -24,10 +25,10 @@ PyObject* getTuple(PyObject *list_obj, int index);
 double parseTupleJ(PyObject *tuple_obj);
 
 // For M
-int* parseTupleM(PyObject *tuple_obj, PyArrayObject **PtrM_array);
+int* parseTupleM(PyObject *tuple_obj, PyObject **PtrM_array);
 
 //*** GET INTERACTIONS ***//
-vector<tuple<double, int*, int, int>> getInteractions(PyObject *list_obj, vector<PyObject*>& Marray_list, bool* ok);
+vector<tuple<double, int*, int, int>> getInteractions(PyObject *list_obj, vector<PyArrayObject*>& Marray_list, bool* ok);
 
 ///////////////////INCLUDE SOME EXTRA MODULARISATION !!!!!!!!!!!!!!!!!!!!!!!!!!!!///////////////////////////////////
 
@@ -94,10 +95,9 @@ PyMODINIT_FUNC PyInit_dimers(void) {
 //****** HAMILTONIAN *******//
 
 static PyObject* dimers_hamiltonian(PyObject *self, PyObject *args) {
-    PyObject *list_obj;
-    PyObject *state_obj;
+    PyObject *list_obj, *state_obj;
 
-    if(!PyArg_ParseTuple(args,"OO", &list_obj, &state_obj))
+    if(!PyArg_ParseTuple(args,"OO", &list_obj, &state_obj)) //take the list and the state as pointers to PyObjects
         return nullptr;
 
     //----------------------------//
@@ -106,7 +106,7 @@ static PyObject* dimers_hamiltonian(PyObject *self, PyObject *args) {
     // check that the list_obj is indeed a list
     if(!PyList_Check(list_obj)) {
         PyErr_Format(PyExc_ValueError,
-                         "DIMERS.cpp : Give me a list to work with, I'm line %d", \
+                         "DIMERS.cpp : Give mea list to work with, I'm line %d", \
                          __LINE__);
         return nullptr;
     }
@@ -120,7 +120,7 @@ static PyObject* dimers_hamiltonian(PyObject *self, PyObject *args) {
     // if the list is longer than only one element
     int listsize = PyList_Size(list_obj);
     vector<tuple<double, int*, int, int>> interactions(listsize - 1);
-    vector<PyObject*> Marray_list(listsize-1);
+    vector<PyArrayObject*> Marray_list(listsize-1);
 
     bool ok;
     interactions = getInteractions(list_obj, Marray_list, &ok);
@@ -132,7 +132,7 @@ static PyObject* dimers_hamiltonian(PyObject *self, PyObject *args) {
     /* Interpret the pointer to state */
     //---------------------------------//
 
-    PyArrayObject *state_array = (PyArrayObject*) PyArray_FROM_OTF(state_obj, NPY_INT32, NPY_ARRAY_IN_ARRAY);
+    PyObject *state_array = PyArray_FROM_OTF(state_obj, NPY_INT32, NPY_IN_ARRAY);
     if(state_array == nullptr) {
         Py_XDECREF(state_array); // if there was an issue, decrement the reference (i.e. remove a label) if there is one
         PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d", __LINE__);
@@ -183,8 +183,7 @@ static PyObject* dimers_mcsevolve(PyObject *self, PyObject *args) {
      * >> A maximal number of loops occupancy */
 
      //------------------------------------------------------INPUT INTERPRETATION---------------------------------------------------------------------//
-     PyObject *list_obj;
-     PyObject  *states_obj, *betas_obj, *energies_obj, *d_nd_obj, *d_vd_obj, *d_wn_obj; //*saveloops_obj,
+     PyObject *list_obj, *states_obj, *betas_obj, *energies_obj, *d_nd_obj, *d_vd_obj, *d_wn_obj; //*saveloops_obj,
      int niterworm;
      int nmaxiter;
      int nthreads;
@@ -211,14 +210,14 @@ static PyObject* dimers_mcsevolve(PyObject *self, PyObject *args) {
     // if the list is longer than only one element
     int listsize = PyList_Size(list_obj);
     vector<tuple<double, int*, int, int>> interactions(listsize - 1);
-    vector<PyObject*> Marray_list(listsize-1);
+    vector<PyArrayObject*> Marray_list(listsize-1);
 
     bool ok;
     interactions = getInteractions(list_obj, Marray_list, &ok);
     if(ok == false) return nullptr;
      if(!PyList_Check(list_obj)) {
         PyErr_Format(PyExc_ValueError,
-                         "DIMERS.cpp : Give me a list to work with, I'm line %d", \
+                         "DIMERS.cpp : Give mea list to work with, I'm line %d", \
                          __LINE__);
         return nullptr;
      }
@@ -227,11 +226,11 @@ static PyObject* dimers_mcsevolve(PyObject *self, PyObject *args) {
     /* Interpret the table of states */
     //-------------------------------//
 
-    // because we want to be able to update the state as well: NPY_ARRAY_INOUT_ARRAY and not NPY_ARRAY_IN_ARRAY
-    PyArrayObject *states_array = (PyArrayObject*) PyArray_FROM_OTF(states_obj, NPY_INT32, NPY_ARRAY_INOUT_ARRAY);
+    // because we want to be able to update the state as well: NPY_INOUT_ARRAY and not NPY_IN_ARRAY
+    PyObject *states_array = PyArray_FROM_OTF(states_obj, NPY_INT32, NPY_INOUT_ARRAY);
     if(states_array == nullptr) {
         Py_XDECREF(states_array);
-        PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d (NPY array?)", __LINE__);
+        PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d", __LINE__);
         return nullptr;
     }
 
@@ -250,11 +249,11 @@ static PyObject* dimers_mcsevolve(PyObject *self, PyObject *args) {
     /* Interpret the table of temperatures */
     //--------------------------------------//
 
-    // because we want to be able to update the state as well: NPY_ARRAY_INOUT_ARRAY and not NPY_ARRAY_IN_ARRAY
-    PyArrayObject *betas_array = (PyArrayObject*) PyArray_FROM_OTF(betas_obj, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+    // because we want to be able to update the state as well: NPY_INOUT_ARRAY and not NPY_IN_ARRAY
+    PyObject *betas_array = PyArray_FROM_OTF(betas_obj, NPY_DOUBLE, NPY_IN_ARRAY);
     if(betas_array == nullptr) {
         Py_XDECREF(betas_array);
-        PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d (NPY array?)", __LINE__);
+        PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d", __LINE__);
         return nullptr;
     }
 
@@ -276,10 +275,10 @@ static PyObject* dimers_mcsevolve(PyObject *self, PyObject *args) {
     /* Interpret the table of energies */
     //---------------------------------//
 
-    PyArrayObject *energies_array = (PyArrayObject*) PyArray_FROM_OTF(energies_obj, NPY_DOUBLE, NPY_ARRAY_INOUT_ARRAY); //INOUT: we want to update the energies
+    PyObject *energies_array = PyArray_FROM_OTF(energies_obj, NPY_DOUBLE, NPY_INOUT_ARRAY); //INOUT: we want to update the energies
     if(energies_array == nullptr) {
         Py_XDECREF(energies_array);
-        PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d (NPY array?)", __LINE__);
+        PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d", __LINE__);
         return nullptr;
     }
 
@@ -303,8 +302,8 @@ static PyObject* dimers_mcsevolve(PyObject *self, PyObject *args) {
     /* Interpret the pointers to dimer tables */
     //-----------------------------------------//
 
-    PyArrayObject *d_nd_array = (PyArrayObject*) PyArray_FROM_OTF(d_nd_obj, NPY_INT32, NPY_ARRAY_IN_ARRAY); // dimers to dimers via n-sites
-    PyArrayObject *d_vd_array = (PyArrayObject*) PyArray_FROM_OTF(d_vd_obj, NPY_INT32, NPY_ARRAY_IN_ARRAY); // dimers to dimers via v-sites
+    PyObject *d_nd_array = PyArray_FROM_OTF(d_nd_obj, NPY_INT32, NPY_IN_ARRAY); // dimers to dimers via n-sites
+    PyObject *d_vd_array = PyArray_FROM_OTF(d_vd_obj, NPY_INT32, NPY_IN_ARRAY); // dimers to dimers via v-sites
 
     if(d_nd_array == nullptr || d_vd_array == nullptr) {
         Py_XDECREF(d_nd_array);
@@ -347,7 +346,7 @@ static PyObject* dimers_mcsevolve(PyObject *self, PyObject *args) {
     /* Interpret the pointer to winding number table */
     //------------------------------------------------//
     // get the pointer as numpy array
-    PyArrayObject *d_wn_array = (PyArrayObject*) PyArray_FROM_OTF(d_wn_obj, NPY_INT32, NPY_ARRAY_IN_ARRAY);
+    PyObject *d_wn_array = PyArray_FROM_OTF(d_wn_obj, NPY_INT32, NPY_IN_ARRAY);
 
     if(d_wn_array == nullptr) {
         Py_XDECREF(d_wn_array);
@@ -396,7 +395,7 @@ static PyObject* dimers_mcsevolve(PyObject *self, PyObject *args) {
     for (int i = 0; i < looplengths.size(); i++) {
         PyObject *looplength = Py_BuildValue("i", looplengths[i]);
         PyList_SetItem(looplengthslist, i, looplength);
-    }*/
+    }
 
     /* Build the output */
     PyObject *ret = Py_BuildValue("d", 0);
@@ -413,8 +412,7 @@ static PyObject* dimers_manydualworms(PyObject *self, PyObject *args) {
      * >> A numpy table of which dimers to count for each winding number
      * >> A temperature */
 
-    PyObject *list_obj;
-    PyObject *state_obj, *d_nd_obj, *d_vd_obj, *d_wn_obj;
+    PyObject *list_obj, *state_obj, *d_nd_obj, *d_vd_obj, *d_wn_obj;
     double beta;
     int saveloops;
     int nmaxiter;
@@ -446,7 +444,7 @@ static PyObject* dimers_manydualworms(PyObject *self, PyObject *args) {
     // if the list is longer than only one element
     int listsize = PyList_Size(list_obj);
     vector<tuple<double, int*, int, int>> interactions(listsize - 1);
-    vector<PyObject*> Marray_list(listsize-1);
+    vector<PyArrayObject*> Marray_list(listsize-1);
 
     bool ok;
     interactions = getInteractions(list_obj, Marray_list, &ok);
@@ -456,8 +454,8 @@ static PyObject* dimers_manydualworms(PyObject *self, PyObject *args) {
     /* Interpret the pointer to state */
     //---------------------------------//
 
-    // because we want to be able to update the state as well: NPY_ARRAY_INOUT_ARRAY and not NPY_ARRAY_IN_ARRAY
-    PyArrayObject *state_array = (PyArrayObject*) PyArray_FROM_OTF(state_obj, NPY_INT32, NPY_ARRAY_INOUT_ARRAY);
+    // because we want to be able to update the state as well: NPY_INOUT_ARRAY and not NPY_IN_ARRAY
+    PyObject *state_array = PyArray_FROM_OTF(state_obj, NPY_INT32, NPY_INOUT_ARRAY);
     if(state_array == nullptr) {
         Py_XDECREF(state_array);
         PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d", __LINE__);
@@ -478,8 +476,8 @@ static PyObject* dimers_manydualworms(PyObject *self, PyObject *args) {
     /* Interpret the pointers to dimer tables */
     //-----------------------------------------//
 
-    PyArrayObject *d_nd_array = (PyArrayObject*) PyArray_FROM_OTF(d_nd_obj, NPY_INT32, NPY_ARRAY_IN_ARRAY); // dimers to dimers via n-sites
-    PyArrayObject *d_vd_array = (PyArrayObject*) PyArray_FROM_OTF(d_vd_obj, NPY_INT32, NPY_ARRAY_IN_ARRAY); // dimers to dimers via v-sites
+    PyObject *d_nd_array = PyArray_FROM_OTF(d_nd_obj, NPY_INT32, NPY_IN_ARRAY); // dimers to dimers via n-sites
+    PyObject *d_vd_array = PyArray_FROM_OTF(d_vd_obj, NPY_INT32, NPY_IN_ARRAY); // dimers to dimers via v-sites
 
     if(d_nd_array == nullptr || d_vd_array == nullptr) {
         Py_XDECREF(d_nd_array);
@@ -522,7 +520,7 @@ static PyObject* dimers_manydualworms(PyObject *self, PyObject *args) {
     /* Interpret the pointer to winding number table */
     //------------------------------------------------//
     // get the pointer as numpy array
-    PyArrayObject *d_wn_array = (PyArrayObject*) PyArray_FROM_OTF(d_wn_obj, NPY_INT32, NPY_ARRAY_IN_ARRAY);
+    PyObject *d_wn_array = PyArray_FROM_OTF(d_wn_obj, NPY_INT32, NPY_IN_ARRAY);
 
     if(d_wn_array == nullptr) {
         Py_XDECREF(d_wn_array);
@@ -561,13 +559,13 @@ static PyObject* dimers_manydualworms(PyObject *self, PyObject *args) {
     //build output
 
     PyObject *effective_update_list = PyList_New(effective_update.size()); //list of dual bonds, i.e. list of int
-    for (unsigned int i = 0; i < effective_update.size(); i++) {
+    for (int i = 0; i < effective_update.size(); i++) {
         PyObject *dualbond = Py_BuildValue("i", effective_update[i]);
         PyList_SetItem(effective_update_list, i, dualbond);
     }
 
     PyObject *looplengthslist = PyList_New(looplengths.size()); //list of length of loops, i.e. list of int
-    for (unsigned int i = 0; i < looplengths.size(); i++) {
+    for (int i = 0; i < looplengths.size(); i++) {
         PyObject *looplength = Py_BuildValue("i", looplengths[i]);
         PyList_SetItem(looplengthslist, i, looplength);
     }
@@ -638,7 +636,7 @@ double parseTupleJ(PyObject *tuple_obj) {
 }
 
 // For M
-int* parseTupleM(PyObject *tuple_obj, PyArrayObject **PtrM_array) {
+int* parseTupleM(PyObject *tuple_obj, PyObject **PtrM_array) {
     // Get the M_object
     PyObject *M_obj = PyTuple_GetItem(tuple_obj, 1);
     // check for issues
@@ -648,7 +646,7 @@ int* parseTupleM(PyObject *tuple_obj, PyArrayObject **PtrM_array) {
     }
 
     //interpret as numpy array
-    *PtrM_array = (PyArrayObject*) PyArray_FROM_OTF(M_obj, NPY_INT32, NPY_ARRAY_IN_ARRAY); //obj (a_obj), typenum (int),  requirements (C-contiguous)
+    *PtrM_array = PyArray_FROM_OTF(M_obj, NPY_INT32, NPY_IN_ARRAY); //obj (a_obj), typenum (int),  requirements (C-contiguous)
     if(*PtrM_array == nullptr) {
         Py_XDECREF(*PtrM_array); //decrease the allocation pile if not already null
         PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d", __LINE__);
@@ -703,10 +701,10 @@ vector<tuple<double, int*, int, int>> getInteractions(PyObject *list_obj, vector
 //*** GET LIST ***//
 /*tuple<double, int, vector<tuple<double, int*, int, int>>>  getList(list_obj) {
     //----------------------------//
-    // Interpret the list input   //
+    /* Interpret the list input  */
     //----------------------------//
     // check that the list_obj is indeed a list
-    if(!PyList_Check(list_obj)) {
+/*    if(!PyList_Check(list_obj)) {
          PyErr_Format(PyExc_ValueError,
                          "DIMERS.cpp : Give mea list to work with, I'm line %d", \
                          __LINE__);
@@ -722,7 +720,7 @@ vector<tuple<double, int*, int, int>> getInteractions(PyObject *list_obj, vector
     // if the list is longer than only one element
     int listsize = PyList_Size(list_obj);
     vector<tuple<double, int*, int, int>> interactions(listsize - 1);
-    vector<PyObject*> Marray_list(listsize-1);
+    vector<PyArrayObject*> Marray_list(listsize-1);
 
     bool ok;
     interactions = getInteractions(list_obj, Marray_list, &ok);
