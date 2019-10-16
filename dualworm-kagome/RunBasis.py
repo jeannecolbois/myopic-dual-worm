@@ -69,9 +69,9 @@ def main(args):
 
     print('Same initialisation for all temperatures = ', same)
         #dw.statesinit(number of temperatures, dual bond table, spin surrounding dual bonds, spin site table, hamiltonian list, random starting state, same type of starting state for all temperatures)
-    (states, energies) = strst.statesinit(nt, d_ijl, d_2s, s_ijl, hamiltonian, randominit, same)
-
-    spinstates = dw.states_dimers2spins(sidlist, didlist, L, states)
+    (states, energies, spinstates) = strst.statesinit(nt, d_ijl, d_2s, s_ijl, hamiltonian, randominit, same)
+    backup.params.ncores = ncores = args.ncores
+    dw.states_dimers2spins(sidlist, didlist, states, spinstates,nt,ncores)
     new_en_states = [dim.hamiltonian(hamiltonian, states[t]) for t in range(nt)]
     for t in range(nt):
         if np.absolute(energies[t]-new_en_states[t]) > 1.0e-5:
@@ -156,7 +156,7 @@ def main(args):
     backup.results.swapsth = swapsth
     print('Time for all thermalisation steps = ', t2-t1)
 
-    spinstates = dw.states_dimers2spins(sidlist, didlist, L, states)
+    dw.states_dimers2spins(sidlist, didlist, states, spinstates,nt,ncores)
     new_en_states = [dim.hamiltonian(hamiltonian, states[t]) for t in range(nt)]
     for t in range(nt):
         if np.absolute(energies[t]-new_en_states[t]) > 1.0e-5:
@@ -184,13 +184,14 @@ def main(args):
           'ncores':ncores}
     #states = list(states)
     # Run measurements
+    print(type(spinstates))
     t1 = time()
     (backup.results.meanstat, backup.results.swaps) = (meanstat, swaps) = dw.mcs_swaps(states, spinstates,energies, betas, stat_temps,**kw)
     t2 = time()
     print('Time for all measurements steps = ', t2-t1)
 
     #states = np.array(states)
-    spinstates = dw.states_dimers2spins(sidlist, didlist, L, states)
+    dw.states_dimers2spins(sidlist, didlist, states, spinstates,nt,ncores)
     new_en_states = [dim.hamiltonian(hamiltonian, states[t]) for t in range(nt)]
     for t in range(nt):
         if np.absolute(energies[t]-new_en_states[t]) > 1.0e-5:
