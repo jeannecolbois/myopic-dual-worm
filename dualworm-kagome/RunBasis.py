@@ -3,7 +3,6 @@
 
 # In[ ]:
 
-
 import numpy as np
 import dimers as dim
 import DualwormFunctions as dw
@@ -19,7 +18,6 @@ import argparse
 
 
 # In[ ]:
-
 
 def main(args):
     ### PREPARE SAVING
@@ -190,6 +188,9 @@ def main(args):
                 return 0
             else:
                 return 1
+    else:
+        def m2id(magn):
+            return 0
             
     kw = {'nb':nb,'num_in_bin':num_in_bin, 'iterworm':iterworm,
           'nitermax':nmaxiter,'check':check,
@@ -247,7 +248,6 @@ def main(args):
 
 
 # In[ ]:
-
 
 if __name__ == "__main__":
 
