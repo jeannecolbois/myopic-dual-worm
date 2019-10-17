@@ -92,6 +92,7 @@ def main(args):
     if magnetisation:
         observables.append(obs.magnetisation)
         observableslist.append('Magnetisation')
+        magnfuncid = observableslist.index('Magnetisation')
     backup.params.correlations = correlations = args.correlations
     backup.params.all_correlations = all_correlations = args.all_correlations
     if correlations:
@@ -174,14 +175,30 @@ def main(args):
     backup.results.namefunctions = observableslist #TODO set functions corresponding to the above
     print(backup.results.namefunctions)
     check = 1 #turn to spins and check match works
-
+    
+    backup.params.measupdate = measupdate = args.measupdate
+    if measupdate:
+        nnspins, s2p = dw.spin2plaquette(ijl_s, s_ijl, s2_d,L)
+    else:
+        nnspins = []
+        s2p = []
+    
+    backup.params.magnstats = magnstats = args.magnstats
+    if magnstats:
+        def m2id(magn):
+            if abs(magn)< 0.1:
+                return 0
+            else:
+                return 1
+            
     kw = {'nb':nb,'num_in_bin':num_in_bin, 'iterworm':iterworm,
           'nitermax':nmaxiter,'check':check,
           'statsfunctions':statsfunctions,
           'nt':nt, 'hamiltonian':hamiltonian,
           'd_nd':d_nd,'d_vd':d_vd,'d_wn':d_wn, 'd_2s':d_2s, 's2_d':s2_d,
           'sidlist':sidlist,'didlist':didlist,'s_ijl':s_ijl,'ijl_s':ijl_s,'L':L,
-          'ncores':ncores}
+          'ncores':ncores, 'measupdate': measupdate, 'nnspins': nnspins, 's2p':s2p, 
+          'magnstats':magnstats, 'm2id':m2id, 'magnfuncid':magnfuncid}
     #states = list(states)
     # Run measurements
     print(type(spinstates))
@@ -203,19 +220,19 @@ def main(args):
     t_meanfunc = list() #for each function, for each temperature, mean of the state function
     t_varmeanfunc = list() #for each function, for each temperature, variance of the state function
     numsites = len(s_ijl)
+    if not magnstats:
+        for idtuple, stattuple in enumerate(meanstat):
+            # means:
+            t_meanfunc.append((np.array(stattuple[0]).sum(1)/nb, np.array(stattuple[1]).sum(1)/nb))
 
-    for idtuple, stattuple in enumerate(meanstat):
-        # means:
-        t_meanfunc.append((np.array(stattuple[0]).sum(1)/nb, np.array(stattuple[1]).sum(1)/nb))
-
-        #variances:
-        tuplevar1 = [0 for t in stat_temps]
-        tuplevar2 = [0 for t in stat_temps]
-        for resid, t in enumerate(stat_temps):
-            for b in range(nb):
-                tuplevar1[resid] += ((stattuple[0][resid][b] - t_meanfunc[idtuple][0][resid]) ** 2)/(nb * (nb - 1))
-                tuplevar2[resid] += ((stattuple[1][resid][b] - t_meanfunc[idtuple][1][resid]) ** 2)/(nb * (nb - 1))
-        t_varmeanfunc.append((tuplevar1, tuplevar2))
+            #variances:
+            tuplevar1 = [0 for t in stat_temps]
+            tuplevar2 = [0 for t in stat_temps]
+            for resid, t in enumerate(stat_temps):
+                for b in range(nb):
+                    tuplevar1[resid] += ((stattuple[0][resid][b] - t_meanfunc[idtuple][0][resid]) ** 2)/(nb * (nb - 1))
+                    tuplevar2[resid] += ((stattuple[1][resid][b] - t_meanfunc[idtuple][1][resid]) ** 2)/(nb * (nb - 1))
+            t_varmeanfunc.append((tuplevar1, tuplevar2))
 
     # Additional results for the correlations are handled directly in AnalysisBasis_3dot1dot5
 
@@ -273,6 +290,8 @@ if __name__ == "__main__":
     parser.add_argument('--same', default = False, action = 'store_true',
                         help = '''initialise all temperatures with the same
                         state (debug purposes)''')
+    parser.add_argument('--measupdate', default = False, action = 'store_true',
+                       help = '''activate to mimic the action of the measuring tip''')
 
     #TEMPERATURE PARAMETERS
     parser.add_argument('--t_list', nargs = '+', type = float, default = [0.5, 15.0],
@@ -285,54 +304,14 @@ if __name__ == "__main__":
                         help = '''limiting temperatures for the various ranges of
                         measurements''') 
                         #default will be set to none, and then we can decide what to do later on.
-
-    #CORRELATIONS PARAMETER
-    parser.add_argument('--energy', default = False, action = 'store_true',
-                        help = 'activate if you want to save the energy')
-    parser.add_argument('--magnetisation', default = False, action = 'store_true',
-                        help = 'activate if you want to save the magnetisation')
-    parser.add_argument('--correlations', default = False, action = 'store_true',
-                        help = 'activate if you want to save either central or all correlations')
-    parser.add_argument('--all_correlations', default = False, action = 'store_true',
-                        help = '''activate if you want to save the correlations for all non-equivalent
-                        pairs of sites. Otherwise, will save central correlations.''')
-    #SAVE
-    parser.add_argument('--output', type = str, default = "randomoutput.dat", help = 'saving filename (.pkl will be added)')
-    args = parser.parse_args()
     
-    main(args)
-
-
-# In[ ]:
-
-    #WORM PARAMETERS
-    parser.add_argument('--nmaxiter', type = int, default = 10,
-                        help = '''maximal number of segments in a loop update over the
-                        size of the lattice (1 = 1times the number of dualbonds in the
-                        lattice)''')
-    parser.add_argument('--randominit', default = False, action ='store_true',
-                        help = 'intialise the states randomly')
-    parser.add_argument('--same', default = False, action = 'store_true',
-                        help = '''initialise all temperatures with the same
-                        state (debug purposes)''')
-
-    #TEMPERATURE PARAMETERS
-    parser.add_argument('--t_list', nargs = '+', type = float, default = [0.5, 15.0],
-                        help = 'list of limiting temperature values')
-    parser.add_argument('--nt_list', nargs = '+', type = int, default = [28],
-                        help = 'list of number of temperatures in between the given limiting temperatures')
-    parser.add_argument('--log_tlist', default = False, action='store_true',
-                        help = 'state whether you want the temperature be spaced log-like or linear-like (activate if you want log)')
-    parser.add_argument('--stat_temps_lims', nargs = '+', type = float,
-                        help = '''limiting temperatures for the various ranges of
-                        measurements''') 
-                        #default will be set to none, and then we can decide what to do later on.
-
     #CORRELATIONS PARAMETER
     parser.add_argument('--energy', default = False, action = 'store_true',
                         help = 'activate if you want to save the energy')
     parser.add_argument('--magnetisation', default = False, action = 'store_true',
                         help = 'activate if you want to save the magnetisation')
+    parser.add_argument('--magnstats', default = False, action = 'store_true', 
+                       help = 'activate if you want to compute the magnetisation statistics')
     parser.add_argument('--correlations', default = False, action = 'store_true',
                         help = 'activate if you want to save either central or all correlations')
     parser.add_argument('--all_correlations', default = False, action = 'store_true',

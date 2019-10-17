@@ -112,6 +112,30 @@ def dualbondspinsitelinks(d_ijl, ijl_s, L):
 # In[ ]:
 
 
+def spin2plaquette(ijl_s, s_ijl, s2_d, L):
+    '''
+        For a lattice with side size L, this function  returns a table giving the
+        four dimers surrounding it (which one would have to flip to flip the spin)
+        and the four nn spins.
+    '''
+    nnspinslinks = [[(0,0,1),(1,0,2),(1,-1,1),(1,-1,2)],
+               [(0,0,0),(0,0,2),(1,0,2),(-1,1,0)],
+               [(0,0,1),(-1,0,0),(-1,0,1),(-1,1,0)]]
+    #without worrying about the PBC:
+    nnspins = [[(i+nnspinslinks[l][u][0], j+nnspinslinks[l][u][1],nnspinslinks[l][u][2]) for u in range(4)]
+               for (i,j,l) in s_ijl]
+    nnspins = [[ijl_s[fixbc(si, sj, sl, L)] for (si,sj,sl) in spinsneighs]
+                        for spinsneighs in nnspins]
+    s2p = [[s2_d[(s1,s2)] for s2 in spinsneighs] for (s1, spinsneighs) in enumerate(nnspins)]
+    nnspins = np.array(nnspins, dtype = 'int32')
+    s2p = np.array(s2p, dtype = 'int32')
+    
+    return nnspins, s2p
+
+
+# In[ ]:
+
+
 def spins_dimers_for_update(s_ijl, ijl_s, s2_d, L):
     '''
         Returns a list of spin site indices and a list of dual bond indices. 

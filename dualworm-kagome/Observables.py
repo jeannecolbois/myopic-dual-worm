@@ -21,6 +21,7 @@ def energy(stlen, state, en_state, spinstate, s_ijl, ijl_s):
 
 def magnetisation(stlen, state, en_state, spinstate, s_ijl, ijl_s):
     M = np.sum(spinstate)
+    #print(M/stlen)
     return abs(M/stlen)
 
 
