@@ -1,7 +1,10 @@
 dimers/build
 tests/
-dualworm-kagome/__pycache__/
+test_random/
 dimers/*.txt
 dualworm-kagome/*.out
 dualworm-kagome/*.pkl
+dualworm-kagome/__pycache__/
+ANALYSIS_CSCS/
 Analysis_CSCS/
+
