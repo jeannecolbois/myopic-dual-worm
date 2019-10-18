@@ -599,7 +599,7 @@ def states_dimers2spins(sidlist, didlist, states, spinstates,nt,ncores):
 # In[ ]:
 
 
-def measupdatespin(tid, sidlist, states, spinstates,nnspins, s2p):
+def measupdatespin(tid, sidlist, states, spinstates,nnspins, s2p, p):
     spinstate = spinstates[tid]
     for sid in range(len(spinstate)):
         s = spinstate[sid]
@@ -608,7 +608,7 @@ def measupdatespin(tid, sidlist, states, spinstates,nnspins, s2p):
             neispinstates = np.array([spinstate[snei] for snei in nnspins[sid]])
             #if it costs no energy:
             if neispinstates.sum() == 0:
-                if not np.random.randint(3):
+                if np.random.random_sample() < p:
                     #flip the spin
                     spinstates[tid][sid] = 1
                     for did in s2p[sid]:
@@ -754,6 +754,7 @@ def mcs_swaps(states, spinstates, statesen,
     m2id = kwargs.get('m2id',None)
     magnfuncid = kwargs.get('magnfuncid', -1)
     measupdate = kwargs.get('measupdate', False)
+    p = kwargs.get('p', 3)
     nnspins = kwargs.get('nnspins',None)
     s2p = kwargs.get('s2p', None)
     nt = kwargs.get('nt',None)
@@ -812,7 +813,7 @@ def mcs_swaps(states, spinstates, statesen,
                                      np.array(sidlist, dtype='int32'), np.array(didlist, dtype='int32'), ncores)
                 if measupdate:
                     for tid in stat_temps:
-                        measupdatespin(tid, sidlist, states, spinstates,nnspins, s2p)
+                        measupdatespin(tid, sidlist, states, spinstates,nnspins, s2p, p)
                 for resid,tid in enumerate(stat_temps):
                     statistics(tid, resid, bid, states, statesen, statstables,
                                spinstates,statsfunctions, sidlist, didlist, L, s_ijl, ijl_s, num_in_bin, stlen)

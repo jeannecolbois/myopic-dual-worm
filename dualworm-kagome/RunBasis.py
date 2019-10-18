@@ -3,6 +3,7 @@
 
 # In[ ]:
 
+
 import numpy as np
 import dimers as dim
 import DualwormFunctions as dw
@@ -18,6 +19,7 @@ import argparse
 
 
 # In[ ]:
+
 
 def main(args):
     ### PREPARE SAVING
@@ -177,9 +179,11 @@ def main(args):
     backup.params.measupdate = measupdate = args.measupdate
     if measupdate:
         nnspins, s2p = dw.spin2plaquette(ijl_s, s_ijl, s2_d,L)
+        backup.params.p = p = args.p
     else:
         nnspins = []
         s2p = []
+        p = 0
     
     backup.params.magnstats = magnstats = args.magnstats
     if magnstats:
@@ -199,7 +203,7 @@ def main(args):
           'd_nd':d_nd,'d_vd':d_vd,'d_wn':d_wn, 'd_2s':d_2s, 's2_d':s2_d,
           'sidlist':sidlist,'didlist':didlist,'s_ijl':s_ijl,'ijl_s':ijl_s,'L':L,
           'ncores':ncores, 'measupdate': measupdate, 'nnspins': nnspins, 's2p':s2p, 
-          'magnstats':magnstats, 'm2id':m2id, 'magnfuncid':magnfuncid}
+          'magnstats':magnstats, 'm2id':m2id, 'magnfuncid':magnfuncid, 'p':p}
     #states = list(states)
     # Run measurements
     print(type(spinstates))
@@ -249,6 +253,7 @@ def main(args):
 
 # In[ ]:
 
+
 if __name__ == "__main__":
 
     ### PARSING
@@ -292,7 +297,8 @@ if __name__ == "__main__":
                         state (debug purposes)''')
     parser.add_argument('--measupdate', default = False, action = 'store_true',
                        help = '''activate to mimic the action of the measuring tip''')
-
+    parser.add_argument('--p', type = float, default = 0.1, 
+                       help = '''prob of the measuring tip flipping the spin (number between 0 and 1)''')
     #TEMPERATURE PARAMETERS
     parser.add_argument('--t_list', nargs = '+', type = float, default = [0.5, 15.0],
                         help = 'list of limiting temperature values')
