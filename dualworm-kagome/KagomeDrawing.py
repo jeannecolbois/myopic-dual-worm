@@ -6,6 +6,8 @@
 
 from functools import lru_cache
 import GraphDrawing as gdw
+import numpy as np
+import matplotlib.pyplot as plt
 
 
 # In[ ]:
@@ -35,6 +37,27 @@ def fixbc(i, j, l, L):
         i = 2*L-1
         j -= L
     return (i, j, l)
+
+
+# In[ ]:
+
+
+def createspinsitetable(L):
+    '''
+        Creates the table of spin sites corresponding to a dice lattice 
+        of side size L.
+        Returns a table identifing an int with the three coordinates of 
+        the spin site and a dictionnary identifying the
+        three coordinates with the spin site's int index. This allows 
+        to handle other relations between spin sites in an
+        easier way.
+    '''
+    s_ijl = [(i, j, l) for i in range(2*L) for j in range(2*L) for l in range(3) if (i+j > L-2) and (i+j < 3*L-1)]
+    # dictionary
+    ijl_s = {}
+    for s, triplet in enumerate(s_ijl):
+        ijl_s[triplet] = s
+    return s_ijl, ijl_s
 
 
 # In[ ]:

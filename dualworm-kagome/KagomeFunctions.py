@@ -421,6 +421,33 @@ def sitepairslist(srefs, s_pos, n1, n2, Leff, distmax):
 # In[ ]:
 
 
+def reducedgraphkag(L, s_ijl, ijl_s):
+    '''
+        For the kagome lattice:
+        returns only one position for each spin (i,j,l) location
+    '''
+    #position
+    s_pos = {} #empty dictionary
+    ijl_pos = {}
+    for s, (i,j,l) in enumerate(s_ijl):
+        x = (2*i + j)
+        y = j * np.sqrt(3)
+        if l == 0:
+            x += 1
+        if l == 1:
+            x += 0.5
+            y +=np.sqrt(3) / 2.0
+        if l == 2:
+            x -= 0.5
+            y += np.sqrt(3) / 2.0
+        s_pos[s] = np.array((x,y))
+        ijl_pos[s_ijl[s]] = np.array((x,y))
+    return s_pos, ijl_pos
+
+
+# In[ ]:
+
+
 def superlattice(L):
     n1 = np.array([np.sqrt(3)/2, -1/2])
     n2 = np.array([np.sqrt(3)/2, 1/2])
@@ -455,7 +482,7 @@ def KagomeNearestNeighboursLists(L, distmax):
     #two spins surrounding each dimer
     (d_2s, s2_d) = dualbondspinsitelinks(d_ijl, ijl_s, L)
     #dimer-dimer connection through entry sites
-    d_nd = nsitesconnections(d_ijl, ijl_d)
+    d_nd = nsitesconnections(d_ijl, ijl_d, L)
     #dimer-dimer connection through vertex sites
     d_vd = vsitesconnections(d_ijl, ijl_d, L)
     #for each dimer, is it takeing into account in winding number 1 or 2?
