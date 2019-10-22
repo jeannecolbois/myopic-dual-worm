@@ -1,17 +1,17 @@
 
 # coding: utf-8
 
-# In[ ]:
+# In[1]:
 
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pickle
-#import KagomeFunctions as kf # "library" allowing to work on Kagome
+import KagomeFunctions as kf # "library" allowing to work on Kagome
 import DualwormFunctions as dw
 
 
-# In[ ]:
+# In[2]:
 
 
 def correlationsTester(state, latsize, d_ijl, ijl_d, L):
@@ -35,7 +35,7 @@ def correlationsTester(state, latsize, d_ijl, ijl_d, L):
     hamiltonian = dw.Hamiltonian(couplings, d_ijl, ijl_d, L)
     EJ4 = dw.compute_energy(hamiltonian, state, latsize)
     
-    config = {'J1':EJ1, 'J2': EJ2, 'J3':, EJ3, 'J4': EJ4}
+    config = {'J1':EJ1, 'J2': EJ2, 'J3':EJ3, 'J4': EJ4}
     print('J1 :', EJ1, '\nJ2 :', EJ2, '\nJ3 :', EJ3, '\nJ4 :', EJ4)
     
     return config
@@ -441,16 +441,16 @@ def BasicPlotsE(L, n, tidmin, tidmax, temperatures_plots, foldername, results_fo
     
     # Mean E
     margin = [0.18, 0.2, 0.02, 0.02]
-    plt.figure(figsize=(6, 4))
+    plt.figure(figsize=(18, 12),dpi=300)
     plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
     for i in range(n):
         col = [0 + i/n, (1 - i/n)**2, 1 - i/n]
         if J2[i] != 0:
             ratio = J3[i]/J2[i]
-            plt.plot(temperatures_plots[i]  , t_MeanE[i], '.-', label = r'$J_3 / J_2$ = {:f}'.format(ratio), color = col)
+            plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]]  , t_MeanE[i][tidmin:tidmax[i]], '.-', label = r'$J_3 / J_2$ = {:f}'.format(ratio), color = col)
         else:
-            plt.plot(temperatures_plots[i]  , t_MeanE[i], '.-', label = r'$J_3 / J_2$ = $\infty$', color = col)
-        plt.fill_between(temperatures_plots[i], (t_MeanE[i] - np.sqrt(t_varMeanE[i])), (t_MeanE[i] + np.sqrt(t_varMeanE[i])), alpha=0.4, color = col)
+            plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]]  , t_MeanE[i][tidmin:tidmax[i]], '.-', label = r'$J_3 / J_2$ = $\infty$', color = col)
+        plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]], (t_MeanE[i][tidmin:tidmax[i]] - np.sqrt(t_varMeanE[i][tidmin:tidmax[i]])), (t_MeanE[i][tidmin:tidmax[i]] + np.sqrt(t_varMeanE[i][tidmin:tidmax[i]])), alpha=0.4, color = col)
     plt.xlabel(r'Temperature $T$')
     plt.ylabel(r'$E$')
     plt.legend(loc= 'best', framealpha=0.5)
@@ -459,15 +459,15 @@ def BasicPlotsE(L, n, tidmin, tidmax, temperatures_plots, foldername, results_fo
     
     #Heat capacity
     margin = [0.18, 0.2, 0.02, 0.02]
-    plt.figure(figsize=(6, 4))
+    plt.figure(figsize=(18, 12), dpi=300)
     plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
     for i in range(n):
         col = [0 + i/n, (1-i/n) **2, 1 -  i/n]
         if J2[i] != 0:
             ratio = J3[i]/J2[i]
-            plt.plot(temperatures_plots[i][tidmin:tidmax[i]]  , C[i][tidmin:tidmax[i]], '.-', label = r'$J_3 / J_2$ = {:f}'.format(ratio), color = col)
+            plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]]  , C[i][tidmin:tidmax[i]], '.-', label = r'$J_3 / J_2$ = {:f}'.format(ratio), color = col)
         else:
-            plt.plot(temperatures_plots[i][tidmin:tidmax[i]]  , C[i][tidmin:tidmax[i]], '.-', label = r'$J_3 / J_2$ = $\infty$', color = col)
+            plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]]  , C[i][tidmin:tidmax[i]], '.-', label = r'$J_3 / J_2$ = $\infty$', color = col)
         plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]], C[i][tidmin:tidmax[i]] - ErrC[i][tidmin:tidmax[i]], C[i][tidmin:tidmax[i]] + ErrC[i][tidmin:tidmax[i]], alpha = 0.5, color = col)
         #print('Error on the heat capacity for file ', filenamelist[i])
         #print(ErrC[i])
@@ -479,15 +479,15 @@ def BasicPlotsE(L, n, tidmin, tidmax, temperatures_plots, foldername, results_fo
 
     #Heat capacity
     margin = [0.18, 0.2, 0.02, 0.02]
-    plt.figure(figsize=(6, 4))
+    plt.figure(figsize=(18, 12), dpi=300)
     plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
     for i in range(n):
         col = [0 + i/n, (1- i/n)**2, 1 -  i/n]
         if J2[i] != 0:
             ratio = J3[i]/J2[i]    
-            plt.plot(temperatures_plots[i][tidmin:tidmax[i]]  , C[i][tidmin:tidmax[i]] / temperatures_plots[i][tidmin:tidmax[i]], '.-', label = r'$J_3 / J_2$ = {:f}'.format(ratio), color = col)
+            plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]]  , C[i][tidmin:tidmax[i]] / temperatures_plots[i][tidmin:tidmax[i]], '.-', label = r'$J_3 / J_2$ = {:f}'.format(ratio), color = col)
         else:
-            plt.plot(temperatures_plots[i][tidmin:tidmax[i]]  , C[i][tidmin:tidmax[i]] / temperatures_plots[i][tidmin:tidmax[i]], '.-', label = r'$J_3 / J_2$ = $\infty$', color = col)
+            plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]]  , C[i][tidmin:tidmax[i]] / temperatures_plots[i][tidmin:tidmax[i]], '.-', label = r'$J_3 / J_2$ = $\infty$', color = col)
         plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]], (C[i][tidmin:tidmax[i]] - ErrC[i][tidmin:tidmax[i]])/temperatures_plots[i][tidmin:tidmax[i]], (C[i][tidmin:tidmax[i]] + ErrC[i][tidmin:tidmax[i]])/temperatures_plots[i][tidmin:tidmax[i]], alpha = 0.5, color = col)
     plt.xlabel(r'Temperature $T$ ')
     plt.ylabel(r'$\frac{c}{k_B T}$')
@@ -534,7 +534,7 @@ def BasicPlotsE(L, n, tidmin, tidmax, temperatures_plots, foldername, results_fo
     plt.savefig('./' + foldername + 'Plots' + results_foldername + '/E(ratio).pgf')
 
 
-# In[2]:
+# In[ ]:
 
 
 def BasicPlotsM(L, n, tidmin, tidmax, temperatures_plots, foldername, results_foldername, filenamelist, t_MeanM, t_MeanMsq, t_varMeanM, t_varMeanMsq, Chi, ErrChi, J1, J2, J3, J4):
@@ -550,7 +550,7 @@ def BasicPlotsM(L, n, tidmin, tidmax, temperatures_plots, foldername, results_fo
     plt.figure(figsize=(6, 4))
     plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
     for i in range(n):
-        plt.plot(temperatures_plots[i][tidmin:tidmax[i]], t_MeanM[i][tidmin:tidmax[i]], '.-')
+        plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]], t_MeanM[i][tidmin:tidmax[i]], '.-')
         plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]],(t_MeanM[i][tidmin:tidmax[i]] - np.sqrt(t_varMeanM[i][tidmin:tidmax[i]])), (t_MeanM[i][tidmin:tidmax[i]] + np.sqrt(t_varMeanM[i][tidmin:tidmax[i]])), alpha=0.4)
     plt.xlabel(r'Temperature $T$ ')
     plt.ylabel('Magnetisation per site')
@@ -562,7 +562,7 @@ def BasicPlotsM(L, n, tidmin, tidmax, temperatures_plots, foldername, results_fo
     plt.figure(figsize=(6, 4))
     plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
     for i in range(n):
-        plt.plot(temperatures_plots[i][tidmin:tidmax[i]]  , Chi[i][tidmin:tidmax[i]], '.-')
+        plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]]  , Chi[i][tidmin:tidmax[i]], '.-')
         plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]], Chi[i][tidmin:tidmax[i]] - ErrChi[i][tidmin:tidmax[i]], Chi[i][tidmin:tidmax[i]] + ErrChi[i][tidmin:tidmax[i]], alpha = 0.5)
     plt.xlabel(r'Temperature $T$ ')
     plt.ylabel('Susceptibility')
