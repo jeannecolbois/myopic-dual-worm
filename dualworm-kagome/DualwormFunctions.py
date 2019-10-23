@@ -14,6 +14,16 @@ from time import time
 # In[ ]:
 
 
+def NearestNeighboursList(L,distmax):
+    '''
+        Returns a list of distances between sites (smaller than distmax) with respect to the 3 reference sites, a dictionary of pairs of sites at a given distance and a list of the nearest neighbour pairs associated with a given site and distance.
+    '''
+    return lattice.NearestNeighboursList(L, distmax)
+
+
+# In[ ]:
+
+
 def createdualtable(L):
     '''
         Creates the table of dual bonds corresponding to the dual lattice 
@@ -313,6 +323,34 @@ def EwaldSum(state, pairslist, s_pos, klat, D, alpha, S, J1supp):
 
 
 ############### Neighbour pairs #####################
+
+
+# In[ ]:
+
+
+def NNpairs(ijl_s, s_ijl, L):
+    return lattice.NNpairs(ijl_s, s_ijl, L)
+
+
+# In[ ]:
+
+
+def NN2pairs(ijl_s, s_ijl, L):
+    return lattice.NN2pairs(ijl_s, s_ijl, L)
+
+
+# In[ ]:
+
+
+def NN3pairs(ijl_s, s_ijl, L):
+    return lattice.NN3pairs(ijl_s, s_ijl, L)
+
+
+# In[ ]:
+
+
+def NN4pairs(ijl_s, s_ijl, L):
+    return lattice.NN4pairs(ijl_s, s_ijl, L)
 
 
 # In[ ]:
@@ -623,7 +661,7 @@ def measupdatespin(tid, sidlist, states, spinstates,nnspins, s2p, p):
 
 
 def statistics(tid, resid, bid, states, statesen, statstables,
-               spinstates,statsfunctions, sidlist, didlist, L, s_ijl, ijl_s, num_in_bin, stlen):
+               spinstates,statsfunctions, sidlist, didlist, L, s_ijl, ijl_s, num_in_bin, stlen, nnlists, magnfuncid):
     '''
         This function updates the statistics in statstables given the states,
         the states energy, the statistical functions, the list of spins and dimers for updates,
@@ -634,13 +672,17 @@ def statistics(tid, resid, bid, states, statesen, statstables,
     #   if no measurement is performed, since the code runs on dimer configurations.
     #   Hence, we can feed the statistics threads with only the temperatures indices for which we are interested in
     #   the statistics.
+    
+    m = 0
    
     for stat_id in range(len(statstables)): #stat_id: index of the statistical
         #function you're currently looking at
         func_per_site = statsfunctions[stat_id](stlen, states[tid], statesen[tid], 
-                                                spinstates[tid], s_ijl, ijl_s) 
+                                                spinstates[tid], s_ijl, ijl_s, nnlists = nnlists, m = m) 
         #evaluation depends on the temperature index
-        
+        if stat_id == magnfuncid:
+            m = func_per_site
+            
         statstables[stat_id][0][resid][bid] += func_per_site / num_in_bin 
         #storage depends on the result index
         
@@ -720,6 +762,7 @@ def mcs_swaps(states, spinstates, statesen,
                 ---- thermodynamic
                 'statsfunctions':
                 'nt':
+                'nnlists': lists of nearest neighbours
                 ---- tables for loop building (worm algorithm)
                 'hamiltonian': see hamiltonian function
                 'd_nd': see nsitesconnections function
@@ -768,6 +811,7 @@ def mcs_swaps(states, spinstates, statesen,
     didlist = kwargs.get('didlist',None)
     L = kwargs.get('L', None)
     ncores = kwargs.get('ncores',4)
+    nnlists = kwargs.get('nnlists',[])
     
 
     ## Define the table for statistics
@@ -811,12 +855,13 @@ def mcs_swaps(states, spinstates, statesen,
             if len(statsfunctions) != 0 or check:
                 dim.updatespinstates(states, spinstates, np.array(stat_temps, dtype='int32'),
                                      np.array(sidlist, dtype='int32'), np.array(didlist, dtype='int32'), ncores)
-                if measupdate:
+                if measupdate:                  
                     for tid in stat_temps:
                         measupdatespin(tid, sidlist, states, spinstates,nnspins, s2p, p)
+                        
                 for resid,tid in enumerate(stat_temps):
                     statistics(tid, resid, bid, states, statesen, statstables,
-                               spinstates,statsfunctions, sidlist, didlist, L, s_ijl, ijl_s, num_in_bin, stlen)
+                               spinstates,statsfunctions, sidlist, didlist, L, s_ijl, ijl_s, num_in_bin, stlen, nnlists, magnfuncid)
             ##### (Sometimes implement parallel updating of the statistics, if worth it)
             ##### (the trade-off is between the memory and the )
             t4 = time()
