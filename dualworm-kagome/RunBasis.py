@@ -31,6 +31,7 @@ def main(args):
     print('Lattice side size: ', L)
     [d_ijl, ijl_d, s_ijl, ijl_s, d_2s, s2_d, 
      d_nd, d_vd, d_wn, sidlist, didlist] = dw.latticeinit(L)
+    
 
     ## Energy
     backup.params.J1 = J1 = args.J1
@@ -82,6 +83,7 @@ def main(args):
     ### INITIALISATION FOR THE MEASUREMENTS
 
     # Observables to measure
+    nnlists = []
     observables = []
     observableslist = []
     backup.params.energy = energy = args.energy
@@ -95,6 +97,7 @@ def main(args):
         magnfuncid = observableslist.index('Magnetisation')
     backup.params.correlations = correlations = args.correlations
     backup.params.all_correlations = all_correlations = args.all_correlations
+    backup.params.firstcorrelations = firstcorrelations = args.firstcorrelations
     if correlations:
         observables.append(obs.si)
         observableslist.append('Si')
@@ -102,8 +105,19 @@ def main(args):
             observables.append(obs.allcorrelations)
             observableslist.append('All_Correlations')
         else:
-            observables.append(obs.centralcorrelations)
-            observableslist.append('Central_Correlations')
+            if firstcorrelations:
+                print("Check: length of s_ijl", len(s_ijl))
+                print("Check: lengthon NN pairslist:", len(dw.NNpairs(ijl_s, s_ijl, L)))
+                print("Check: length of 2ndNN pairs list: ", len(dw.NN2pairs(ijl_s, s_ijl, L)))
+                print("Check: length of 3rdNN pairs list: ", len(dw.NN3pairs(ijl_s, s_ijl, L)))
+                print("Check: length of 4thNN pairs list: ", len(dw.NN4pairs(ijl_s, s_ijl, L)))
+                nnlists = [dw.NNpairs(ijl_s, s_ijl, L), dw.NN2pairs(ijl_s, s_ijl, L),
+                           dw.NN3pairs(ijl_s, s_ijl, L), dw.NN4pairs(ijl_s, s_ijl, L)]
+                observables.append(obs.firstcorrelations)
+                observableslist.append('FirstCorrelations')
+            else:
+                observables.append(obs.centralcorrelations)
+                observableslist.append('Central_Correlations')
 
     print('List of measurements to be performed:', observableslist)
 
@@ -200,6 +214,7 @@ def main(args):
           'nitermax':nmaxiter,'check':check,
           'statsfunctions':statsfunctions,
           'nt':nt, 'hamiltonian':hamiltonian,
+          'nnlists':nnlists,
           'd_nd':d_nd,'d_vd':d_vd,'d_wn':d_wn, 'd_2s':d_2s, 's2_d':s2_d,
           'sidlist':sidlist,'didlist':didlist,'s_ijl':s_ijl,'ijl_s':ijl_s,'L':L,
           'ncores':ncores, 'measupdate': measupdate, 'nnspins': nnspins, 's2p':s2p, 
@@ -323,6 +338,8 @@ if __name__ == "__main__":
     parser.add_argument('--all_correlations', default = False, action = 'store_true',
                         help = '''activate if you want to save the correlations for all non-equivalent
                         pairs of sites. Otherwise, will save central correlations.''')
+    parser.add_argument('--firstcorrelations', default = False, action = 'store_true',
+                        help = 'activate if you want to save first correlations, otherwise will save central')
     #SAVE
     parser.add_argument('--output', type = str, default = "randomoutput.dat", help = 'saving filename (.pkl will be added)')
     args = parser.parse_args()
