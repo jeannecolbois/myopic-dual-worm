@@ -892,7 +892,7 @@ def mcs_swaps(states, spinstates, statesen,
             if measperiod == 1 or it%measperiod == 0:
                 bid = (it//measperiod)//num_in_bin
                 if len(statsfunctions) != 0 or check:
-                    print(bid)
+                    #print(bid)
                     if measupdate:                  
                         for tid in stat_temps:
                             measupdatespin(tid, sidlist, states, spinstates,nnspins, s2p, p)
