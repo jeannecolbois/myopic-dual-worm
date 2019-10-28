@@ -21,7 +21,7 @@ def energy(stlen, state, en_state, spinstate, s_ijl, ijl_s,c2s, csign, **kwargs)
 
 def magnetisation(stlen, state, en_state, spinstate, s_ijl, ijl_s,**kwargs):
     M = np.sum(spinstate)
-    print(M/stlen)
+    #print(M/stlen)
     return abs(M/stlen)
 
 # In[ ]:
@@ -34,8 +34,8 @@ def centralcorrelations(stlen, state, en_state, spinstate, s_ijl, ijl_s,**kwargs
     ref_spin = [spinstate[ijl_s[(L, L, 0)]], spinstate[ijl_s[(L, L, 1)]], spinstate[ijl_s[(L, L, 2)]]]
     central_corr = [ref_spin[0]*spinstate, ref_spin[1]*spinstate, ref_spin[2]*spinstate]
     
-    print(central_corr[0][ijl_s[(L,L,1)]])
-    print(central_corr[0][ijl_s[(L,L,2)]])
+    #print(central_corr[0][ijl_s[(L,L,1)]])
+    #print(central_corr[0][ijl_s[(L,L,2)]])
     return np.array(central_corr) 
 
 
@@ -52,7 +52,7 @@ def firstcorrelations(stlen, state, en_state, spinstate, s_ijl, ijl_s, nnlists =
 
 def charges(stlen, state, en_state, spinstate, s_ijl, ijl_s,c2s = [], csign= [], **kwargs):
     cvals = np.array([csign[c]*(spinstate[s1]+spinstate[s2]+spinstate[s3]) for c, (s1,s2,s3) in enumerate(c2s)])
-    print(sum(abs(cvals)==3)/len(c2s))
+    #print(sum(abs(cvals)==3)/len(c2s))
     return cvals
     
 # In[ ]:

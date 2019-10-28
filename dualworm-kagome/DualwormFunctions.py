@@ -845,6 +845,7 @@ def mcs_swaps(states, spinstates, statesen,
     nnlists = kwargs.get('nnlists',[])
     c2s = kwargs.get('c2s', None)
     csign = kwargs.get('csign', None)
+    measperiod = kwargs.get('measperiod', 1)
     
 
     ## Define the table for statistics
@@ -860,7 +861,7 @@ def mcs_swaps(states, spinstates, statesen,
     else:
         statstables =  []
     ## Iterate
-    itermcs = nb*num_in_bin
+    itermcs = nb*num_in_bin*measperiod
     swaps = [0 for t in range(nt)]
     t_join = 0
     t_spins = 0
@@ -884,19 +885,23 @@ def mcs_swaps(states, spinstates, statesen,
             t_tempering +=(t3-t2)/itermcs
 
             #### STATS update the statistics
-            bid = it//num_in_bin
             if len(statsfunctions) != 0 or check:
-                dim.updatespinstates(states, spinstates, np.array(stat_temps, dtype='int32'),
+                dim.updatespinstates(states, spinstates, np.array(stat_temps, dtype='int32'), 
                                      np.array(sidlist, dtype='int32'), np.array(didlist, dtype='int32'), ncores)
-                if measupdate:                  
-                    for tid in stat_temps:
-                        measupdatespin(tid, sidlist, states, spinstates,nnspins, s2p, p)
-                        
-                for resid,tid in enumerate(stat_temps):
-                    statistics(tid, resid, bid, states, statesen, statstables,
-                               spinstates,statsfunctions, sidlist, didlist, L, s_ijl, ijl_s, num_in_bin, stlen,magnfuncid,
-                              c2s = c2s, csign = csign,nnlists = nnlists)
-            ##### (Sometimes implement parallel updating of the statistics, if worth it)
+            
+            if measperiod == 1 or it%measperiod == 0:
+                bid = (it//measperiod)//num_in_bin
+                if len(statsfunctions) != 0 or check:
+                    print(bid)
+                    if measupdate:                  
+                        for tid in stat_temps:
+                            measupdatespin(tid, sidlist, states, spinstates,nnspins, s2p, p)
+
+                    for resid,tid in enumerate(stat_temps):
+                        statistics(tid, resid, bid, states, statesen, statstables,
+                                   spinstates,statsfunctions, sidlist, didlist, L, s_ijl, ijl_s, num_in_bin, stlen,magnfuncid,
+                                  c2s = c2s, csign = csign,nnlists = nnlists)
+                ##### (Sometimes implement parallel updating of the statistics, if worth it)
             ##### (the trade-off is between the memory and the )
             t4 = time()
             t_spins += (t4-t3)/itermcs

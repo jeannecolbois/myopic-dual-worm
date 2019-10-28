@@ -99,6 +99,7 @@ def main(args):
     if charges:
         observables.append(obs.charges)
         observableslist.append('Charges')
+        cfuncid = observableslist.index('Magnetisation')
     backup.params.correlations = correlations = args.correlations
     backup.params.all_correlations = all_correlations = args.all_correlations
     backup.params.firstcorrelations = firstcorrelations = args.firstcorrelations
@@ -193,7 +194,8 @@ def main(args):
     backup.results.namefunctions = observableslist #TODO set functions corresponding to the above
     print(backup.results.namefunctions)
     check = 1 #turn to spins and check match works
-    
+    backup.params.measperiod = measperiod = args.measperiod
+    print('Measurement period:', measperiod)
     backup.params.measupdate = measupdate = args.measupdate
     if measupdate:
         nnspins, s2p = dw.spin2plaquette(ijl_s, s_ijl, s2_d,L)
@@ -223,7 +225,7 @@ def main(args):
           'sidlist':sidlist,'didlist':didlist,'s_ijl':s_ijl,'ijl_s':ijl_s,'L':L,
           'ncores':ncores, 'measupdate': measupdate, 'nnspins': nnspins, 's2p':s2p, 
           'magnstats':magnstats, 'm2id':m2id, 'magnfuncid':magnfuncid, 'p':p,
-          'c2s':c2s, 'csign':csign}
+          'c2s':c2s, 'csign':csign, 'measperiod':measperiod}
     #states = list(states)
     # Run measurements
     print(type(spinstates))
@@ -298,6 +300,8 @@ if __name__ == "__main__":
                         help = 'number of measurements steps') # number of measurement steps
     parser.add_argument('--nips', type = int, default = 10,
                         help = 'number of worm constructions per MC step')
+    parser.add_argument('--measperiod', type = int, default = 1,
+                        help = 'number of nips worm building + swaps between measurements')
     parser.add_argument('--nb', type = int, default = 20,
                         help = 'number of bins')
 
@@ -319,6 +323,7 @@ if __name__ == "__main__":
                        help = '''activate to mimic the action of the measuring tip''')
     parser.add_argument('--p', type = float, default = 0.1, 
                        help = '''prob of the measuring tip flipping the spin (number between 0 and 1)''')
+    
     #TEMPERATURE PARAMETERS
     parser.add_argument('--t_list', nargs = '+', type = float, default = [0.5, 15.0],
                         help = 'list of limiting temperature values')
