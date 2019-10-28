@@ -12,4 +12,4 @@ cext = Extension(name = "dimers",
 
 
 if __name__=="__main__":
-	setup(ext_modules=[cext], include_dirs = [np.get_include()])
+	setup(ext_modules=[cext])
