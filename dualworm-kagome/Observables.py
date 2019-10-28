@@ -12,7 +12,7 @@ import numpy as np
 # In[ ]:
 
 
-def energy(stlen, state, en_state, spinstate, s_ijl, ijl_s,**kwargs):
+def energy(stlen, state, en_state, spinstate, s_ijl, ijl_s,c2s, csign, **kwargs):
     return en_state/stlen
 
 
@@ -21,6 +21,7 @@ def energy(stlen, state, en_state, spinstate, s_ijl, ijl_s,**kwargs):
 
 def magnetisation(stlen, state, en_state, spinstate, s_ijl, ijl_s,**kwargs):
     M = np.sum(spinstate)
+    print(M/stlen)
     return abs(M/stlen)
 
 # In[ ]:
@@ -41,14 +42,19 @@ def centralcorrelations(stlen, state, en_state, spinstate, s_ijl, ijl_s,**kwargs
 def si(stlen, state, en_state, spinstate, s_ijl, ijl_s,**kwargs):
     return spinstate
 
-def firstcorrelations(stlen, state, en_state, spinstate, s_ijl, ijl_s, nnlists = [], m = 0):
+def firstcorrelations(stlen, state, en_state, spinstate, s_ijl, ijl_s, nnlists = [], m = 0, **kwargs):
     mnow = [[sum([spinstate[s1] for (s1, s2) in nnlist])/len(nnlist),
              sum([spinstate[s2] for (s1, s2) in nnlist])/len(nnlist)]
             for nnlist in nnlists]
-    firstcorr = firstcorr = [sum([spinstate[s1]*spinstate[s2] for (s1,s2) in nnlist])/len(nnlist) - mnow[index][0]*mnow[index][1] for index, nnlist in enumerate(nnlists)]
-    print(firstcorr)
+    firstcorr = [sum([spinstate[s1]*spinstate[s2] for (s1,s2) in nnlist])/len(nnlist) - mnow[index][0]*mnow[index][1] for index, nnlist in enumerate(nnlists)]
+    #print(firstcorr)
     return np.array(firstcorr)
 
+def charges(stlen, state, en_state, spinstate, s_ijl, ijl_s,c2s = [], csign= [], **kwargs):
+    cvals = np.array([csign[c]*(spinstate[s1]+spinstate[s2]+spinstate[s3]) for c, (s1,s2,s3) in enumerate(c2s)])
+    print(sum(abs(cvals)==3)/len(c2s))
+    return cvals
+    
 # In[ ]:
 
 

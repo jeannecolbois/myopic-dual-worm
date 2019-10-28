@@ -30,7 +30,7 @@ def main(args):
     backup.params.L = L = args.L
     print('Lattice side size: ', L)
     [d_ijl, ijl_d, s_ijl, ijl_s, d_2s, s2_d, 
-     d_nd, d_vd, d_wn, sidlist, didlist] = dw.latticeinit(L)
+     d_nd, d_vd, d_wn, sidlist, didlist, c_ijl, ijl_c, c2s, csign] = dw.latticeinit(L)
     
 
     ## Energy
@@ -95,6 +95,10 @@ def main(args):
         observables.append(obs.magnetisation)
         observableslist.append('Magnetisation')
         magnfuncid = observableslist.index('Magnetisation')
+    backup.params.charges = charges = args.charges
+    if charges:
+        observables.append(obs.charges)
+        observableslist.append('Charges')
     backup.params.correlations = correlations = args.correlations
     backup.params.all_correlations = all_correlations = args.all_correlations
     backup.params.firstcorrelations = firstcorrelations = args.firstcorrelations
@@ -218,7 +222,8 @@ def main(args):
           'd_nd':d_nd,'d_vd':d_vd,'d_wn':d_wn, 'd_2s':d_2s, 's2_d':s2_d,
           'sidlist':sidlist,'didlist':didlist,'s_ijl':s_ijl,'ijl_s':ijl_s,'L':L,
           'ncores':ncores, 'measupdate': measupdate, 'nnspins': nnspins, 's2p':s2p, 
-          'magnstats':magnstats, 'm2id':m2id, 'magnfuncid':magnfuncid, 'p':p}
+          'magnstats':magnstats, 'm2id':m2id, 'magnfuncid':magnfuncid, 'p':p,
+          'c2s':c2s, 'csign':csign}
     #states = list(states)
     # Run measurements
     print(type(spinstates))
@@ -255,7 +260,7 @@ def main(args):
             t_varmeanfunc.append((tuplevar1, tuplevar2))
 
     # Additional results for the correlations are handled directly in AnalysisBasis_3dot1dot5
-
+    print("avg magn: ", t_meanfunc[magnfuncid])
     #Save the final results
     backup.results.t_meanfunc = t_meanfunc
     backup.results.t_varmeanfunc = t_varmeanfunc
@@ -333,6 +338,8 @@ if __name__ == "__main__":
                         help = 'activate if you want to save the magnetisation')
     parser.add_argument('--magnstats', default = False, action = 'store_true', 
                        help = 'activate if you want to compute the magnetisation statistics')
+    parser.add_argument('--charges', default = False, action = 'store_true',
+                        help = 'activate if you want to save the charges')
     parser.add_argument('--correlations', default = False, action = 'store_true',
                         help = 'activate if you want to save either central or all correlations')
     parser.add_argument('--all_correlations', default = False, action = 'store_true',

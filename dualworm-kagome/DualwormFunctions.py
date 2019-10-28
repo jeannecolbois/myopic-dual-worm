@@ -83,6 +83,33 @@ def spin2plaquette(ijl_s, s_ijl, s2_d,L):
 # In[ ]:
 
 
+def createchargesitestable(L):
+    '''
+        Creates the table of charge sites corresponding to a dice lattice 
+        of side size L.
+        Returns a table identifing an int with the three coordinates of 
+        the charge site and a dictionnary identifying the
+        three coordinates with the charge site's int index. This allows 
+        to handle other relations between charge sites in an
+        easier way.
+    '''
+    return lattice.createchargesitestable(L)
+
+
+# In[ ]:
+
+
+def charge2spins(c_ijl, ijl_s, L):
+    '''
+        Returns the three spin sites associated with each charge site,
+        and a sign associated with the way the charge should be computed
+    '''
+    return lattice.charge2spins(c_ijl, ijl_s, L)
+
+
+# In[ ]:
+
+
 def spins_dimers_for_update(s_ijl, ijl_s, s2_d, L):
     '''
         Returns a list of spin site indices and a list of dual bond indices. 
@@ -151,8 +178,12 @@ def latticeinit(L):
     d_wn = lattice.windingtable(d_ijl, L)
     #list of spin site indices and dual bond indices for the loop allowing to update the spin state
     (sidlist, didlist) = lattice.spins_dimers_for_update(s_ijl, ijl_s, s2_d, L)
+
+    #charges
+    (c_ijl, ijl_c) = lattice.createchargesitestable(L)
+    (c2s, csign) =lattice.charge2spins(c_ijl, ijl_s, L)
     
-    return d_ijl, ijl_d, s_ijl, ijl_s, d_2s, s2_d, d_nd, d_vd, d_wn, sidlist, didlist
+    return d_ijl, ijl_d, s_ijl, ijl_s, d_2s, s2_d, d_nd, d_vd, d_wn, sidlist, didlist, c_ijl, ijl_c, c2s, csign
 
 
 # In[ ]:
@@ -641,14 +672,14 @@ def measupdatespin(tid, sidlist, states, spinstates,nnspins, s2p, p):
     spinstate = spinstates[tid]
     for sid in range(len(spinstate)):
         s = spinstate[sid]
-        if s == -1 :
+        if s == 1 :
             #if the spin is down, check if we can flip it
             neispinstates = np.array([spinstate[snei] for snei in nnspins[sid]])
             #if it costs no energy:
             if neispinstates.sum() == 0:
                 if np.random.random_sample() < p:
                     #flip the spin
-                    spinstates[tid][sid] = 1
+                    spinstates[tid][sid] = -1
                     for did in s2p[sid]:
                         # and flip the corresponding dimers
                         states[tid][did] *= -1
@@ -661,7 +692,7 @@ def measupdatespin(tid, sidlist, states, spinstates,nnspins, s2p, p):
 
 
 def statistics(tid, resid, bid, states, statesen, statstables,
-               spinstates,statsfunctions, sidlist, didlist, L, s_ijl, ijl_s, num_in_bin, stlen, nnlists, magnfuncid):
+               spinstates,statsfunctions, sidlist, didlist, L, s_ijl, ijl_s, num_in_bin, stlen, magnfuncid, **kwargs):
     '''
         This function updates the statistics in statstables given the states,
         the states energy, the statistical functions, the list of spins and dimers for updates,
@@ -678,7 +709,7 @@ def statistics(tid, resid, bid, states, statesen, statstables,
     for stat_id in range(len(statstables)): #stat_id: index of the statistical
         #function you're currently looking at
         func_per_site = statsfunctions[stat_id](stlen, states[tid], statesen[tid], 
-                                                spinstates[tid], s_ijl, ijl_s, nnlists = nnlists, m = m) 
+                                                spinstates[tid], s_ijl, ijl_s,m=m, **kwargs)# c2s = c2s, csign = csign,nnlists = nnlists, m = m) 
         #evaluation depends on the temperature index
         if stat_id == magnfuncid:
             m = func_per_site
@@ -812,6 +843,8 @@ def mcs_swaps(states, spinstates, statesen,
     L = kwargs.get('L', None)
     ncores = kwargs.get('ncores',4)
     nnlists = kwargs.get('nnlists',[])
+    c2s = kwargs.get('c2s', None)
+    csign = kwargs.get('csign', None)
     
 
     ## Define the table for statistics
@@ -861,7 +894,8 @@ def mcs_swaps(states, spinstates, statesen,
                         
                 for resid,tid in enumerate(stat_temps):
                     statistics(tid, resid, bid, states, statesen, statstables,
-                               spinstates,statsfunctions, sidlist, didlist, L, s_ijl, ijl_s, num_in_bin, stlen, nnlists, magnfuncid)
+                               spinstates,statsfunctions, sidlist, didlist, L, s_ijl, ijl_s, num_in_bin, stlen,magnfuncid,
+                              c2s = c2s, csign = csign,nnlists = nnlists)
             ##### (Sometimes implement parallel updating of the statistics, if worth it)
             ##### (the trade-off is between the memory and the )
             t4 = time()

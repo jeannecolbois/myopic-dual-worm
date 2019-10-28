@@ -112,6 +112,46 @@ def dualbondspinsitelinks(d_ijl, ijl_s, L):
 # In[ ]:
 
 
+def createchargesitestable(L):
+    '''
+        Creates the table of charge sites corresponding to a dice lattice 
+        of side size L.
+        Returns a table identifing an int with the three coordinates of 
+        the charge site and a dictionnary identifying the
+        three coordinates with the charge site's int index. This allows 
+        to handle other relations between charge sites in an
+        easier way.
+    '''
+    c_ijl = [(i, j, l) for i in range(2*L) for j in range(2*L) for l in range(2) if (i+j > L-2) and (i+j < 3*L-1)]
+    # dictionary
+    ijl_c = {}
+    for c, triplet in enumerate(c_ijl):
+        ijl_c[triplet] = c
+    return c_ijl, ijl_c
+
+
+# In[ ]:
+
+
+def charge2spins(c_ijl, ijl_s, L):
+    '''
+        Returns the three spin sites associated with each charge site,
+        and a sign associated with the way the charge should be computed
+    '''
+    relspins = [[(0,0,0),(0,0,1),(1,0,2)],[(0,0,1),(0,0,2),(-1,1,0)]]
+    # without worrying about periodic BC:
+    c2s = [[(ci+relspins[cl][u][0], cj++relspins[cl][u][1], relspins[cl][u][2])
+                      for u in range(3)] for (ci,cj,cl) in c_ijl]
+    csign = [2*cl -1 for (ci,cj,cl) in c_ijl]
+    # fix the periodic boundary conditions
+    c2s = [[ijl_s[fixbc(si,sj,sl,L)] for (si,sj,sl) in cspins]
+                    for cspins in c2s]
+    return c2s, csign
+
+
+# In[ ]:
+
+
 def spin2plaquette(ijl_s, s_ijl, s2_d, L):
     '''
         For a lattice with side size L, this function  returns a table giving the
