@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[1]:
+# In[ ]:
 
 
 import matplotlib.pyplot as plt
@@ -11,7 +11,7 @@ import KagomeFunctions as kf # "library" allowing to work on Kagome
 import DualwormFunctions as dw
 
 
-# In[2]:
+# In[ ]:
 
 
 def correlationsTester(state, latsize, d_ijl, ijl_d, L):
@@ -119,6 +119,83 @@ def LoadParametersFromFile(foldername, filename):
 # In[ ]:
 
 
+def ExtractStatistics(idfunc, meanstat, nb, stat_temps, sq = 0, **kwargs):
+    '''
+        This function gets the statistics from a file and
+        computes the expectation values and variances of 
+        the operator corresponding to idfunc
+        
+        sq = 0 -> not square stats
+        sq = 1 -> square stats
+    '''
+    stattuple = meanstat[idfunc];
+    t_meanfunc = np.array(stattuple[sq]).sum(1)/nb
+    
+    binning = kwargs.get('binning', False)
+
+    t_varmeanfunc = [0 for t in stat_temps]
+    for resid, t in enumerate(stat_temps):
+        for b in range(nb):
+            t_varmeanfunc[resid] += ((stattuple[sq][resid][b] - t_meanfunc[resid]) ** 2)/(nb * (nb - 1))
+    if binning:
+        print('binning!')
+        Binning(t_meanfunc,t_varmeanfunc, stattuple[sq], nb,
+                                stat_temps, **kwargs)
+        
+    return t_meanfunc, t_varmeanfunc
+
+
+# In[ ]:
+
+
+def Binning(t_mean, t_varmean, stattuple, nb, stat_temps, **kwargs):
+    '''
+        This function implements a binning analysis
+    '''
+    ### NAIVE IMPLEMENTATION
+    nblist = []
+    nbb = nb
+    while nbb >= 15:
+        nblist.append(nbb)
+        nbb = nbb//2
+        
+        
+    t_vars = [[] for resid in range(len(stat_temps))]
+    for resid, t in enumerate(stat_temps):
+        var = []
+        for l,nbb in enumerate(nblist):
+            avg = np.array(stattuple[resid][0:(2**l)]).sum(0)/(2**l)
+            varl=((avg - t_mean[resid])**2)/(nbb*(nbb-1))
+            for b in range(1,nbb):
+                avg = np.array(stattuple[resid][(2**l)*b:(2**l)*(b+1)]).sum(0)/(2**l)
+                varl+=((avg - t_mean[resid])**2)/(nbb*(nbb-1))
+            if len(varl.shape) == 0:
+                var.append(varl)
+            else:
+                var.append(np.max(varl))
+            if resid == 0:
+                print(nbb, " --- ", var[l])
+           
+        t_vars[resid] = var
+            
+    plzplot = kwargs.get('plzplot', False)
+    plotmin = kwargs.get('plotmin', 0)
+    plotmax = kwargs.get('plotmax', 10)
+    if plzplot:
+        print('plotting!')
+        plt.figure(figsize=(18, 12),dpi=300)
+        minplt = max(0, plotmin)
+        maxplt = min(plotmax, len(stat_temps))
+        for resid, t in enumerate(stat_temps[minplt:maxplt]):
+            plt.plot(range(len(t_vars[resid])), t_vars[resid], '.-', label = 't = {0}'.format(t))
+        plt.legend()
+        plt.show()
+    t_varmean = [max(var) for var in t_vars] 
+
+
+# In[ ]:
+
+
 def LoadSwaps(foldername, filenamelist, nb, num_in_bin):
     n = len(filenamelist)
     swapsth = [[] for _ in range(n)]
@@ -148,7 +225,7 @@ def LoadSwapsFromFile(foldername, filename, nb, num_in_bin):
 # In[ ]:
 
 
-def LoadEnergy(foldername, filenamelist, numsites, nb, stat_temps, temperatures, listfunctions):
+def LoadEnergy(foldername, filenamelist, numsites, nb, stat_temps, temperatures, listfunctions, **kwargs):
     n = len(filenamelist)
     
     t_MeanE = [[] for _ in range(n)]
@@ -161,7 +238,7 @@ def LoadEnergy(foldername, filenamelist, numsites, nb, stat_temps, temperatures,
     for nf, filename in enumerate(filenamelist):
         if 'Energy' in listfunctions[nf]:
             idfunc = listfunctions[nf].index('Energy')
-            [t_MeanE[nf], t_MeanEsq[nf], t_varMeanE[nf], t_varMeanEsq[nf], C[nf], ErrC[nf]] =                 LoadEnergyFromFile(foldername, filename, numsites[nf], nb[nf], stat_temps[nf], temperatures[nf], idfunc)
+            [t_MeanE[nf], t_MeanEsq[nf], t_varMeanE[nf], t_varMeanEsq[nf], C[nf], ErrC[nf]] =                 LoadEnergyFromFile(foldername, filename, numsites[nf], nb[nf], stat_temps[nf], temperatures[nf], idfunc, **kwargs)
         else:
             [t_MeanE[nf], t_MeanEsq[nf], t_varMeanE[nf], t_varMeanEsq[nf], C[nf], ErrC[nf]] = [[],[],[],[],[],[]]
         
@@ -171,19 +248,20 @@ def LoadEnergy(foldername, filenamelist, numsites, nb, stat_temps, temperatures,
 # In[ ]:
 
 
-def LoadEnergyFromFile(foldername, filename, numsites, nb, stat_temps, temperatures, idfunc):
+def LoadEnergyFromFile(foldername, filename, numsites, nb, stat_temps, temperatures, idfunc, **kwargs):
     f = open('./' + foldername + filename +'.pkl', 'rb')
     backup = pickle.load(f) 
     
     meanstat = backup.results.meanstat
-    t_meanfunc = backup.results.t_meanfunc
-    t_varmeanfunc = backup.results.t_varmeanfunc
+    #t_meanfunc = backup.results.t_meanfunc
+    #t_varmeanfunc = backup.results.t_varmeanfunc
     
-    t_MeanE = t_meanfunc[idfunc][0].tolist()
-    t_MeanEsq = t_meanfunc[idfunc][1].tolist()
-    t_varMeanE = t_varmeanfunc[idfunc][0]
-    t_varMeanEsq = t_varmeanfunc[idfunc][1]
-    
+    t_MeanE, t_varMeanE = ExtractStatistics(idfunc, meanstat, nb, stat_temps, **kwargs)
+    t_MeanEsq, t_varMeanEsq = ExtractStatistics(idfunc, meanstat, nb, stat_temps, sq = 1, **kwargs)
+    #t_MeanE = t_meanfunc[idfunc][0].tolist()
+    #t_MeanEsq = t_meanfunc[idfunc][1].tolist()
+    #t_varMeanE = t_varmeanfunc[idfunc][0]
+    #t_varMeanEsq = t_varmeanfunc[idfunc][1]
     
     C = []
     ErrC = []
@@ -206,7 +284,7 @@ def LoadEnergyFromFile(foldername, filename, numsites, nb, stat_temps, temperatu
                 Mean_VarE += (tb_Esq[resid][b] - tb_E[resid][b] ** 2)/nb
                 Mean_VarE_Sq += ((tb_Esq[resid][b] - tb_E[resid][b] ** 2) ** 2)/nb
         if (Mean_VarE_Sq - Mean_VarE ** 2 >= 0) :
-            ErrC.append(numsites / (T ** 2) * np.sqrt(Mean_VarE_Sq - Mean_VarE ** 2)) 
+            ErrC.append(numsites / (T ** 2) * np.sqrt(Mean_VarE_Sq - Mean_VarE ** 2))
         else:
             assert(Mean_VarE_Sq - Mean_VarE ** 2 >= -1e-15)
             ErrC.append(0)
@@ -219,7 +297,7 @@ def LoadEnergyFromFile(foldername, filename, numsites, nb, stat_temps, temperatu
 # In[ ]:
 
 
-def LoadMagnetisation(foldername, filenamelist, numsites, nb, stat_temps, temperatures, listfunctions):
+def LoadMagnetisation(foldername, filenamelist, numsites, nb, stat_temps, temperatures, listfunctions, **kwargs):
     n = len(filenamelist)
     
     t_MeanM = [[] for _ in range(n)]
@@ -232,7 +310,7 @@ def LoadMagnetisation(foldername, filenamelist, numsites, nb, stat_temps, temper
     for nf, filename in enumerate(filenamelist):
         if 'Magnetisation' in listfunctions[nf]:
             idfunc = listfunctions[nf].index('Magnetisation')
-            [t_MeanM[nf], t_MeanMsq[nf], t_varMeanM[nf], t_varMeanMsq[nf], Chi[nf], ErrChi[nf]] =                 LoadMagnetisationFromFile(foldername, filename, numsites[nf], nb[nf], stat_temps[nf], temperatures[nf], idfunc)
+            [t_MeanM[nf], t_MeanMsq[nf], t_varMeanM[nf], t_varMeanMsq[nf], Chi[nf], ErrChi[nf]] =                 LoadMagnetisationFromFile(foldername, filename, numsites[nf], nb[nf], stat_temps[nf], temperatures[nf], idfunc, **kwargs)
         else:
             [t_MeanM[nf], t_MeanMsq[nf], t_varMeanM[nf], t_varMeanMsq[nf], Chi[nf], ErrChi[nf]] = [[],[],[],[],[],[]]
         
@@ -242,20 +320,14 @@ def LoadMagnetisation(foldername, filenamelist, numsites, nb, stat_temps, temper
 # In[ ]:
 
 
-def LoadMagnetisationFromFile(foldername, filename, numsites, nb, stat_temps, temperatures, idfunc):
+def LoadMagnetisationFromFile(foldername, filename, numsites, nb, stat_temps, temperatures, idfunc,  **kwargs):
     f = open('./' + foldername + filename +'.pkl', 'rb')
     backup = pickle.load(f) 
     
     meanstat = backup.results.meanstat
-    t_meanfunc = backup.results.t_meanfunc
-    t_varmeanfunc = backup.results.t_varmeanfunc
     
-    t_MeanM = t_meanfunc[idfunc][0].tolist()
-    t_MeanMsq = t_meanfunc[idfunc][1].tolist()
-    t_varMeanM = t_varmeanfunc[idfunc][0]
-    t_varMeanMsq = t_varmeanfunc[idfunc][1]
-    
-    
+    t_MeanM, t_varMeanM = ExtractStatistics(idfunc, meanstat, nb, stat_temps, **kwargs)
+    t_MeanMsq, t_varMeanMsq = ExtractStatistics(idfunc, meanstat, nb, stat_temps, sq = 1, **kwargs)
     Chi = []
     ErrChi = []
     for resid, t in enumerate(stat_temps):
@@ -286,7 +358,7 @@ def LoadMagnetisationFromFile(foldername, filename, numsites, nb, stat_temps, te
 # In[ ]:
 
 
-def LoadCentralCorrelations(foldername, filenamelist, listfunctions, sref, stat_temps, nb):
+def LoadCentralCorrelations(foldername, filenamelist, listfunctions, sref, stat_temps, nb, **kwargs):
     n = len(filenamelist)
     
     ## "Correlations" <sisj>
@@ -306,7 +378,7 @@ def LoadCentralCorrelations(foldername, filenamelist, listfunctions, sref, stat_
             idfuncsi = listfunctions[nf].index('Si')
 
             [t_MeanSs[nf], t_varMeanSs[nf], t_MeanSi[nf], t_varMeanSi[nf], t_MeanCorr[nf], 
-             t_errCorrEstim[nf]] = LoadCorrelationsFromFile(foldername, filename, idfunc, idfuncsi, sref[nf], stat_temps, nb[nf])
+             t_errCorrEstim[nf]] = LoadCorrelationsFromFile(foldername, filename, idfunc, idfuncsi, sref[nf], stat_temps[nf], nb[nf], **kwargs)
         else:
             [t_MeanSs[nf], t_varMeanSs[nf], t_MeanSi[nf], t_varMeanSi[nf], t_MeanCorr[nf], 
              t_errCorrEstim[nf]] = [[],[],[],[],[]]
@@ -316,21 +388,23 @@ def LoadCentralCorrelations(foldername, filenamelist, listfunctions, sref, stat_
 # In[ ]:
 
 
-def LoadCorrelationsFromFile(foldername, filename, idfunc, idfuncsi, sref, stat_temps, nb):
+def LoadCorrelationsFromFile(foldername, filename, idfunc, idfuncsi, sref, stat_temps, nb, **kwargs):
     f = open('./' + foldername + filename +'.pkl', 'rb')
     backup = pickle.load(f) 
     
     meanstat = backup.results.meanstat
-    t_meanfunc = backup.results.t_meanfunc
-    t_varmeanfunc = backup.results.t_varmeanfunc
+    #t_meanfunc = backup.results.t_meanfunc
+    #t_varmeanfunc = backup.results.t_varmeanfunc
     
     # Averages and corresponding variances
-    t_MeanSi = t_meanfunc[idfuncsi][0] # <si>
-    t_varMeanSi = t_varmeanfunc[idfuncsi][0] # var(<si>)
+    #t_MeanSi = t_meanfunc[idfuncsi][0] # <si>
+    #t_varMeanSi = t_varmeanfunc[idfuncsi][0] # var(<si>)
+    t_MeanSi, t_varMeanSi = ExtractStatistics(idfuncsi, meanstat, nb, stat_temps, **kwargs)
     
+    #t_MeanSs = t_meanfunc[idfunc][0]
+    #t_varMeanSs = t_varmeanfunc[idfunc][0]
+    t_MeanSs, t_varMeanSs = ExtractStatistics(idfunc, meanstat, nb, stat_temps, **kwargs)
     
-    t_MeanSs = t_meanfunc[idfunc][0]
-    t_varMeanSs = t_varmeanfunc[idfunc][0]
     
     t_MeanCorr = []
     for i in range(len(sref)):
@@ -379,7 +453,7 @@ def CorrelErrorEstimator(meanstat, idfunc, idfuncsi, sref, stat_temps, nb):
 # In[ ]:
 
 
-def LoadSi(foldername, filenamelist, listfunctions):
+def LoadSi(foldername, filenamelist, listfunctions, **kwargs):
     n = len(filenamelist)
     
     t_MeanSi = [[] for _ in range(n)]
@@ -388,7 +462,7 @@ def LoadSi(foldername, filenamelist, listfunctions):
     for nf, filename in enumerate(filenamelist):
         if 'Si' in listfunctions[nf]:
             idfunc = listfunctions[nf].index('Si')
-            [t_MeanSi[nf], t_varMeanSi[nf]] = LoadSiFromFile(foldername, filename, idfunc)
+            [t_MeanSi[nf], t_varMeanSi[nf]] = LoadSiFromFile(foldername, filename, idfunc,stat_temps[nf], **kwargs)
         else:
             [t_MeanSi[nf], t_varMeanSi[nf]] = [[],[]]
             
@@ -398,16 +472,13 @@ def LoadSi(foldername, filenamelist, listfunctions):
 # In[ ]:
 
 
-def LoadSiFromFile(foldername, filename, idfunc):
+def LoadSiFromFile(foldername, filename, idfunc, stat_temps, **kwargs):
     f = open('./' + foldername + filename +'.pkl', 'rb')
     backup = pickle.load(f) 
     
     meanstat = backup.results.meanstat
-    t_meanfunc = backup.results.t_meanfunc
-    t_varmeanfunc = backup.results.t_varmeanfunc
     
-    t_MeanSi = t_meanfunc[idfunc][0].tolist()
-    t_varMeanSi = t_varmeanfunc[idfunc][0]
+    t_MeanSi, t_varMeanSi = ExtractStatistics(idfuncsi, meanstat, nb, stat_temps, **kwargs)
     
     f.close()
     
