@@ -3,192 +3,100 @@
 
 # In[ ]:
 
-
 from DualwormFunctions import compute_energy
 import numpy as np
 
 
 # In[ ]:
 
-
-def candidate(s_ijl):
-    spinstate = np.zeros(len(s_ijl))
-
-    for s, (i, j, l) in enumerate(s_ijl):
-        jp = i + 2*j
-        ######### i = 0 ###############
-        if i%4 == 0:
-            if jp%12 == 0:
-                if l == 0:
-                    spinstate[s] = -1
-                else:
-                    spinstate[s] = 1
-
-            if jp%12 == 2:
-                if l == 1:
-                    spinstate[s] = 1
-                else:
-                    spinstate[s] = -1
-            if jp%12 == 4:
-                if l == 1:
-                    spinstate[s] = -1
-                else:
-                    spinstate[s] = 1
-            if jp%12 == 6:
-                if l == 2:
-                    spinstate[s] = -1
-                else:
-                    spinstate[s] = 1
-            if jp%12 == 8:
-                if l == 1:
-                    spinstate[s] = 1
-                else:
-                    spinstate[s] = -1
-            if jp%12 == 10:
-                if l == 1:
-                    spinstate[s] = -1
-                else:
-                    spinstate[s] = 1
-
-        ########## i = 1 ##############
-        if i%4 == 1:
-            if jp%12 == 1:
-                if l == 1:
-                    spinstate[s] = -1
-                else:
-                    spinstate[s] = 1
-            if jp%12 == 3:
-                if l == 2:
-                    spinstate[s] = 1
-                else:
-                    spinstate[s] = -1
-            if jp%12 == 5:
-                if l == 1:
-                    spinstate[s] = 1
-                else:
-                    spinstate[s] = -1
-            if jp%12 == 7:
-                if l == 2:
-                    spinstate[s] = -1
-                else:
-                    spinstate[s] = 1
-            if jp%12 == 9:
-                if l == 1:
-                    spinstate[s] = 1
-                else:
-                    spinstate[s] = -1
-            if jp%12 == 11:
-                if l == 2:
-                    spinstate[s] = -1
-                else:
-                    spinstate[s] = 1
-
-
-        ########## i = 2 ##############
-        if i%4 == 2:
-            if jp%12 == 0:
+def magnetisedInit(spinstates, nt, s_ijl, same):
+    if same:
+        version = np.random.randint(0,3)
+        spinstate = np.ones(len(s_ijl))
+        for s, (i,j,l) in enumerate(s_ijl):
+            if l == version:
                 spinstate[s] = -1
-            if jp%12 == 2:
-                if l == 0:
-                    spinstate[s] = -1
-                else:
-                    spinstate[s] = 1
-            if jp%12 == 4:
-                if l == 0:
-                    spinstate[s] = -1
-                else:
-                    spinstate[s] = 1
-            if jp%12 == 6:
-                spinstate[s] = -1
-            if jp%12 == 8:
-                if l == 2:
-                    spinstate[s] = -1
-                else:
-                    spinstate[s] = 1
-            if jp%12 == 10:
-                if l == 2:
-                    spinstate[s] = -1
-                else:
-                    spinstate[s] = 1
+            else:
+                spinstate[s] = 1
+        
+        spinstates = [np.copy(spinstate) for t in range(nt)] # to make sure that it is DIFFERENT states
+            
+    else:
+        versions = [np.random.randint(0,3) for t in range(nt)]
 
-
-        ########## i = 3 ##############
-        if i%4 == 3:
-            if jp%12 == 1:
-                if l == 0:
-                    spinstate[s] = -1
+        for t in range(nt):
+            for s, (i,j,l) in enumerate(s_ijl):
+                if l == versions[t]:
+                    spinstates[t][s] = -1
                 else:
-                    spinstate[s] = 1
-            if jp%12 == 3:
-                if l == 1:
-                    spinstate[s] = 1
-                else:
-                    spinstate[s] = -1
-            if jp%12 == 5:
-                if l == 0:
-                    spinstate[s] = -1
-                else:
-                    spinstate[s] = 1
-            if jp%12 == 7:
-                if l == 1:
-                    spinstate[s] = -1
-                else:
-                    spinstate[s] = 1
-            if jp%12 == 9:
-                if l == 0:
-                    spinstate[s] = 1
-                else:
-                    spinstate[s] = -1
-            if jp%12 == 11:
-                if l == 1:
-                    spinstate[s] = 1
-                else:
-                    spinstate[s] = -1
-
-    return spinstate
+                    spinstates[t][s] = 1
 
 
 # In[ ]:
 
-
-def state7shaped(s_ijl):
-    spinstate7 = np.random.randint(0, 2, size=len(s_ijl))*2 - 1
-
-    for s, (i, j, l) in enumerate(s_ijl):
-        if (2*i + j)%4 == 0:
-            if l == 0:
-                spinstate7[s] = 1
-            if l == 1:
-                spinstate7[s] = -1
-            if l == 2:
-                spinstate7[s] = -1
-        elif (2*i + j)%4 == 1:
-            if l == 0:
-                spinstate7[s] = 1
-            if l == 1:
-                spinstate7[s] = -1
-            if l == 2:
-                spinstate7[s] = 1
-        elif (2*i + j)%4 == 2:
-            if l == 0:
-                spinstate7[s] = 1
-            if l == 1:
-                spinstate7[s] = 1
-            if l == 2:
-                spinstate7[s] = -1
-        elif (2*i + j)%4 == 3:
-            if l == 0:
-                spinstate7[s] = 1
-            if l == 1:
-                spinstate7[s] = -1
-            if l == 2:
-                spinstate7[s] = -1
-
-    return spinstate7
+def J1J2Init(spinstates, nt, s_ijl, same):
+    if same:
+        version = np.random.randint(0,3)
+        sign = np.random.randint(0,1)*2 -1
+        
+        spinstate = np.ones(len(s_ijl))
+        for s, (i,j,l) in enumerate(s_ijl):
+            if l == version:
+                spinstate[s] = sign
+            if l == (version+1)%3:
+                spinstate[s] = -sign
+            if l == (version+2)%3:
+                spinstate[s] = np.random.randint(0,1)*2-1
+        
+        spinstates = [np.copy(spinstate) for t in range(nt)]
+    else:
+        versions = [np.random.randint(0,3) for t in range(nt)]
+        signs = [np.random.randint(0,1)*2 -1 for t in range(nt)]
+    
+    for t in range(nt):
+        for s, (i, j, l) in enumerate(s_ijl):
+            if l == versions[t]:
+                spinstates[t][s] = signs[t]
+            if l == (versions[t] + 1)%3:
+                spinstates[t][s] = -signs[t]
+            if l == (versions[t] + 2)%3:
+                spinstates[t][s] = np.random.randint(0,1)*2 - 1
 
 
 # In[ ]:
 
+def J1J3Init(spinstates, nt, s_ijl, same):
+
+        
+    if same:
+        sign = np.random.randint(0,1)*2 -1
+        
+        spinstate = np.ones(len(s_ijl))
+        for s, (i,j,l) in enumerate(s_ijl):
+            subl = 3*((i + 2*j)%3) + l
+            if subl in (0, 2, 4):
+                spinstate[s] = sign
+            if subl in (3, 5, 7):
+                spinstate[s] = - sign
+            if subl in (1, 6, 8):
+                spinstate[s] = np.random.randint(0,1)*2 -1          
+            
+        spinstates = [np.copy(spinstate) for t in range(nt)]
+    else:
+        signs = [np.random.randint(0,1)*2 -1 for t in range(nt)]
+    
+    for t in range(nt):
+        for s, (i,j,l) in enumerate(s_ijl):
+            subl = 3*((i + 2*j)%3) + l
+            if subl in (0, 2, 4):
+                spinstates[t][s] = signs[t]
+            if subl in (3, 5, 7):
+                spinstates[t][s] = - signs[t]
+            if subl in (1, 6, 8):
+                spinstates[t][s] = np.random.randint(0,1)*2 -1
+
+
+# In[ ]:
 
 def LargeJ2Init(spinstates, nt, s_ijl, same):
     version = np.random.randint(0,3)
@@ -293,7 +201,6 @@ def LargeJ2Init(spinstates, nt, s_ijl, same):
 
 # In[ ]:
 
-
 def LargeJ2VersionInit(spinstates, nt, s_ijl, version):
     for t in range(nt):
         sign = np.random.randint(0,2)*2-1
@@ -394,7 +301,6 @@ def LargeJ2VersionInit(spinstates, nt, s_ijl, version):
 
 # In[ ]:
 
-
 def IntermediateInit(spinstates, nt, s_ijl):
     for t in range(nt):
         sign = np.random.randint(0,2)*2-1
@@ -471,7 +377,6 @@ def IntermediateInit(spinstates, nt, s_ijl):
 
 # In[ ]:
 
-
 def LargeJ3Init(spinstates, nt, s_ijl):
     for t in range(nt):
         sign = np.random.randint(0,2)*2-1
@@ -513,7 +418,6 @@ def LargeJ3Init(spinstates, nt, s_ijl):
 
 
 # In[ ]:
-
 
 def DipolarToJ4Init(spinstates, nt, s_ijl):
     for t in range(nt):
@@ -652,8 +556,71 @@ def DipolarToJ4Init(spinstates, nt, s_ijl):
 
 # In[ ]:
 
+def J1Init(spinstates, nt, s_ijl, same):
+    if same:
+        version = np.random.randint(0,1)
+        if version == 0:
+            J1J2Init(spinstates, nt, s_ijl, same)
+        else:
+            J1J3Init(spinstates, nt, s_ijl, same)
+    else:
+        for t in range(nt):
+            version = np.random.randint(0,1)
+            if version == 0:
+                J1J2Init([spinstates[t]],1, s_ijl, same)
+            else:
+                J1J3Init([spinstates[t]], 1, s_ijl, same)
 
-def statesinit(nt, d_ijl, d_2s, s_ijl, hamiltonian, random = True, same = False):
+
+# In[ ]:
+
+def determine_init(hamiltonian, magninit, **kwargs):
+    '''
+        Returns the type of init
+    '''
+    # Extract the hamiltonian
+    J1 = hamiltonian[0]
+    if(len(hamiltonian) > 1):
+        J2 = hamiltonian[1][0]
+    else:
+        J2 = 0
+    if(len(hamiltonian )> 2):
+        J3 = hamiltonian[2][0]
+    else:
+        J3 = 0
+    if(len(hamiltonian )> 4):
+        J4 = hamiltonian[4][0]
+    else:
+        J4 = 0
+        
+    inittype = ""
+    if J1!=0:
+        inittype+="J1"
+    if J2!=0:
+        inittype+="J2"
+    if J3!=0:
+        inittype+="J3"
+    if J4!=0:
+        inittype+="J4"
+    
+    if inittype == "J1J2J3":
+        if J3/J2 <= 0.5 and J3 > 0:
+            inittype += "LJ2"
+        if J3/J2 > 0.5 and J3/J2 <= 1:
+            inittype += "Intermediate"
+        if J3/J2 > 1:
+            inittype += "LJ3"
+    
+    if magninit:
+        inittype = "magninit"
+        
+    return inittype
+    
+
+
+# In[ ]:
+
+def statesinit(nt, d_ijl, d_2s, s_ijl, hamiltonian, random = True, same = False, magninit = False, **kwargs):
     '''
        This function associates a dimer state to each dual bond. By default, this is done by first associating randomly a spin to
        each spin site and then map this onto a dimer state. If the initial state isn't random, it is what is believed to be the ground state
@@ -667,61 +634,67 @@ def statesinit(nt, d_ijl, d_2s, s_ijl, hamiltonian, random = True, same = False)
 
     #initialize the spins randomly
     spinstates = [(np.random.randint(0, 2, size=len(s_ijl))*2 - 1) for i in range(nt)]
-
+    
     if not random:
+        inittype = determine_init(hamiltonian, magninit, **kwargs) 
+        
+        print("Initialisation type: ", inittype)
+        switch inittype:
+            case "magninit":
+                magnetisedInit(spinstates, nt, s_ijl, same)
+            case "J1":
+                J1Init(spinstates, nt, s_ijl, same)
+            case "J1J2":
+                J1J2Init(spinstates, nt, s_ijl, same)
+            case "J1J3":
+                J1J3Init(spinstates, nt, s_ijl, same)
+            case "J1J2J3LJ2":
+                
+                
         print(' --> Non random initialisation')
-        J1 = hamiltonian[0]
-        if(len(hamiltonian) > 1):
-            J2 = hamiltonian[1][0]
-        else:
-            J2 = 0
-        if(len(hamiltonian )> 2):
-            J3 = hamiltonian[2][0]
-        else:
-            J3 = 0
-        if(len(hamiltonian )> 4):
-            J4 = hamiltonian[4][0]
-        else:
-            J4 = 0
+        if not magnetised:
+            
 
-        # Initialise the states with the right family of ground states
-        if J4 == 0:
-            if J3 == 0:
-                print('  >>> J1-J2 init')
-                for s, (i, j, l) in enumerate(s_ijl):
-                    #9 sublattices
-                    subl = 3*((i + 2*j)%3) + l
-                    for t in range(nt):
-                        if subl in (0, 3, 6, 7):
-                            spinstates[t][s] = 1
-                        if subl in (2, 4, 5, 8):
-                            spinstates[t][s] = -1
-                        if subl == 1:
-                            spinstates[t][s] = np.random.randint(0, 2) * 2 - 1
-            if J2 != 0 and J3/J2 <= 0.5 and J3 > 0:
-                print('  >>> LargeJ2 init')
-                LargeJ2Init(spinstates, nt, s_ijl, same)
-            if J2 != 0 and J3/J2 > 0.5 and J3/J2 <= 1:
-                print('  >>> Intermediate init')
-                IntermediateInit(spinstates, nt, s_ijl)
-            if J2 != 0 and J3/J2 > 1:
-                print('  >>> LargeJ3 init')
-                LargeJ3Init(spinstates, nt, s_ijl)
-            if J2 == 0:
-                print('  >>> J1-J3 init')
-                for s, (i, j, l) in enumerate(s_ijl):
-                    #9 sublattices
-                    subl = 3*((i + 2*j)%3) + l
-                    for t in range(nt):
-                        if subl in (0, 3, 5, 7):
-                            spinstates[t][s] = -1
-                        if subl in (1, 2, 6, 8):
-                            spinstates[t][s] = 1
-                        if subl == 4:
-                            spinstates[t][s] = np.random.randint(0, 2) * 2 - 1
-        else:
-            print('  >>> D2J4 init')
-            DipolarToJ4Init(spinstates, nt, s_ijl)
+            # Initialise the states with the right family of ground states
+            if J4 == 0:
+                if J3 == 0:
+                    print('  >>> J1-J2 init')
+                    for s, (i, j, l) in enumerate(s_ijl):
+                        #9 sublattices
+                        subl = 3*((i + 2*j)%3) + l
+                        for t in range(nt):
+                            if subl in (0, 3, 6, 7):
+                                spinstates[t][s] = 1
+                            if subl in (2, 4, 5, 8):
+                                spinstates[t][s] = -1
+                            if subl == 1:
+                                spinstates[t][s] = np.random.randint(0, 2) * 2 - 1
+                if J2 != 0 and J3/J2 <= 0.5 and J3 > 0:
+                    print('  >>> LargeJ2 init')
+                    LargeJ2Init(spinstates, nt, s_ijl, same)
+                if J2 != 0 and J3/J2 > 0.5 and J3/J2 <= 1:
+                    print('  >>> Intermediate init')
+                    IntermediateInit(spinstates, nt, s_ijl)
+                if J2 != 0 and J3/J2 > 1:
+                    print('  >>> LargeJ3 init')
+                    LargeJ3Init(spinstates, nt, s_ijl)
+                if J2 == 0:
+                    print('  >>> J1-J3 init')
+                    for s, (i, j, l) in enumerate(s_ijl):
+                        #9 sublattices
+                        subl = 3*((i + 2*j)%3) + l
+                        for t in range(nt):
+                            if subl in (0, 3, 5, 7):
+                                spinstates[t][s] = -1
+                            if subl in (1, 2, 6, 8):
+                                spinstates[t][s] = 1
+                            if subl == 4:
+                                spinstates[t][s] = np.random.randint(0, 2) * 2 - 1
+            else:
+                print('  >>> D2J4 init')
+                DipolarToJ4Init(spinstates, nt, s_ijl)
+        else: # if magnetised
+            
     states = np.array(states, 'int32')
     spinstates = np.array(spinstates, 'int32')
     #initialise the dimer state according to the spin state
@@ -739,4 +712,181 @@ def statesinit(nt, d_ijl, d_2s, s_ijl, hamiltonian, random = True, same = False)
     en_states = np.array(en_states)
     
     return states, en_states, spinstates
+
+
+# In[ ]:
+
+#def candidate(s_ijl):
+#    spinstate = np.zeros(len(s_ijl))
+#
+#    for s, (i, j, l) in enumerate(s_ijl):
+#        jp = i + 2*j
+#        ######### i = 0 ###############
+#        if i%4 == 0:
+#            if jp%12 == 0:
+#                if l == 0:
+#                    spinstate[s] = -1
+#                else:
+#                    spinstate[s] = 1
+#
+#            if jp%12 == 2:
+#                if l == 1:
+#                    spinstate[s] = 1
+#                else:
+#                    spinstate[s] = -1
+#            if jp%12 == 4:
+#                if l == 1:
+#                    spinstate[s] = -1
+#                else:
+#                    spinstate[s] = 1
+#            if jp%12 == 6:
+#                if l == 2:
+#                    spinstate[s] = -1
+#                else:
+#                    spinstate[s] = 1
+#            if jp%12 == 8:
+#                if l == 1:
+#                    spinstate[s] = 1
+#                else:
+#                    spinstate[s] = -1
+#            if jp%12 == 10:
+#                if l == 1:
+#                    spinstate[s] = -1
+#                else:
+#                    spinstate[s] = 1
+#
+#        ########## i = 1 ##############
+#        if i%4 == 1:
+#            if jp%12 == 1:
+#                if l == 1:
+#                    spinstate[s] = -1
+#                else:
+#                    spinstate[s] = 1
+#            if jp%12 == 3:
+#                if l == 2:
+#                    spinstate[s] = 1
+#                else:
+#                    spinstate[s] = -1
+#            if jp%12 == 5:
+#                if l == 1:
+#                    spinstate[s] = 1
+#                else:
+#                    spinstate[s] = -1
+#            if jp%12 == 7:
+#                if l == 2:
+#                    spinstate[s] = -1
+#                else:
+#                    spinstate[s] = 1
+#            if jp%12 == 9:
+#                if l == 1:
+#                    spinstate[s] = 1
+#                else:
+#                    spinstate[s] = -1
+#            if jp%12 == 11:
+#                if l == 2:
+#                    spinstate[s] = -1
+#                else:
+#                    spinstate[s] = 1
+#
+#
+#        ########## i = 2 ##############
+#        if i%4 == 2:
+#            if jp%12 == 0:
+#                spinstate[s] = -1
+#            if jp%12 == 2:
+#                if l == 0:
+#                    spinstate[s] = -1
+#                else:
+#                    spinstate[s] = 1
+#            if jp%12 == 4:
+#                if l == 0:
+#                    spinstate[s] = -1
+#                else:
+#                    spinstate[s] = 1
+#            if jp%12 == 6:
+#                spinstate[s] = -1
+#            if jp%12 == 8:
+#                if l == 2:
+#                    spinstate[s] = -1
+#                else:
+#                    spinstate[s] = 1
+#            if jp%12 == 10:
+#                if l == 2:
+#                    spinstate[s] = -1
+#                else:
+#                    spinstate[s] = 1
+#
+#
+#        ########## i = 3 ##############
+#        if i%4 == 3:
+#            if jp%12 == 1:
+#                if l == 0:
+#                    spinstate[s] = -1
+#                else:
+#                    spinstate[s] = 1
+#            if jp%12 == 3:
+#                if l == 1:
+#                    spinstate[s] = 1
+#                else:
+#                    spinstate[s] = -1
+#            if jp%12 == 5:
+#                if l == 0:
+#                    spinstate[s] = -1
+#                else:
+#                    spinstate[s] = 1
+#            if jp%12 == 7:
+#                if l == 1:
+#                    spinstate[s] = -1
+#                else:
+#                    spinstate[s] = 1
+#            if jp%12 == 9:
+#                if l == 0:
+#                    spinstate[s] = 1
+#                else:
+#                    spinstate[s] = -1
+#            if jp%12 == 11:
+#                if l == 1:
+#                    spinstate[s] = 1
+#                else:
+#                    spinstate[s] = -1
+#
+#    return spinstate
+
+
+# In[ ]:
+
+#def state7shaped(s_ijl):
+#    spinstate7 = np.random.randint(0, 2, size=len(s_ijl))*2 - 1
+#
+#    for s, (i, j, l) in enumerate(s_ijl):
+#        if (2*i + j)%4 == 0:
+#            if l == 0:
+#                spinstate7[s] = 1
+#            if l == 1:
+#                spinstate7[s] = -1
+#            if l == 2:
+#                spinstate7[s] = -1
+#        elif (2*i + j)%4 == 1:
+#            if l == 0:
+#                spinstate7[s] = 1
+#            if l == 1:
+#                spinstate7[s] = -1
+#            if l == 2:
+#                spinstate7[s] = 1
+#        elif (2*i + j)%4 == 2:
+#            if l == 0:
+#                spinstate7[s] = 1
+#            if l == 1:
+#                spinstate7[s] = 1
+#            if l == 2:
+#                spinstate7[s] = -1
+#        elif (2*i + j)%4 == 3:
+#            if l == 0:
+#                spinstate7[s] = 1
+#            if l == 1:
+#                spinstate7[s] = -1
+#            if l == 2:
+#                spinstate7[s] = -1
+#
+#    return spinstate7
 
