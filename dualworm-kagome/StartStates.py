@@ -1,13 +1,15 @@
 
 # coding: utf-8
 
-# In[ ]:
+# In[1]:
+
 
 from DualwormFunctions import compute_energy
 import numpy as np
 
 
-# In[ ]:
+# In[2]:
+
 
 def magnetisedInit(spinstates, nt, s_ijl, same):
     if same:
@@ -18,9 +20,9 @@ def magnetisedInit(spinstates, nt, s_ijl, same):
                 spinstate[s] = -1
             else:
                 spinstate[s] = 1
+        for t in range(nt):
+            spinstates[t] = np.copy(spinstate) # to make sure that it is DIFFERENT states
         
-        spinstates = [np.copy(spinstate) for t in range(nt)] # to make sure that it is DIFFERENT states
-            
     else:
         versions = [np.random.randint(0,3) for t in range(nt)]
 
@@ -30,9 +32,11 @@ def magnetisedInit(spinstates, nt, s_ijl, same):
                     spinstates[t][s] = -1
                 else:
                     spinstates[t][s] = 1
+            
 
 
-# In[ ]:
+# In[3]:
+
 
 def J1J2Init(spinstates, nt, s_ijl, same):
     if same:
@@ -48,7 +52,8 @@ def J1J2Init(spinstates, nt, s_ijl, same):
             if l == (version+2)%3:
                 spinstate[s] = np.random.randint(0,1)*2-1
         
-        spinstates = [np.copy(spinstate) for t in range(nt)]
+        for t in range(nt):
+            spinstates[t] = np.copy(spinstate)
     else:
         versions = [np.random.randint(0,3) for t in range(nt)]
         signs = [np.random.randint(0,1)*2 -1 for t in range(nt)]
@@ -63,7 +68,8 @@ def J1J2Init(spinstates, nt, s_ijl, same):
                 spinstates[t][s] = np.random.randint(0,1)*2 - 1
 
 
-# In[ ]:
+# In[4]:
+
 
 def J1J3Init(spinstates, nt, s_ijl, same):
 
@@ -81,7 +87,8 @@ def J1J3Init(spinstates, nt, s_ijl, same):
             if subl in (1, 6, 8):
                 spinstate[s] = np.random.randint(0,1)*2 -1          
             
-        spinstates = [np.copy(spinstate) for t in range(nt)]
+        for t in range(nt):
+            spinstates[t] = np.copy(spinstate)
     else:
         signs = [np.random.randint(0,1)*2 -1 for t in range(nt)]
     
@@ -96,286 +103,413 @@ def J1J3Init(spinstates, nt, s_ijl, same):
                 spinstates[t][s] = np.random.randint(0,1)*2 -1
 
 
-# In[ ]:
+# In[5]:
+
+
+def LargeJ2InitOneState(spinstate, s_ijl, version, sign, shift, rot):
+    if version == 0:
+        ## Stripes of dimers
+        if rot == 0:
+            for s, (i, j, l) in enumerate(s_ijl):
+                loc = (2*i + j + shift)%4 
+                if  loc == 0:
+                    if l == 0:
+                        spinstate[s] = sign
+                    if l == 1:
+                        spinstate[s] = -sign
+                    if l == 2:
+                        spinstate[s] = -sign
+                elif loc == 1:
+                    if l == 0:
+                        spinstate[s] = sign
+                    if l == 1:
+                        spinstate[s] = -sign
+                    if l == 2:
+                        spinstate[s] = sign
+                elif loc == 2:
+                    if l == 0:
+                        spinstate[s] = sign
+                    if l == 1:
+                        spinstate[s] = sign
+                    if l == 2:
+                        spinstate[s] = -sign
+                elif loc == 3:
+                    if l == 0:
+                        spinstate[s] = sign
+                    if l == 1:
+                        spinstate[s] = -sign
+                    if l == 2:
+                        spinstate[s] = -sign
+        elif rot == 1:
+            for s, (i, j, l) in enumerate(s_ijl):
+                loc = (i + shift - j)%4 
+                if loc == 0:
+                    if l == 0:
+                        spinstate[s] = sign
+                    if l == 1:
+                        spinstate[s] = sign
+                    if l == 2:
+                        spinstate[s] = -sign
+                elif loc == 1:
+                    if l == 0:
+                        spinstate[s] = sign
+                    if l == 1:
+                        spinstate[s] = -sign
+                    if l == 2:
+                        spinstate[s] = -sign
+                elif loc == 2:
+                    if l == 0:
+                        spinstate[s] = -sign
+                    if l == 1:
+                        spinstate[s] = sign
+                    if l == 2:
+                        spinstate[s] = -sign
+                elif loc == 3:
+                    if l == 0:
+                        spinstate[s] = sign
+                    if l == 1:
+                        spinstate[s] = sign
+                    if l == 2:
+                        spinstate[s] = -sign
+        elif rot == 2:
+            for s, (i, j, l) in enumerate(s_ijl):
+                loc = (i + shift +2*j)%4 
+                if loc == 0:
+                    if l == 0:
+                        spinstate[s] = sign
+                    if l == 1:
+                        spinstate[s] = -sign
+                    if l == 2:
+                        spinstate[s] = sign
+                elif loc == 1:
+                    if l == 0:
+                        spinstate[s] = -sign
+                    if l == 1:
+                        spinstate[s] = -sign
+                    if l == 2:
+                        spinstate[s] = sign
+                elif loc == 2:
+                    if l == 0:
+                        spinstate[s] = sign
+                    if l == 1:
+                        spinstate[s] = -sign
+                    if l == 2:
+                        spinstate[s] = sign
+                elif loc == 3:
+                    if l == 0:
+                        spinstate[s] = sign
+                    if l == 1:
+                        spinstate[s] = -sign
+                    if l == 2:
+                        spinstate[s] = -sign
+    elif version == 1:
+            # ferromagnetic spin bands with vertices of 4 spins
+        if rot == 0:
+            for s, (i, j, l) in enumerate(s_ijl):
+                loc = (i+shift)%4
+                if loc == 0:
+                    if l == 0:
+                        spinstate[s] = sign
+                    if l == 1:
+                        spinstate[s] = -sign
+                    if l == 2:
+                        spinstate[s] = sign
+                if loc == 1:
+                    if l == 0:
+                        spinstate[s] = -sign
+                    if l == 1:
+                        spinstate[s] = sign
+                    if l == 2:
+                        spinstate[s] = -sign
+                if loc == 2:
+                    if l == 0:
+                        spinstate[s] = -sign
+                    if l == 1:
+                        spinstate[s] = sign
+                    if l == 2:
+                        spinstate[s] = -sign
+                if loc == 3:
+                    if l == 0:
+                        spinstate[s] = sign
+                    if l == 1:
+                        spinstate[s] = -sign
+                    if l == 2:
+                        spinstate[s] = sign
+        elif rot == 1:
+            for s, (i, j, l) in enumerate(s_ijl):
+                loc = (i+shift +j)%4
+                if loc == 0:
+                    if l == 0:
+                        spinstate[s] = -sign
+                    if l == 1:
+                        spinstate[s] = sign
+                    if l == 2:
+                        spinstate[s] = -sign
+                if loc == 1:
+                    if l == 0:
+                        spinstate[s] = -sign
+                    if l == 1:
+                        spinstate[s] = -sign
+                    if l == 2:
+                        spinstate[s] = sign
+                if loc == 2:
+                    if l == 0:
+                        spinstate[s] = sign
+                    if l == 1:
+                        spinstate[s] = -sign
+                    if l == 2:
+                        spinstate[s] = sign
+                if loc == 3:
+                    if l == 0:
+                        spinstate[s] = sign
+                    if l == 1:
+                        spinstate[s] = sign
+                    if l == 2:
+                        spinstate[s] = -sign
+        elif rot == 2:
+            for s, (i, j, l) in enumerate(s_ijl):
+                loc = (j+shift)%4
+                if loc == 0:
+                    if l == 0:
+                        spinstate[s] = -sign
+                    if l == 1:
+                        spinstate[s] = -sign
+                    if l == 2:
+                        spinstate[s] = sign
+                if loc == 1:
+                    if l == 0:
+                        spinstate[s] = sign
+                    if l == 1:
+                        spinstate[s] = -sign
+                    if l == 2:
+                        spinstate[s] = -sign
+                if loc == 2:
+                    if l == 0:
+                        spinstate[s] = sign
+                    if l == 1:
+                        spinstate[s] = sign
+                    if l == 2:
+                        spinstate[s] = -sign
+                if loc == 3:
+                    if l == 0:
+                        spinstate[s] = -sign
+                    if l == 1:
+                        spinstate[s] = sign
+                    if l == 2:
+                        spinstate[s] = sign
+    elif version == 2:
+        if rot == 0:
+            #ferromagnetic spin bands with two flat pairs of two spins
+            for s, (i, j, l) in enumerate(s_ijl):
+                loc = (i+shift)%4
+                if loc%4 == 0:
+                    if l == 0:
+                        spinstate[s] = sign
+                    if l == 1:
+                        spinstate[s] = -sign
+                    if l == 2:
+                        spinstate[s] = sign
+                if loc%4 == 1:
+                    if l == 0:
+                        spinstate[s] = -sign
+                    if l == 1:
+                        spinstate[s] = sign
+                    if l == 2:
+                        spinstate[s] = -sign
+                if loc%4 == 2:
+                    if l == 0:
+                        spinstate[s] = sign
+                    if l == 1:
+                        spinstate[s] = sign
+                    if l == 2:
+                        spinstate[s] = -sign
+                if loc%4 == 3:
+                    if l == 0:
+                        spinstate[s] = sign
+                    if l == 1:
+                        spinstate[s] = -sign
+                    if l == 2:
+                        spinstate[s] = -sign
+        elif rot == 1:
+            for s, (i, j, l) in enumerate(s_ijl):
+                loc = (i+j+shift)%4
+                if loc%4 == 0:
+                    if l == 0:
+                        spinstate[s] = -sign
+                    if l == 1:
+                        spinstate[s] = sign
+                    if l == 2:
+                        spinstate[s] = -sign
+                if loc%4 == 1:
+                    if l == 0:
+                        spinstate[s] = -sign
+                    if l == 1:
+                        spinstate[s] = -sign
+                    if l == 2:
+                        spinstate[s] = sign
+                if loc%4 == 2:
+                    if l == 0:
+                        spinstate[s] = -sign
+                    if l == 1:
+                        spinstate[s] = sign
+                    if l == 2:
+                        spinstate[s] = sign
+                if loc%4 == 3:
+                    if l == 0:
+                        spinstate[s] = sign
+                    if l == 1:
+                        spinstate[s] = sign
+                    if l == 2:
+                        spinstate[s] = -sign
+        elif rot == 2:
+            for s, (i, j, l) in enumerate(s_ijl):
+                loc = (j+shift)%4
+                if loc%4 == 0:
+                    if l == 0:
+                        spinstate[s] = -sign
+                    if l == 1:
+                        spinstate[s] = -sign
+                    if l == 2:
+                        spinstate[s] = sign
+                if loc%4 == 1:
+                    if l == 0:
+                        spinstate[s] = sign
+                    if l == 1:
+                        spinstate[s] = -sign
+                    if l == 2:
+                        spinstate[s] = -sign
+                if loc%4 == 2:
+                    if l == 0:
+                        spinstate[s] = sign
+                    if l == 1:
+                        spinstate[s] = -sign
+                    if l == 2:
+                        spinstate[s] = sign
+                if loc%4 == 3:
+                    if l == 0:
+                        spinstate[s] = -sign
+                    if l == 1:
+                        spinstate[s] = sign
+                    if l == 2:
+                        spinstate[s] = sign
+
+
+# In[6]:
+
 
 def LargeJ2Init(spinstates, nt, s_ijl, same):
-    version = np.random.randint(0,3)
-    for t in range(nt):
-        if not same:
-            version = np.random.randint(0,3)
+    if same:
+        version = np.random.randint(0,3)
         sign = np.random.randint(0,2)*2-1
-        if version == 0:
-            ## Stripes of dimers
-            for s, (i, j, l) in enumerate(s_ijl):
-                if (2*i + j)%4 == 0:
-                    if l == 0:
-                        spinstates[t][s] = sign
-                    if l == 1:
-                        spinstates[t][s] = -sign
-                    if l == 2:
-                        spinstates[t][s] = -sign
-                elif (2*i + j)%4 == 1:
-                    if l == 0:
-                        spinstates[t][s] = sign
-                    if l == 1:
-                        spinstates[t][s] = -sign
-                    if l == 2:
-                        spinstates[t][s] = sign
-                elif (2*i + j)%4 == 2:
-                    if l == 0:
-                        spinstates[t][s] = sign
-                    if l == 1:
-                        spinstates[t][s] = sign
-                    if l == 2:
-                        spinstates[t][s] = -sign
-                elif (2*i + j)%4 == 3:
-                    if l == 0:
-                        spinstates[t][s] = sign
-                    if l == 1:
-                        spinstates[t][s] = -sign
-                    if l == 2:
-                        spinstates[t][s] = -sign
-        if version == 1:
-            # ferromagnetic spin bands with vertices of 4 spins
-            for s, (i, j, l) in enumerate(s_ijl):
-                if i%4 == 0:
-                    if l == 0:
-                        spinstates[t][s] = sign
-                    if l == 1:
-                        spinstates[t][s] = -sign
-                    if l == 2:
-                        spinstates[t][s] = sign
-                if i%4 == 1:
-                    if l == 0:
-                        spinstates[t][s] = -sign
-                    if l == 1:
-                        spinstates[t][s] = sign
-                    if l == 2:
-                        spinstates[t][s] = -sign
-                if i%4 == 2:
-                    if l == 0:
-                        spinstates[t][s] = -sign
-                    if l == 1:
-                        spinstates[t][s] = sign
-                    if l == 2:
-                        spinstates[t][s] = -sign
-                if i%4 == 3:
-                    if l == 0:
-                        spinstates[t][s] = sign
-                    if l == 1:
-                        spinstates[t][s] = -sign
-                    if l == 2:
-                        spinstates[t][s] = sign
-        if version == 2:
-            #ferromagnetic spin bands with two flat pairs of two spins
-            for s, (i, j, l) in enumerate(s_ijl):
-                if i%4 == 0:
-                    if l == 0:
-                        spinstates[t][s] = sign
-                    if l == 1:
-                        spinstates[t][s] = -sign
-                    if l == 2:
-                        spinstates[t][s] = sign
-                if i%4 == 1:
-                    if l == 0:
-                        spinstates[t][s] = -sign
-                    if l == 1:
-                        spinstates[t][s] = sign
-                    if l == 2:
-                        spinstates[t][s] = -sign
-                if i%4 == 2:
-                    if l == 0:
-                        spinstates[t][s] = sign
-                    if l == 1:
-                        spinstates[t][s] = sign
-                    if l == 2:
-                        spinstates[t][s] = -sign
-                if i%4 == 3:
-                    if l == 0:
-                        spinstates[t][s] = sign
-                    if l == 1:
-                        spinstates[t][s] = -sign
-                    if l == 2:
-                        spinstates[t][s] = -sign
+        shift = np.random.randint(0,4)
+        rot = np.random.randint(0,3)
+        
+        spinstate = np.zeros(len(s_ijl))
+        LargeJ2InitOneState(spinstate, s_ijl, version, sign, shift, rot)
+        spinstates = [np.copy(spinstate) for t in range(nt)]
+    else:
+        versions = [np.random.randint(0,3) for t in range(nt)]
+        signs = [np.random.randint(0,2)*2-1 for t in range(nt)]
+        shifts = [np.random.randint(0,4) for t in range(nt)]
+        ros = [np.random.randint(0,3) for t in range(nt)]
+        
+        for t in range(nt):
+            LargeJ2InitOneState(spinstates[t], s_ijl, versions[t], signs[t], shifts[t], rots[t])
 
 
-# In[ ]:
-
-def LargeJ2VersionInit(spinstates, nt, s_ijl, version):
-    for t in range(nt):
-        sign = np.random.randint(0,2)*2-1
-        if version == 0:
-            ## Stripes of dimers
-            for s, (i, j, l) in enumerate(s_ijl):
-                if (2*i + j)%4 == 0:
-                    if l == 0:
-                        spinstates[t][s] = sign
-                    if l == 1:
-                        spinstates[t][s] = -sign
-                    if l == 2:
-                        spinstates[t][s] = -sign
-                elif (2*i + j)%4 == 1:
-                    if l == 0:
-                        spinstates[t][s] = sign
-                    if l == 1:
-                        spinstates[t][s] = -sign
-                    if l == 2:
-                        spinstates[t][s] = sign
-                elif (2*i + j)%4 == 2:
-                    if l == 0:
-                        spinstates[t][s] = sign
-                    if l == 1:
-                        spinstates[t][s] = sign
-                    if l == 2:
-                        spinstates[t][s] = -sign
-                elif (2*i + j)%4 == 3:
-                    if l == 0:
-                        spinstates[t][s] = sign
-                    if l == 1:
-                        spinstates[t][s] = -sign
-                    if l == 2:
-                        spinstates[t][s] = -sign
-        if version == 1:
-            # ferromagnetic spin bands with vertices of 4 spins
-            for s, (i, j, l) in enumerate(s_ijl):
-                if i%4 == 0:
-                    if l == 0:
-                        spinstates[t][s] = sign
-                    if l == 1:
-                        spinstates[t][s] = -sign
-                    if l == 2:
-                        spinstates[t][s] = sign
-                if i%4 == 1:
-                    if l == 0:
-                        spinstates[t][s] = -sign
-                    if l == 1:
-                        spinstates[t][s] = sign
-                    if l == 2:
-                        spinstates[t][s] = -sign
-                if i%4 == 2:
-                    if l == 0:
-                        spinstates[t][s] = -sign
-                    if l == 1:
-                        spinstates[t][s] = sign
-                    if l == 2:
-                        spinstates[t][s] = -sign
-                if i%4 == 3:
-                    if l == 0:
-                        spinstates[t][s] = sign
-                    if l == 1:
-                        spinstates[t][s] = -sign
-                    if l == 2:
-                        spinstates[t][s] = sign
-        if version == 2:
-            #ferromagnetic spin bands with two flat pairs of two spins
-            for s, (i, j, l) in enumerate(s_ijl):
-                if i%4 == 0:
-                    if l == 0:
-                        spinstates[t][s] = sign
-                    if l == 1:
-                        spinstates[t][s] = -sign
-                    if l == 2:
-                        spinstates[t][s] = sign
-                if i%4 == 1:
-                    if l == 0:
-                        spinstates[t][s] = -sign
-                    if l == 1:
-                        spinstates[t][s] = sign
-                    if l == 2:
-                        spinstates[t][s] = -sign
-                if i%4 == 2:
-                    if l == 0:
-                        spinstates[t][s] = sign
-                    if l == 1:
-                        spinstates[t][s] = sign
-                    if l == 2:
-                        spinstates[t][s] = -sign
-                if i%4 == 3:
-                    if l == 0:
-                        spinstates[t][s] = sign
-                    if l == 1:
-                        spinstates[t][s] = -sign
-                    if l == 2:
-                        spinstates[t][s] = -sign
+# In[7]:
 
 
-# In[ ]:
+def IntermediateInitOneState(spinstate, s_ijl):
+    sign = np.random.randint(0,2)*2-1
+    for s, (i, j, l) in enumerate(s_ijl):
+        k = i + 2*j
+        m = i - j
+        if k%6 == 0:
+            if m%6 == 0:
+                if l == 1:
+                    spinstate[s] = sign
+                else:
+                    spinstate[s] = - sign
+            if m%6 == 3:
+                if l == 0:
+                    spinstate[s] = sign
+                else:
+                    spinstate[s] = - sign
 
-def IntermediateInit(spinstates, nt, s_ijl):
-    for t in range(nt):
-        sign = np.random.randint(0,2)*2-1
-        for s, (i, j, l) in enumerate(s_ijl):
-            k = i + 2*j
-            m = i - j
-            if k%6 == 0:
-                if m%6 == 0:
-                    if l == 1:
-                        spinstates[t][s] = sign
-                    else:
-                        spinstates[t][s] = - sign
-                if m%6 == 3:
-                    if l == 0:
-                        spinstates[t][s] = sign
-                    else:
-                        spinstates[t][s] = - sign
+        if k%6 == 1:
+            if m%6 == 1:
+                if l== 2:
+                    spinstate[s] = - sign
+                else:
+                    spinstate[s] = sign
+            if m%6 == 4:
+                if l == 1:
+                    spinstate[s] = - sign
+                else:
+                    spinstate[s] = sign
+        if k%6 == 2:
+            if m%6 == 2:
+                if l == 1:
+                    spinstate[s] = sign
+                else:
+                    spinstate[s] = - sign
+            if m%6 == 5:
+                if l == 0:
+                    spinstate[s]= sign
+                else:
+                    spinstate[s] = - sign
+        if k%6 == 3:
+            if m % 6 == 0:
+                if l == 2:
+                    spinstate[s] = sign
+                else:
+                    spinstate[s] = - sign
+            if m % 6 == 3:
+                spinstate[s] = sign
 
-            if k%6 == 1:
-                if m%6 == 1:
-                    if l== 2:
-                        spinstates[t][s] = - sign
-                    else:
-                        spinstates[t][s] = sign
-                if m%6 == 4:
-                    if l == 1:
-                        spinstates[t][s] = - sign
-                    else:
-                        spinstates[t][s] = sign
-            if k%6 == 2:
-                if m%6 == 2:
-                    if l == 1:
-                        spinstates[t][s] = sign
-                    else:
-                        spinstates[t][s] = - sign
-                if m%6 == 5:
-                    if l == 0:
-                        spinstates[t][s]= sign
-                    else:
-                        spinstates[t][s] = - sign
-            if k%6 == 3:
-                if m % 6 == 0:
-                    if l == 2:
-                        spinstates[t][s] = sign
-                    else:
-                        spinstates[t][s] = - sign
-                if m % 6 == 3:
-                    spinstates[t][s] = sign
+        if k%6 == 4:
+            if m%6 == 1:
+                if l == 2:
+                    spinstate[s] = sign
+                else:
+                    spinstate[s] = - sign
+            if m%6 == 4:
+                if l == 1:
+                    spinstate[s] = sign
+                else:
+                    spinstate[s] = - sign
 
-            if k%6 == 4:
-                if m%6 == 1:
-                    if l == 2:
-                        spinstates[t][s] = sign
-                    else:
-                        spinstates[t][s] = - sign
-                if m%6 == 4:
-                    if l == 1:
-                        spinstates[t][s] = sign
-                    else:
-                        spinstates[t][s] = - sign
-
-            if k%6 == 5:
-                if m%6 == 2:
-                    if l == 0:
-                        spinstates[t][s] = - sign
-                    else:
-                        spinstates[t][s] = sign
-                if m%6 == 5:
-                    if l == 1:
-                        spinstates[t][s] = - sign
-                    else:
-                        spinstates[t][s] = sign
+        if k%6 == 5:
+            if m%6 == 2:
+                if l == 0:
+                    spinstate[s] = - sign
+                else:
+                    spinstate[s] = sign
+            if m%6 == 5:
+                if l == 1:
+                    spinstate[s] = - sign
+                else:
+                    spinstate[s] = sign
 
 
-# In[ ]:
+# In[8]:
+
+
+def IntermediateInit(spinstates, nt, s_ijl, same):
+    if same:
+        spinstate = np.zeros(len(s_ijl))
+        IntermediateInit(onestate, s_ijl)
+        
+        for t in range(nt):
+            spinstates[t] = np.copy(spinstate)
+    else:
+        for t in range(nt):
+            IntermediateInitOneState(spinstates[t], s_ijl)
+
+
+# In[9]:
+
 
 def LargeJ3Init(spinstates, nt, s_ijl):
     for t in range(nt):
@@ -417,7 +551,8 @@ def LargeJ3Init(spinstates, nt, s_ijl):
                     spinstates[t][s] = np.random.randint(0, 2)*2 -1
 
 
-# In[ ]:
+# In[10]:
+
 
 def DipolarToJ4Init(spinstates, nt, s_ijl):
     for t in range(nt):
@@ -554,7 +689,8 @@ def DipolarToJ4Init(spinstates, nt, s_ijl):
                         spinstates[t][s] = -sign
 
 
-# In[ ]:
+# In[11]:
+
 
 def J1Init(spinstates, nt, s_ijl, same):
     if same:
@@ -572,7 +708,8 @@ def J1Init(spinstates, nt, s_ijl, same):
                 J1J3Init([spinstates[t]], 1, s_ijl, same)
 
 
-# In[ ]:
+# In[12]:
+
 
 def determine_init(hamiltonian, magninit, **kwargs):
     '''
@@ -618,7 +755,8 @@ def determine_init(hamiltonian, magninit, **kwargs):
     
 
 
-# In[ ]:
+# In[13]:
+
 
 def statesinit(nt, d_ijl, d_2s, s_ijl, hamiltonian, random = True, same = False, magninit = False, **kwargs):
     '''
@@ -634,67 +772,27 @@ def statesinit(nt, d_ijl, d_2s, s_ijl, hamiltonian, random = True, same = False,
 
     #initialize the spins randomly
     spinstates = [(np.random.randint(0, 2, size=len(s_ijl))*2 - 1) for i in range(nt)]
-    
+    print(random)
     if not random:
+        print("not random")
         inittype = determine_init(hamiltonian, magninit, **kwargs) 
-        
         print("Initialisation type: ", inittype)
-        switch inittype:
-            case "magninit":
-                magnetisedInit(spinstates, nt, s_ijl, same)
-            case "J1":
-                J1Init(spinstates, nt, s_ijl, same)
-            case "J1J2":
-                J1J2Init(spinstates, nt, s_ijl, same)
-            case "J1J3":
-                J1J3Init(spinstates, nt, s_ijl, same)
-            case "J1J2J3LJ2":
-                
-                
-        print(' --> Non random initialisation')
-        if not magnetised:
-            
-
-            # Initialise the states with the right family of ground states
-            if J4 == 0:
-                if J3 == 0:
-                    print('  >>> J1-J2 init')
-                    for s, (i, j, l) in enumerate(s_ijl):
-                        #9 sublattices
-                        subl = 3*((i + 2*j)%3) + l
-                        for t in range(nt):
-                            if subl in (0, 3, 6, 7):
-                                spinstates[t][s] = 1
-                            if subl in (2, 4, 5, 8):
-                                spinstates[t][s] = -1
-                            if subl == 1:
-                                spinstates[t][s] = np.random.randint(0, 2) * 2 - 1
-                if J2 != 0 and J3/J2 <= 0.5 and J3 > 0:
-                    print('  >>> LargeJ2 init')
-                    LargeJ2Init(spinstates, nt, s_ijl, same)
-                if J2 != 0 and J3/J2 > 0.5 and J3/J2 <= 1:
-                    print('  >>> Intermediate init')
-                    IntermediateInit(spinstates, nt, s_ijl)
-                if J2 != 0 and J3/J2 > 1:
-                    print('  >>> LargeJ3 init')
-                    LargeJ3Init(spinstates, nt, s_ijl)
-                if J2 == 0:
-                    print('  >>> J1-J3 init')
-                    for s, (i, j, l) in enumerate(s_ijl):
-                        #9 sublattices
-                        subl = 3*((i + 2*j)%3) + l
-                        for t in range(nt):
-                            if subl in (0, 3, 5, 7):
-                                spinstates[t][s] = -1
-                            if subl in (1, 2, 6, 8):
-                                spinstates[t][s] = 1
-                            if subl == 4:
-                                spinstates[t][s] = np.random.randint(0, 2) * 2 - 1
-            else:
-                print('  >>> D2J4 init')
-                DipolarToJ4Init(spinstates, nt, s_ijl)
-        else: # if magnetised
-            
+        if inittype == "magninit":
+            magnetisedInit(spinstates, nt, s_ijl, same)
+        elif inittype == "J1":
+            J1Init(spinstates, nt, s_ijl, same)
+        elif inittype == "J1J2":
+            J1J2Init(spinstates, nt, s_ijl, same)
+        elif inittype == "J1J3":
+            J1J3Init(spinstates, nt, s_ijl, same)
+        elif inittype == "J1J2J3LJ2":
+            LargeJ2Init(spinstates, nt, s_ijl, same)
+        elif inittype == "J1J2J3Intermediate":
+            IntermediateInit(spinstates, nt, s_ijl, same)
+        elif inittype == "J1J2J3LJ3":
+            LargeJ3Init(spinstates, nt, s_ijl, same)
+        elif inittype == "J1J2J3J4":
+            DipolarToJ4Init(spinstates, nt, s_ijl, same)
     states = np.array(states, 'int32')
     spinstates = np.array(spinstates, 'int32')
     #initialise the dimer state according to the spin state
@@ -714,7 +812,8 @@ def statesinit(nt, d_ijl, d_2s, s_ijl, hamiltonian, random = True, same = False,
     return states, en_states, spinstates
 
 
-# In[ ]:
+# In[14]:
+
 
 #def candidate(s_ijl):
 #    spinstate = np.zeros(len(s_ijl))
@@ -853,7 +952,8 @@ def statesinit(nt, d_ijl, d_2s, s_ijl, hamiltonian, random = True, same = False,
 #    return spinstate
 
 
-# In[ ]:
+# In[15]:
+
 
 #def state7shaped(s_ijl):
 #    spinstate7 = np.random.randint(0, 2, size=len(s_ijl))*2 - 1
@@ -889,4 +989,105 @@ def statesinit(nt, d_ijl, d_2s, s_ijl, hamiltonian, random = True, same = False,
 #                spinstate7[s] = -1
 #
 #    return spinstate7
+
+
+# In[16]:
+
+
+#def LargeJ2VersionInit(spinstates, nt, s_ijl, version):
+#    for t in range(nt):
+#        sign = np.random.randint(0,2)*2-1
+#        if version == 0:
+#            ## Stripes of dimers
+#            for s, (i, j, l) in enumerate(s_ijl):
+#                if (2*i + j)%4 == 0:
+#                    if l == 0:
+#                        spinstates[t][s] = sign
+#                    if l == 1:
+#                        spinstates[t][s] = -sign
+#                    if l == 2:
+#                        spinstates[t][s] = -sign
+#                elif (2*i + j)%4 == 1:
+#                    if l == 0:
+#                        spinstates[t][s] = sign
+#                    if l == 1:
+#                        spinstates[t][s] = -sign
+#                    if l == 2:
+#                        spinstates[t][s] = sign
+#                elif (2*i + j)%4 == 2:
+#                    if l == 0:
+#                        spinstates[t][s] = sign
+#                    if l == 1:
+#                        spinstates[t][s] = sign
+#                    if l == 2:
+#                        spinstates[t][s] = -sign
+#                elif (2*i + j)%4 == 3:
+#                    if l == 0:
+#                        spinstates[t][s] = sign
+#                    if l == 1:
+#                        spinstates[t][s] = -sign
+#                    if l == 2:
+#                        spinstates[t][s] = -sign
+#        if version == 1:
+#            # ferromagnetic spin bands with vertices of 4 spins
+#            for s, (i, j, l) in enumerate(s_ijl):
+#                if i%4 == 0:
+#                    if l == 0:
+#                        spinstates[t][s] = sign
+#                    if l == 1:
+#                        spinstates[t][s] = -sign
+#                    if l == 2:
+#                        spinstates[t][s] = sign
+#                if i%4 == 1:
+#                    if l == 0:
+#                        spinstates[t][s] = -sign
+#                    if l == 1:
+#                        spinstates[t][s] = sign
+#                    if l == 2:
+#                        spinstates[t][s] = -sign
+#                if i%4 == 2:
+#                    if l == 0:
+#                        spinstates[t][s] = -sign
+#                    if l == 1:
+#                        spinstates[t][s] = sign
+#                    if l == 2:
+#                        spinstates[t][s] = -sign
+#                if i%4 == 3:
+#                    if l == 0:
+#                        spinstates[t][s] = sign
+#                    if l == 1:
+#                        spinstates[t][s] = -sign
+#                    if l == 2:
+#                        spinstates[t][s] = sign
+#        if version == 2:
+#            #ferromagnetic spin bands with two flat pairs of two spins
+#            for s, (i, j, l) in enumerate(s_ijl):
+#                if i%4 == 0:
+#                    if l == 0:
+#                        spinstates[t][s] = sign
+#                    if l == 1:
+#                        spinstates[t][s] = -sign
+#                    if l == 2:
+#                        spinstates[t][s] = sign
+#                if i%4 == 1:
+#                    if l == 0:
+#                        spinstates[t][s] = -sign
+#                    if l == 1:
+#                        spinstates[t][s] = sign
+#                    if l == 2:
+#                        spinstates[t][s] = -sign
+#                if i%4 == 2:
+#                    if l == 0:
+#                        spinstates[t][s] = sign
+#                    if l == 1:
+#                        spinstates[t][s] = sign
+#                    if l == 2:
+#                        spinstates[t][s] = -sign
+#                if i%4 == 3:
+#                    if l == 0:
+#                        spinstates[t][s] = sign
+#                    if l == 1:
+#                        spinstates[t][s] = -sign
+#                    if l == 2:
+#                        spinstates[t][s] = -sign
 
