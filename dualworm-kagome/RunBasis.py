@@ -63,14 +63,17 @@ def main(args):
 
     ## States
     backup.params.randominit = randominit = args.randominit    
-
-    print('Random initialisation = ', randominit)
-
+    print('Fully random initialisation = ', randominit)
     backup.params.same = same = args.same
-
+    print('Identical initialisation = ', same)
+    backup.params.magninit = magninit = args.magninit
+    print('Magnetisation initialisation = ', magninit)
+    
+    kwinit = {'random': randominit, 'same': same, 'magninit': magninit}
+    print(kwinit)
     print('Same initialisation for all temperatures = ', same)
         #dw.statesinit(number of temperatures, dual bond table, spin surrounding dual bonds, spin site table, hamiltonian list, random starting state, same type of starting state for all temperatures)
-    (states, energies, spinstates) = strst.statesinit(nt, d_ijl, d_2s, s_ijl, hamiltonian, randominit, same)
+    (states, energies, spinstates) = strst.statesinit(nt, d_ijl, d_2s, s_ijl, hamiltonian, **kwinit)
     backup.params.ncores = ncores = args.ncores
     dw.states_dimers2spins(sidlist, didlist, states, spinstates,nt,ncores)
     new_en_states = [dim.hamiltonian(hamiltonian, states[t]) for t in range(nt)]
@@ -244,33 +247,13 @@ def main(args):
 
     ## STATISTICS ##
 
-    t_meanfunc = list() #for each function, for each temperature, mean of the state function
-    t_varmeanfunc = list() #for each function, for each temperature, variance of the state function
-    numsites = len(s_ijl)
-    if not magnstats:
-        for idtuple, stattuple in enumerate(meanstat):
-            # means:
-            t_meanfunc.append((np.array(stattuple[0]).sum(1)/nb, np.array(stattuple[1]).sum(1)/nb))
 
-            #variances:
-            tuplevar1 = [0 for t in stat_temps]
-            tuplevar2 = [0 for t in stat_temps]
-            for resid, t in enumerate(stat_temps):
-                for b in range(nb):
-                    tuplevar1[resid] += ((stattuple[0][resid][b] - t_meanfunc[idtuple][0][resid]) ** 2)/(nb * (nb - 1))
-                    tuplevar2[resid] += ((stattuple[1][resid][b] - t_meanfunc[idtuple][1][resid]) ** 2)/(nb * (nb - 1))
-            t_varmeanfunc.append((tuplevar1, tuplevar2))
-
-    # Additional results for the correlations are handled directly in AnalysisBasis_3dot1dot5
-    print("avg magn: ", t_meanfunc[magnfuncid])
-    #Save the final results
-    backup.results.t_meanfunc = t_meanfunc
-    backup.results.t_varmeanfunc = t_varmeanfunc
     backup.results.states = states
     backup.results.spinstates = spinstates
     #Save the backup object in a file
     pickle.dump(backup, open(args.output + '.pkl','wb'))
     print('Job done')
+    return meanstat
 
 
 # In[ ]:
@@ -319,6 +302,8 @@ if __name__ == "__main__":
     parser.add_argument('--same', default = False, action = 'store_true',
                         help = '''initialise all temperatures with the same
                         state (debug purposes)''')
+    parser.add_argument('--magninit', default = False, action = 'store_true',
+                        help = '''initialise all the temperature with the maximally magnetised GS''')
     parser.add_argument('--measupdate', default = False, action = 'store_true',
                        help = '''activate to mimic the action of the measuring tip''')
     parser.add_argument('--p', type = float, default = 0.1, 
@@ -357,4 +342,31 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     main(args)
+
+
+# In[ ]:
+
+
+#    t_meanfunc = list() #for each function, for each temperature, mean of the state function
+#    t_varmeanfunc = list() #for each function, for each temperature, variance of the state function
+#    numsites = len(s_ijl)
+#    if not magnstats:
+#        for idtuple, stattuple in enumerate(meanstat):
+#            # means:
+#            t_meanfunc.append((np.array(stattuple[0]).sum(1)/nb, np.array(stattuple[1]).sum(1)/nb))
+#
+#            #variances:
+#            tuplevar1 = [0 for t in stat_temps]
+#            tuplevar2 = [0 for t in stat_temps]
+#            for resid, t in enumerate(stat_temps):
+#                for b in range(nb):
+#                    tuplevar1[resid] += ((stattuple[0][resid][b] - t_meanfunc[idtuple][0][resid]) ** 2)/(nb * (nb - 1))
+#                    tuplevar2[resid] += ((stattuple[1][resid][b] - t_meanfunc[idtuple][1][resid]) ** 2)/(nb * (nb - 1))
+#            t_varmeanfunc.append((tuplevar1, tuplevar2))
+#
+#    # Additional results for the correlations are handled directly in AnalysisBasis_3dot1dot5
+#    print("avg magn: ", t_meanfunc[magnfuncid])
+#    #Save the final results
+#    backup.results.t_meanfunc = t_meanfunc
+#    backup.results.t_varmeanfunc = t_varmeanfunc
 

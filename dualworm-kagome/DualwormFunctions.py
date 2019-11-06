@@ -723,33 +723,28 @@ def statistics(tid, resid, bid, states, statesen, statstables,
 # In[ ]:
 
 
-def magnstatistics(magnfuncid, m2id, magncount, tid, resid, bid, states, statesen, magnstatstables,
-               spinstates,statsfunctions, sidlist, didlist, L, s_ijl, ijl_s, num_in_bin, stlen):
+def magnstatistics(magnfuncid, tid, resid, bid, states, statesen, magnstatstables,
+               spinstates,statsfunctions, sidlist, didlist, L, s_ijl, ijl_s, num_in_bin, stlen, **kwargs):
     '''
         This function updates the magnetisation-dependent statistics in magnstatstables given the states,
         the states energy, the statistical functions interesting for magn, the list of spins and dimers for updates,
         the system size and the number of states in a bin
     '''
     # compute the magnetisation
+    
     magn = statsfunctions[magnfuncid](stlen, states[tid],statesen[tid],spinstates[tid], s_ijl, ijl_s)
-    magnid = m2id(magn)
-    mbid = magncount[resid][magnid]//num_in_bin
-
- 
-    # get the corresponding magnetisation bin
     
+    #measure : 
+    listmeas = []
     for stat_id in range(len(statsfunctions)):
-        #function you're currently looking at
         func_per_site = statsfunctions[stat_id](stlen, states[tid], statesen[tid], 
-                                                spinstates[tid], s_ijl, ijl_s) 
-        #evaluation depends on the temperature index
-        
-        magnstatstables[magnid][stat_id][0][resid][mbid] += func_per_site / num_in_bin 
-        #storage depends on the result index
-        
-        magnstatstables[magnid][stat_id][1][resid][mbid] += (func_per_site ** 2) / num_in_bin
+                                                spinstates[tid], s_ijl, ijl_s,m=magn, **kwargs)
+        listmeas.append([func_per_site, func_per_site**2])
     
-    magncount[resid][magnid] += 1
+    if magn in magnstatstables[resid]: # if magn in keys
+        magnstatstables[resid][magn].append(listmeas)
+    else:
+        magnstatstables[resid][magn] = [listmeas]
 
 
 # In[ ]:
@@ -823,12 +818,12 @@ def mcs_swaps(states, spinstates, statesen,
     ijl_s = kwargs.get('ijl_s', None)
     check = kwargs.get('check', None)
     statsfunctions = kwargs.get('statsfunctions',[])
-    print(statsfunctions)
     magnstats = kwargs.get('magnstats', False)
-    m2id = kwargs.get('m2id',None)
     magnfuncid = kwargs.get('magnfuncid', -1)
     measupdate = kwargs.get('measupdate', False)
-    p = kwargs.get('p', 3)
+    p = kwargs.get('p', 1)
+    if p == 0:
+        measupdate = False
     nnspins = kwargs.get('nnspins',None)
     s2p = kwargs.get('s2p', None)
     nt = kwargs.get('nt',None)
@@ -851,10 +846,7 @@ def mcs_swaps(states, spinstates, statesen,
     ## Define the table for statistics
     if len(statsfunctions) != 0:
         if magnstats and magnfuncid != -1: # dictionary not empty
-            maxrange = m2id(1)+1
-            magncount = [[0 for _ in range(maxrange)] for res in range(len(stat_temps))]
-            magnstatstables = [[(np.zeros((len(stat_temps), nb)).tolist(), np.zeros((len(stat_temps), nb)).tolist()) 
-                       for i in range(len(statsfunctions))] for _ in range(maxrange)]
+            magnstatstables = [{} for resid in range(len(stat_temps))]
         else:
             statstables = [(np.zeros((len(stat_temps), nb)).tolist(), np.zeros((len(stat_temps), nb)).tolist()) 
                        for i in range(len(statsfunctions))]
@@ -862,13 +854,16 @@ def mcs_swaps(states, spinstates, statesen,
         statstables =  []
     ## Iterate
     itermcs = nb*num_in_bin*measperiod
+    print("itermcs = ", itermcs)
     swaps = [0 for t in range(nt)]
     t_join = 0
     t_spins = 0
     t_tempering = 0
     t_stat = 0
-    
+    print("magnstats", magnstats)
+    print("statsfunctions", statsfunctions)
     if not magnstats or not statsfunctions:
+
         for it in range(itermcs):
             #### EVOLVE using the mcsevolve function of the dimer
             #### module (C)
@@ -893,9 +888,15 @@ def mcs_swaps(states, spinstates, statesen,
                 bid = (it//measperiod)//num_in_bin
                 if len(statsfunctions) != 0 or check:
                     #print(bid)
-                    if measupdate:                  
-                        for tid in stat_temps:
-                            measupdatespin(tid, sidlist, states, spinstates,nnspins, s2p, p)
+                    if measupdate:                
+                        np.array(nnspins,dtype = 'int32')
+                        np.array(s2p, dtype = 'int32')
+                        np.array(didlist, dtype='int32')
+                        dim.measupdates(states, spinstates,
+                                        np.array(stat_temps, dtype='int32'), np.array(sidlist, dtype = 'int32'),
+                                        np.array(didlist, dtype='int32'),np.array(nnspins,dtype = 'int32'), 
+                                        np.array(s2p, dtype = 'int32'), ncores, p);
+                
 
                     for resid,tid in enumerate(stat_temps):
                         statistics(tid, resid, bid, states, statesen, statstables,
@@ -920,7 +921,8 @@ def mcs_swaps(states, spinstates, statesen,
         print('Time for mapping to spins + computing statistics= {0}'.format(t_spins))
 
         return statstables, swaps
-    else:
+    elif magnstats or (magnstats and statsfunctions):
+        assert num_in_bin == 1
         print(itermcs)
         for it in range(itermcs):
             #### EVOLVE using the mcsevolve function of the dimer
@@ -940,12 +942,25 @@ def mcs_swaps(states, spinstates, statesen,
             #### STATS update the statistics
             bid = it//num_in_bin
             if len(statsfunctions) != 0 or check:
-                dim.updatespinstates(states, spinstates, np.array(stat_temps, dtype='int32'),
+                dim.updatespinstates(states, spinstates, np.array(stat_temps, dtype='int32'), 
                                      np.array(sidlist, dtype='int32'), np.array(didlist, dtype='int32'), ncores)
-                for resid,tid in enumerate(stat_temps):
-                    magnstatistics(magnfuncid, m2id, magncount, tid, resid, bid, states, statesen,
-                                   magnstatstables,spinstates,statsfunctions, sidlist, didlist,
-                                   L, s_ijl, ijl_s, num_in_bin, stlen)
+            
+            if measperiod == 1 or it%measperiod == 0:
+                bid = (it//measperiod)//num_in_bin
+                if len(statsfunctions) != 0 or check:
+                    #print(bid)
+                    if measupdate:                  
+
+                        dim.measupdates(states, spinstates,
+                                        np.array(stat_temps, dtype='int32'), np.array(sidlist, dtype = 'int32'),
+                                        np.array(didlist, dtype='int32'),np.array(nnspins,dtype = 'int32'), 
+                                        np.array(s2p, dtype = 'int32'), ncores, p);
+
+                    for resid,tid in enumerate(stat_temps):
+                        magnstatistics(magnfuncid, tid, resid, bid, states, statesen,
+                                       magnstatstables,spinstates,statsfunctions, sidlist, didlist,
+                                       L, s_ijl, ijl_s, num_in_bin, stlen,
+                                      c2s = c2s, csign = csign,nnlists = nnlists)
             ##### (Sometimes implement parallel updating of the statistics, if worth it)
             ##### (the trade-off is between the memory and the )
             t4 = time()
@@ -964,7 +979,6 @@ def mcs_swaps(states, spinstates, statesen,
         print('Time for mcsevolve = {0}'.format(t_join))
         print('Time for tempering = {0}'.format(t_tempering))
         print('Time for mapping to spins + computing statistics= {0}'.format(t_spins))
-        print('Magncounts:', magncount)
         return magnstatstables, swaps
     
 
