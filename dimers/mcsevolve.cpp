@@ -13,11 +13,9 @@ void mcsevolve(double J1, std::vector<std::tuple<double, int*, int, int>> intera
         int *state = &states[tindex*state_size];
         double beta = betas[tindex];
         int saveloops = 0; // don't save loops
-        //for(int iter = 0; iter < niterworm; iter++) { // in this version the loop is now done in manydualworms
             //manydual worms
             tuple<double, vector<int>, vector<int>> resultworm = manydualworms(J1, interactions, state, state_size, d_nd, n_nd, d_vd, n_vd, d_wn, beta, saveloops, nmaxiter, niterworm);
             energies[tindex] = energies[tindex] + get<0>(resultworm);
             //add things to e
-        //}
      }
 }
