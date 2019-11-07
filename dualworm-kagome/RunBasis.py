@@ -44,7 +44,7 @@ def main(args):
     print('J3 ', J3)
     print('J3st ', J3st)
     print('J4', J4)
-
+    
     couplings = {'J1': J1, 'J2':J2, 'J3':J3, 'J3st':J3st, 'J4':J4}
     hamiltonian = dw.Hamiltonian(couplings,d_ijl, ijl_d, L)
 
@@ -69,14 +69,18 @@ def main(args):
     backup.params.magninit = magninit = args.magninit
     print('Magnetisation initialisation = ', magninit)
     
+    
     kwinit = {'random': randominit, 'same': same, 'magninit': magninit}
     print(kwinit)
     print('Same initialisation for all temperatures = ', same)
-        #dw.statesinit(number of temperatures, dual bond table, spin surrounding dual bonds, spin site table, hamiltonian list, random starting state, same type of starting state for all temperatures)
+    
+    #dw.statesinit(number of temperatures, dual bond table, spin surrounding dual bonds, spin site table, hamiltonian list, random starting state, same type of starting state for all temperatures)
+    
     (states, energies, spinstates) = strst.statesinit(nt, d_ijl, d_2s, s_ijl, hamiltonian, **kwinit)
     backup.params.ncores = ncores = args.ncores
     dw.states_dimers2spins(sidlist, didlist, states, spinstates,nt,ncores)
     new_en_states = [dim.hamiltonian(hamiltonian, states[t]) for t in range(nt)]
+    
     for t in range(nt):
         if np.absolute(energies[t]-new_en_states[t]) > 1.0e-5:
             print('RunBasis: Issue at temperature index', t)
