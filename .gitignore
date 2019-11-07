@@ -2,6 +2,7 @@ dimers/build
 tests/
 test_random/
 dimers/*.txt
+dualworm-kagome/*.png
 dualworm-kagome/*.out
 dualworm-kagome/*.pkl
 dualworm-kagome/*.png
