@@ -4,6 +4,7 @@ test_random/
 dimers/*.txt
 dualworm-kagome/*.out
 dualworm-kagome/*.pkl
+dualworm-kagome/*.png
 dualworm-kagome/__pycache__/
 ANALYSIS_CSCS/
 Analysis_CSCS/
