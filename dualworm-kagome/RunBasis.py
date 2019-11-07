@@ -43,7 +43,7 @@ def main(args):
     print('J3 ', J3)
     print('J3st ', J3st)
     print('J4', J4)
-
+    
     couplings = {'J1': J1, 'J2':J2, 'J3':J3, 'J3st':J3st, 'J4':J4}
     hamiltonian = dw.Hamiltonian(couplings,d_ijl, ijl_d, L)
 
@@ -66,13 +66,22 @@ def main(args):
     print('Random initialisation = ', randominit)
 
     backup.params.same = same = args.same
-
+    print('Identical initialisation = ', same)
+    backup.params.magninit = magninit = args.magninit
+    print('Magnetisation initialisation = ', magninit)
+    
+    
+    kwinit = {'random': randominit, 'same': same, 'magninit': magninit}
+    print(kwinit)
     print('Same initialisation for all temperatures = ', same)
-        #dw.statesinit(number of temperatures, dual bond table, spin surrounding dual bonds, spin site table, hamiltonian list, random starting state, same type of starting state for all temperatures)
-    (states, energies, spinstates) = strst.statesinit(nt, d_ijl, d_2s, s_ijl, hamiltonian, randominit, same)
+    
+    #dw.statesinit(number of temperatures, dual bond table, spin surrounding dual bonds, spin site table, hamiltonian list, random starting state, same type of starting state for all temperatures)
+    
+    (states, energies, spinstates) = strst.statesinit(nt, d_ijl, d_2s, s_ijl, hamiltonian, **kwinit)
     backup.params.ncores = ncores = args.ncores
     dw.states_dimers2spins(sidlist, didlist, states, spinstates,nt,ncores)
     new_en_states = [dim.hamiltonian(hamiltonian, states[t]) for t in range(nt)]
+    
     for t in range(nt):
         if np.absolute(energies[t]-new_en_states[t]) > 1.0e-5:
             print('RunBasis: Issue at temperature index', t)
@@ -198,30 +207,30 @@ def main(args):
             print('RunBasis: Issue at temperature index', t)
 
 
-    ### STATISTICS ##
+    ## STATISTICS ##
 #
-    #t_meanfunc = list() #for each function, for each temperature, mean of the state function
-    #t_varmeanfunc = list() #for each function, for each temperature, variance of the state function
-    #numsites = len(s_ijl)
+    t_meanfunc = list() #for each function, for each temperature, mean of the state function
+    t_varmeanfunc = list() #for each function, for each temperature, variance of the state function
+    numsites = len(s_ijl)
 #
-    #for idtuple, stattuple in enumerate(meanstat):
-    #    # means:
-    #    t_meanfunc.append((np.array(stattuple[0]).sum(1)/nb, np.array(stattuple[1]).sum(1)/nb))
+    for idtuple, stattuple in enumerate(meanstat):
+        # means:
+        t_meanfunc.append((np.array(stattuple[0]).sum(1)/nb, np.array(stattuple[1]).sum(1)/nb))
 #
-    #    #variances:
-    #    tuplevar1 = [0 for t in stat_temps]
-    #    tuplevar2 = [0 for t in stat_temps]
-    #    for resid, t in enumerate(stat_temps):
-    #        for b in range(nb):
-    #            tuplevar1[resid] += ((stattuple[0][resid][b] - t_meanfunc[idtuple][0][resid]) ** 2)/(nb * (nb - 1))
-    #            tuplevar2[resid] += ((stattuple[1][resid][b] - t_meanfunc[idtuple][1][resid]) ** 2)/(nb * (nb - 1))
-    #    t_varmeanfunc.append((tuplevar1, tuplevar2))
+        #variances:
+        tuplevar1 = [0 for t in stat_temps]
+        tuplevar2 = [0 for t in stat_temps]
+        for resid, t in enumerate(stat_temps):
+            for b in range(nb):
+                tuplevar1[resid] += ((stattuple[0][resid][b] - t_meanfunc[idtuple][0][resid]) ** 2)/(nb * (nb - 1))
+                tuplevar2[resid] += ((stattuple[1][resid][b] - t_meanfunc[idtuple][1][resid]) ** 2)/(nb * (nb - 1))
+        t_varmeanfunc.append((tuplevar1, tuplevar2))
 #
-    ## Additional results for the correlations are handled directly in AnalysisBasis_3dot1dot5
+    # Additional results for the correlations are handled directly in AnalysisBasis_3dot1dot5
 #
-    ##Save the final results
-    #backup.results.t_meanfunc = t_meanfunc
-    #backup.results.t_varmeanfunc = t_varmeanfunc
+    #Save the final results
+    backup.results.t_meanfunc = t_meanfunc
+    backup.results.t_varmeanfunc = t_varmeanfunc
     backup.results.states = states
     backup.results.spinstates = spinstates
     #Save the backup object in a file
