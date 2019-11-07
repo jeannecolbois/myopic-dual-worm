@@ -112,6 +112,70 @@ def dualbondspinsitelinks(d_ijl, ijl_s, L):
 # In[ ]:
 
 
+def createchargesitestable(L):
+    '''
+        Creates the table of charge sites corresponding to a dice lattice 
+        of side size L.
+        Returns a table identifing an int with the three coordinates of 
+        the charge site and a dictionnary identifying the
+        three coordinates with the charge site's int index. This allows 
+        to handle other relations between charge sites in an
+        easier way.
+    '''
+    c_ijl = [(i, j, l) for i in range(2*L) for j in range(2*L) for l in range(2) if (i+j > L-2) and (i+j < 3*L-1)]
+    # dictionary
+    ijl_c = {}
+    for c, triplet in enumerate(c_ijl):
+        ijl_c[triplet] = c
+    return c_ijl, ijl_c
+
+
+# In[ ]:
+
+
+def charge2spins(c_ijl, ijl_s, L):
+    '''
+        Returns the three spin sites associated with each charge site,
+        and a sign associated with the way the charge should be computed
+    '''
+    relspins = [[(0,0,0),(0,0,1),(1,0,2)],[(0,0,1),(0,0,2),(-1,1,0)]]
+    # without worrying about periodic BC:
+    c2s = [[(ci+relspins[cl][u][0], cj++relspins[cl][u][1], relspins[cl][u][2])
+                      for u in range(3)] for (ci,cj,cl) in c_ijl]
+    csign = [2*cl -1 for (ci,cj,cl) in c_ijl]
+    # fix the periodic boundary conditions
+    c2s = [[ijl_s[fixbc(si,sj,sl,L)] for (si,sj,sl) in cspins]
+                    for cspins in c2s]
+    return c2s, csign
+
+
+# In[ ]:
+
+
+def spin2plaquette(ijl_s, s_ijl, s2_d, L):
+    '''
+        For a lattice with side size L, this function  returns a table giving the
+        four dimers surrounding it (which one would have to flip to flip the spin)
+        and the four nn spins.
+    '''
+    nnspinslinks = [[(0,0,1),(1,0,2),(1,-1,1),(1,-1,2)],
+               [(0,0,0),(0,0,2),(1,0,2),(-1,1,0)],
+               [(0,0,1),(-1,0,0),(-1,0,1),(-1,1,0)]]
+    #without worrying about the PBC:
+    nnspins = [[(i+nnspinslinks[l][u][0], j+nnspinslinks[l][u][1],nnspinslinks[l][u][2]) for u in range(4)]
+               for (i,j,l) in s_ijl]
+    nnspins = [[ijl_s[fixbc(si, sj, sl, L)] for (si,sj,sl) in spinsneighs]
+                        for spinsneighs in nnspins]
+    s2p = [[s2_d[(s1,s2)] for s2 in spinsneighs] for (s1, spinsneighs) in enumerate(nnspins)]
+    nnspins = np.array(nnspins, dtype = 'int32')
+    s2p = np.array(s2p, dtype = 'int32')
+    
+    return nnspins, s2p
+
+
+# In[ ]:
+
+
 def spins_dimers_for_update(s_ijl, ijl_s, s2_d, L):
     '''
         Returns a list of spin site indices and a list of dual bond indices. 
@@ -257,6 +321,71 @@ def windingtable(d_ijl, L):
                 if l == 0:
                     d_wn[d,1] = 1
     return d_wn
+
+
+# In[ ]:
+
+
+################## NEIGHBOURS STRUCTURE #################
+def NNpairs(ijl_s, s_ijl, L):
+    nnpairslist = [[(0,0,0),(0,0,1)],[(0,0,0),(1,0,2)],[(0,0,0),(1,-1,1)],[(0,0,0),(1,-1,2)],
+               [(0,0,1),(1,0,2)],[(1,-1,1),(1,-1,2)]]
+
+    #without worrying about the PBC:
+    nnpairs = [[[(i+nnpairslist[p][u][0], j+nnpairslist[p][u][1],nnpairslist[p][u][2]) for u in range(2)]
+               for p in range(6)] for (i,j,l) in s_ijl if l == 0]
+    nnpairs = [[ijl_s[fixbc(si, sj, sl, L)] for (si, sj, sl) in p] for listsp in nnpairs for p in listsp ] 
+    return nnpairs
+
+
+# In[ ]:
+
+
+def NN2pairs(ijl_s, s_ijl, L):
+    nnpairslist = [[(0,0,0),(1,0,1)],[(0,0,0),(0,0,2)],[(0,0,1),(1,-1,2)],[(0,0,1),(0,1,0)],
+                   [(1,0,2),(1,-1,1)],[(1,0,2),(-1,1,0)]]
+
+    #without worrying about the PBC:
+    nn2pairs = [[[(i+nnpairslist[p][u][0], j+nnpairslist[p][u][1], nnpairslist[p][u][2]) for u in range(2)]
+               for p in range(6)] for (i,j,l) in s_ijl if l == 0]
+    nn2pairs = [[ijl_s[fixbc(si, sj, sl, L)] for (si, sj, sl) in p]  for listsp in nn2pairs for p in listsp]
+                       
+    return nn2pairs
+
+
+# In[ ]:
+
+
+def NN3pairs(ijl_s, s_ijl, L):
+    '''
+        For later use, this is NN3par
+    '''
+    nnpairslist = [[(0,0,0),(0,1,0)],[(0,0,0),(-1,1,0)],[(0,0,1),(1,-1,1)],[(0,0,1),(-1,0,1)],
+                   [(0,0,2),(1,0,2)],[(0,0,2),(0,1,2)]]
+
+    #without worrying about the PBC:
+    nn3pairs = [[[(i+nnpairslist[p][u][0], j+nnpairslist[p][u][1], nnpairslist[p][u][2]) for u in range(2)]
+               for p in range(6)] for (i,j,l) in s_ijl if l == 0]
+    nn3pairs = [[ijl_s[fixbc(si, sj, sl, L)] for (si, sj, sl) in p]  for listsp in nn3pairs for p in listsp]
+                       
+    return nn3pairs
+
+
+# In[ ]:
+
+
+def NN4pairs(ijl_s, s_ijl, L):
+    '''
+        For later use, this is NN3star
+    '''
+    nnpairslist = [[(0,0,0),(-1,0,0)],[(0,0,1),(0,-1,1)],[(0,0,2),(1,-1,2)]]
+
+    #without worrying about the PBC:
+    nn4pairs = [[[(i+nnpairslist[p][u][0], j+nnpairslist[p][u][1], nnpairslist[p][u][2]) for u in range(2)]
+               for p in range(3)] for (i,j,l) in s_ijl if l == 0]
+    nn4pairs = [[ijl_s[fixbc(si, sj, sl, L)] for (si, sj, sl) in p]  for listsp in nn4pairs for p in listsp]
+
+    return nn4pairs
 
 
 # In[ ]:
@@ -471,7 +600,7 @@ def referenceSpins(L, ijl_s):
 # In[ ]:
 
 
-def KagomeNearestNeighboursLists(L, distmax):
+def NearestNeighboursLists(L, distmax):
     '''
         Returns a list of distances between sites (smaller than distmax) with respect to the 3 reference sites, a dictionary of pairs of sites at a given distance and a list of the nearest neighbour pairs associated with a given site and distance.
     '''
@@ -492,7 +621,7 @@ def KagomeNearestNeighboursLists(L, distmax):
     
     
     #graph
-    (s_pos, ijl_pos) = reducedgraphkag(L, s_ijl, ijl_s)
+    (s_pos, ijl_pos) = reducedgraph(L, s_ijl, ijl_s)
     pos = list(s_pos.values())
     pos = [list(np.round(posval, 4)) for posval in pos]
     #initialise the superlattice

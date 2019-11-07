@@ -3,7 +3,6 @@
 
 # In[ ]:
 
-
 from functools import lru_cache
 import GraphDrawing as gdw
 import numpy as np
@@ -11,7 +10,6 @@ import matplotlib.pyplot as plt
 
 
 # In[ ]:
-
 
 def fixbc(i, j, l, L):
     '''
@@ -41,6 +39,25 @@ def fixbc(i, j, l, L):
 
 # In[ ]:
 
+def createspinsitetable(L):
+    '''
+        Creates the table of spin sites corresponding to a dice lattice 
+        of side size L.
+        Returns a table identifing an int with the three coordinates of 
+        the spin site and a dictionnary identifying the
+        three coordinates with the spin site's int index. This allows 
+        to handle other relations between spin sites in an
+        easier way.
+    '''
+    s_ijl = [(i, j, l) for i in range(2*L) for j in range(2*L) for l in range(3) if (i+j > L-2) and (i+j < 3*L-1)]
+    # dictionary
+    ijl_s = {}
+    for s, triplet in enumerate(s_ijl):
+        ijl_s[triplet] = s
+    return s_ijl, ijl_s
+
+
+# In[ ]:
 
 def createspinsitetable(L):
     '''
@@ -101,7 +118,6 @@ def graphdice(L, a):
 
 # In[ ]:
 
-
 def reducedgraphdice(L, a, d_ijl, v_ijl, ijl_v):
     #table of where to look at 
     nv = [(0, -1, 2), (0, 0, 1), (0, 0, 2), (-1, 1, 1), (-1, 0, 2), (-1, 0, 1)]
@@ -118,7 +134,6 @@ def reducedgraphdice(L, a, d_ijl, v_ijl, ijl_v):
 
 
 # In[ ]:
-
 
 @lru_cache(maxsize = None)
 def graphkag(L, a):
@@ -159,6 +174,36 @@ def graphkag(L, a):
 
 # In[ ]:
 
+@lru_cache(maxsize = None)
+def graphhoneycomb(L, a):
+    '''
+        For the kagomé lattice:
+        Returns two vertex <-> (i, j, l) tables, a table linking edge to the two corresponding vertices, as well as a dictionary giving the position (x,y) of each vertex
+    '''
+    #vertices table
+    cv_ijl = [(i, j, l) for i in range(-1, 2*L+1) for j in range(-1, 2*L+1) for l in range(2) if (i+j >= L-2) and (i+j <= 3*L - 1)]
+    
+    #vertices dictionary:
+    ijl_cv = {}
+    for cv, triplet in enumerate(cv_ijl):
+        ijl_cv[triplet] = cv
+    
+    #position
+    pos = {} #empty dictionary
+    for cv, (i,j,l) in enumerate(cv_ijl):
+        x = a * (i + j / 2.0)
+        y = a * j * np.sqrt(3) / 2.0
+        if l == 0:
+            x += a / 2.0
+            y += a / 4.0
+        if l == 1:
+            y += a/ 2.0
+
+        pos[cv] = (x,y)
+    return cv_ijl, ijl_cv,pos
+
+
+# In[ ]:
 
 # FUCTION LINKING THE EDGE OF THE GRAPH TO THE CORRESPONDING DIMER STATE
 def edge2dimer(L, a, d_ijl, v_ijl, ijl_v, e_2v):
@@ -175,7 +220,6 @@ def edge2dimer(L, a, d_ijl, v_ijl, ijl_v, e_2v):
 
 
 # In[ ]:
-
 
 def plot_dice_nodes(L, a, color='black', s=1, **kargs):
     (v_ijl, ijl_v, e_2v, pos) = graphdice(L, a)
@@ -202,7 +246,6 @@ def plot_dice_dimerstate(state, d_ijl, L, a, node_color = 'black', dim_color = '
 
 # In[ ]:
 
-
 def spinvertex2spin(L,a, ijl_s, sv_ijl):
     '''
         Given a list of spin vertices, associates to each one the corresponding spin
@@ -217,7 +260,6 @@ def spinvertex2spin(L,a, ijl_s, sv_ijl):
 
 
 # In[ ]:
-
 
 def plot_kag_nodes(L, a, color='blue', s=20, **kargs):
     (sv_ijl, ijl_sv, e_2sv, poskag) = graphkag(L,a)
@@ -255,7 +297,6 @@ def plot_kag_spinstate(spinstate, ijl_s, L, a, edge_color = 'lightblue', up_colo
 
 # In[ ]:
 
-
 #FUNCTION ALLOWING TO PLOT THE FULL STATE
 
 def plotstate(temp_id, L, d_ijl, ijl_s, sidlist, didlist, s2_d, states, dim_node_color = 'black', dim_color ='black', no_dim_color = 'lightgrey', spin_edge_color = 'lightblue', spin_up_color = 'blue', spin_down_color = 'red', dimerlinewidth = 5, spinlinewidth = 1, **kargs):    
@@ -277,7 +318,6 @@ def plotstate(temp_id, L, d_ijl, ijl_s, sidlist, didlist, s2_d, states, dim_node
 
 
 # In[ ]:
-
 
 def plot_function_kag(f, L, a, **kargs):
     '''
@@ -311,7 +351,6 @@ def plot_function_kag(f, L, a, **kargs):
 
 
 # In[ ]:
-
 
 def KagomeSimpleReciprocal(L):
     '''
@@ -360,7 +399,6 @@ def reciprocalgraph(L, a):
 
 # In[ ]:
 
-
 def plot_reciprocal(L, a, n, color = 'blue', **kargs):
     #get the shape of the lattice
     (qv_k1k2, k1k2_qv, pos, factor) = reciprocalgraph(L, a)
@@ -385,7 +423,6 @@ def plot_reciprocal(L, a, n, color = 'blue', **kargs):
 
 
 # In[ ]:
-
 
 def plot_function_reciprocal(f, L, a, **kargs):
     '''

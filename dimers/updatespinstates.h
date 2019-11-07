@@ -3,6 +3,9 @@
 #include <omp.h>
 
 
-void updatespinstates(int* states, int* spinstates, int* stat_temps, int* sidlist, int* didlist, int nbstat, int statesize, int spinstatesize, int nthreads, int nbit);
-void updatespinstate(int* state, int* spinstate, int* sidlist, int* didlist, int nbit);
+void updatespinstates(int* states, int* spinstates, int* stat_temps,
+  int* sidlist, int* didlist, int nbstat, int statesize,
+  int spinstatesize, int nthreads, int nbit);
+void updatespinstate(int* state, int* spinstate, int* sidlist,
+  int* didlist, int nbit);
 #endif //USPINSTATES_H

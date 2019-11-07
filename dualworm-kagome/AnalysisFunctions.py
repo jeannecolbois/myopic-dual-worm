@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[ ]:
+# In[1]:
 
 
 import matplotlib.pyplot as plt
@@ -11,7 +11,7 @@ import KagomeFunctions as kf # "library" allowing to work on Kagome
 import DualwormFunctions as dw
 
 
-# In[ ]:
+# In[2]:
 
 
 def correlationsTester(state, latsize, d_ijl, ijl_d, L):
