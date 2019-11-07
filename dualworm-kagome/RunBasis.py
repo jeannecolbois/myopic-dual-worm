@@ -246,13 +246,32 @@ def main(args):
 
 
     ## STATISTICS ##
+    t_meanfunc = list() #for each function, for each temperature, mean of the state function
+    t_varmeanfunc = list() #for each function, for each temperature, variance of the state function
+    numsites = len(s_ijl)
 
+    for idtuple, stattuple in enumerate(meanstat):
+        # means:
+        t_meanfunc.append((np.array(stattuple[0]).sum(1)/nb, np.array(stattuple[1]).sum(1)/nb))
 
+        #variances:
+        tuplevar1 = [0 for t in stat_temps]
+        tuplevar2 = [0 for t in stat_temps]
+        for resid, t in enumerate(stat_temps):
+            for b in range(nb):
+                tuplevar1[resid] += ((stattuple[0][resid][b] - t_meanfunc[idtuple][0][resid]) ** 2)/(nb * (nb - 1))
+                tuplevar2[resid] += ((stattuple[1][resid][b] - t_meanfunc[idtuple][1][resid]) ** 2)/(nb * (nb - 1))
+        t_varmeanfunc.append((tuplevar1, tuplevar2))
+
+    # Additional results for the correlations are handled directly in AnalysisBasis_3dot1dot5
+
+    #Save the final results
+    backup.results.t_meanfunc = t_meanfunc
+    backup.results.t_varmeanfunc = t_varmeanfunc
     backup.results.states = states
     backup.results.spinstates = spinstates
     #Save the backup object in a file
     pickle.dump(backup, open(args.output + '.pkl','wb'))
-    print('Job done')
     return meanstat
 
 
