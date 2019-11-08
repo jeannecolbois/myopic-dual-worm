@@ -143,10 +143,13 @@ static PyObject* dimers_hamiltonian(PyObject *self, PyObject *args) {
 
     bool ok;
     interactions = getInteractions(list_obj, Marray_list, &ok);
-    if(ok == false) return nullptr;
-
-
-
+    if(ok == false) {
+      for(auto marray : Marray_list) {
+          Py_DECREF(marray); // idem
+      }
+      PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d (NPY array?)", __LINE__);
+      return nullptr;
+    }
     //---------------------------------//
     /* Interpret the pointer to state */
     //---------------------------------//
@@ -167,7 +170,13 @@ static PyObject* dimers_hamiltonian(PyObject *self, PyObject *args) {
     double energy = hamiltonian(J1, interactions, state, statesize);
     PyEval_RestoreThread(threadState);
     /* Clean up */
-    Py_DECREF(state_array); // decrement the reference "sum"
+    if( state_array != nullptr){
+      Py_DECREF(state_array); // decrement the reference
+    }
+    //else{
+    //  PyErr_Format(PyExc_ValueError, "DIMERS.cpp : state_array is null (NPY array?)", __LINE__);
+    //return nullptr;
+
     for(auto marray : Marray_list) {
         Py_DECREF(marray); // idem
     }
@@ -372,13 +381,26 @@ static PyObject* dimers_mcsevolve(PyObject *self, PyObject *args) {
     PyEval_RestoreThread(threadState); // claim the GIL
 
     // Clean up
-    Py_DECREF(states_array);
-    Py_DECREF(betas_array);
+    if( states_array != nullptr){
+      Py_DECREF(states_array); // decrement the reference
+    }
+    if( betas_array != nullptr){
+      Py_DECREF(betas_array); // decrement the reference
+    }
     //Py_DECREF(saveloops_array);
-    Py_DECREF(failedupdates_array);
-    Py_DECREF(d_nd_array);
-    Py_DECREF(d_vd_array);
-    Py_DECREF(d_wn_array);
+    if( failedupdates_array != nullptr){
+      Py_DECREF(failedupdates_array); // decrement the reference
+    }
+    if( d_nd_array != nullptr){
+      Py_DECREF(d_nd_array); // decrement the reference
+    }
+    if( d_vd_array != nullptr){
+      Py_DECREF(d_vd_array); // decrement the reference
+    }
+    if( d_wn_array != nullptr){
+      Py_DECREF(d_wn_array); // decrement the reference
+    }
+
     for(auto marray : Marray_list) { // clean up as well the array(s) created for the couplings in getInteractions
         Py_DECREF(marray);
     }
@@ -631,17 +653,39 @@ static PyObject* dimers_magneticmcsevolve(PyObject *self, PyObject *args) {
     PyEval_RestoreThread(threadState); // claim the GIL
 
     // Clean up
-    Py_DECREF(states_array);
-    Py_DECREF(spinstates_array);
-    Py_DECREF(d_nd_array);
-    Py_DECREF(d_vd_array);
-    Py_DECREF(d_wn_array);
-    Py_DECREF(sidlist_array);
-    Py_DECREF(didlist_array);
-    Py_DECREF(betas_array);
-    Py_DECREF(energies_array);
+    if( states_array != nullptr){
+      Py_DECREF(states_array); // decrement the reference
+    }
+    if( spinstates_array != nullptr){
+      Py_DECREF(spinstates_array); // decrement the reference
+    }
     //Py_DECREF(saveloops_array);
-    Py_DECREF(failedupdates_array);
+
+    if( d_nd_array != nullptr){
+      Py_DECREF(d_nd_array); // decrement the reference
+    }
+    if( d_vd_array != nullptr){
+      Py_DECREF(d_vd_array); // decrement the reference
+    }
+    if( d_wn_array != nullptr){
+      Py_DECREF(d_wn_array); // decrement the reference
+    }
+    if( sidlist_array != nullptr){
+      Py_DECREF(sidlist_array); // decrement the reference
+    }
+    if( didlist_array != nullptr){
+      Py_DECREF(didlist_array); // decrement the reference
+    }
+    if( betas_array != nullptr){
+      Py_DECREF(betas_array); // decrement the reference
+    }
+    if( energies_array != nullptr){
+      Py_DECREF(energies_array); // decrement the reference
+    }
+    if( failedupdates_array != nullptr){
+      Py_DECREF(failedupdates_array); // decrement the reference
+    }
+
 
     for(auto marray : Marray_list) { // clean up as well the array(s) created for the couplings in getInteractions
         Py_DECREF(marray);
@@ -747,11 +791,23 @@ static PyObject* dimers_updatespinstates(PyObject *self, PyObject *args) {
     PyEval_RestoreThread(threadState); // claim the GIL
 
     // Clean up
-    Py_DECREF(states_array);
-    Py_DECREF(spinstates_array);
-    Py_DECREF(sidlist_array);
-    Py_DECREF(didlist_array);
-    Py_DECREF(stat_temps_array);
+    if( states_array != nullptr){
+      Py_DECREF(states_array); // decrement the reference
+    }
+    if( spinstates_array != nullptr){
+      Py_DECREF(spinstates_array); // decrement the reference
+    }
+    //Py_DECREF(saveloops_array);
+
+    if( sidlist_array != nullptr){
+      Py_DECREF(sidlist_array); // decrement the reference
+    }
+    if( didlist_array != nullptr){
+      Py_DECREF(didlist_array); // decrement the reference
+    }
+    if( stat_temps_array != nullptr){
+      Py_DECREF(stat_temps_array); // decrement the reference
+    }
       //build output
 
     /* Build the output */
@@ -880,13 +936,30 @@ static PyObject* dimers_measupdates(PyObject *self, PyObject *args) {
     PyEval_RestoreThread(threadState); // claim the GIL
 
     // Clean up
-    Py_DECREF(states_array);
-    Py_DECREF(spinstates_array);
-    Py_DECREF(sidlist_array);
-    Py_DECREF(didlist_array);
-    Py_DECREF(stat_temps_array);
-    Py_DECREF(nnspins_array);
-    Py_DECREF(s2p_array);
+    if( states_array != nullptr){
+      Py_DECREF(states_array); // decrement the reference
+    }
+    if( spinstates_array != nullptr){
+      Py_DECREF(spinstates_array); // decrement the reference
+    }
+    //Py_DECREF(saveloops_array);
+
+    if( sidlist_array != nullptr){
+      Py_DECREF(sidlist_array); // decrement the reference
+    }
+    if( didlist_array != nullptr){
+      Py_DECREF(didlist_array); // decrement the reference
+    }
+    if( stat_temps_array != nullptr){
+      Py_DECREF(stat_temps_array); // decrement the reference
+    }
+    if( nnspins_array != nullptr){
+      Py_DECREF(nnspins_array); // decrement the reference
+    }
+    if( s2p_array != nullptr){
+      Py_DECREF(s2p_array); // decrement the reference
+    }
+
       //build output
 
     /* Build the output */
@@ -1227,7 +1300,10 @@ tuple<int*, int> parseInteger1DArray(PyArrayObject* oned_array, PyObject* oned_p
   }
   //get pointer as Ctype
   int *onedres = (int*)PyArray_DATA(oned_array);
-
+  if(onedres == nullptr) {
+     PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d (NPY array?)", __LINE__);
+     return make_tuple(nullptr,0);
+  }
   tuple<int*, int> onedtuple(onedres,nbs);
   return onedtuple;
 }
