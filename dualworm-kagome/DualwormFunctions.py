@@ -220,6 +220,7 @@ def Hamiltonian(couplings, d_ijl, ijl_d, L):
         d_J4d = lattice.d_J4d(d_ijl, ijl_d, L)
         hamiltonian.append((J4,d_J4d))
         
+    print("dw.Hamiltonian done")
     return hamiltonian
 
 

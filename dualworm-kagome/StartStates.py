@@ -40,8 +40,9 @@ def magnetisedInit(spinstates, nt, s_ijl, same):
 
 def J1J2Init(spinstates, nt, s_ijl, same):
     if same:
+        print("In same (J1J2)")
         version = np.random.randint(0,3)
-        sign = np.random.randint(0,1)*2 -1
+        sign = np.random.randint(0,2)*2 -1
         
         spinstate = np.ones(len(s_ijl))
         for s, (i,j,l) in enumerate(s_ijl):
@@ -50,22 +51,23 @@ def J1J2Init(spinstates, nt, s_ijl, same):
             if l == (version+1)%3:
                 spinstate[s] = -sign
             if l == (version+2)%3:
-                spinstate[s] = np.random.randint(0,1)*2-1
+                spinstate[s] = np.random.randint(0,2)*2-1
         
         for t in range(nt):
             spinstates[t] = np.copy(spinstate)
     else:
+        print("In Differents (J1J2)")
         versions = [np.random.randint(0,3) for t in range(nt)]
-        signs = [np.random.randint(0,1)*2 -1 for t in range(nt)]
-    
-    for t in range(nt):
-        for s, (i, j, l) in enumerate(s_ijl):
-            if l == versions[t]:
-                spinstates[t][s] = signs[t]
-            if l == (versions[t] + 1)%3:
-                spinstates[t][s] = -signs[t]
-            if l == (versions[t] + 2)%3:
-                spinstates[t][s] = np.random.randint(0,1)*2 - 1
+        signs = [np.random.randint(0,2)*2 -1 for t in range(nt)]
+        print("versions and signs generated (J1J2)")
+        for t in range(nt):
+            for s, (i, j, l) in enumerate(s_ijl):
+                if l == versions[t]:
+                    spinstates[t][s] = signs[t]
+                if l == (versions[t] + 1)%3:
+                    spinstates[t][s] = -signs[t]
+                if l == (versions[t] + 2)%3:
+                    spinstates[t][s] = np.random.randint(0,2)*2 - 1
 
 
 # In[4]:
@@ -75,7 +77,7 @@ def J1J3Init(spinstates, nt, s_ijl, same):
 
         
     if same:
-        sign = np.random.randint(0,1)*2 -1
+        sign = np.random.randint(0,2)*2 -1
         
         spinstate = np.ones(len(s_ijl))
         for s, (i,j,l) in enumerate(s_ijl):
@@ -85,22 +87,22 @@ def J1J3Init(spinstates, nt, s_ijl, same):
             if subl in (3, 5, 7):
                 spinstate[s] = - sign
             if subl in (1, 6, 8):
-                spinstate[s] = np.random.randint(0,1)*2 -1          
+                spinstate[s] = np.random.randint(0,2)*2 -1          
             
         for t in range(nt):
             spinstates[t] = np.copy(spinstate)
     else:
-        signs = [np.random.randint(0,1)*2 -1 for t in range(nt)]
+        signs = [np.random.randint(0,2)*2 -1 for t in range(nt)]
     
-    for t in range(nt):
-        for s, (i,j,l) in enumerate(s_ijl):
-            subl = 3*((i + 2*j)%3) + l
-            if subl in (0, 2, 4):
-                spinstates[t][s] = signs[t]
-            if subl in (3, 5, 7):
-                spinstates[t][s] = - signs[t]
-            if subl in (1, 6, 8):
-                spinstates[t][s] = np.random.randint(0,1)*2 -1
+        for t in range(nt):
+            for s, (i,j,l) in enumerate(s_ijl):
+                subl = 3*((i + 2*j)%3) + l
+                if subl in (0, 2, 4):
+                    spinstates[t][s] = signs[t]
+                if subl in (3, 5, 7):
+                    spinstates[t][s] = - signs[t]
+                if subl in (1, 6, 8):
+                    spinstates[t][s] = np.random.randint(0,2)*2 -1
 
 
 # In[5]:
@@ -693,18 +695,24 @@ def DipolarToJ4Init(spinstates, nt, s_ijl):
 
 
 def J1Init(spinstates, nt, s_ijl, same):
+    print('In J1 init')
     if same:
-        version = np.random.randint(0,1)
+        print('In J1 init same')
+        version = np.random.randint(0,2)
         if version == 0:
             J1J2Init(spinstates, nt, s_ijl, same)
         else:
             J1J3Init(spinstates, nt, s_ijl, same)
     else:
+        print('In J1 init diff')
         for t in range(nt):
-            version = np.random.randint(0,1)
+            version = np.random.randint(0,2)
+            print(version)
             if version == 0:
+                print("version = J1J2")
                 J1J2Init([spinstates[t]],1, s_ijl, same)
             else:
+                print("version = J1J3")
                 J1J3Init([spinstates[t]], 1, s_ijl, same)
 
 
@@ -758,7 +766,7 @@ def determine_init(hamiltonian, magninit, **kwargs):
 # In[13]:
 
 
-def statesinit(nt, d_ijl, d_2s, s_ijl, hamiltonian, random = True, same = False, magninit = False, **kwargs):
+def statesinit(nt, d_ijl, d_2s, s_ijl, hamiltonian, h = 0, random = True, same = False, magninit = False, **kwargs):
     '''
        This function associates a dimer state to each dual bond. By default, this is done by first associating randomly a spin to
        each spin site and then map this onto a dimer state. If the initial state isn't random, it is what is believed to be the ground state
@@ -768,8 +776,10 @@ def statesinit(nt, d_ijl, d_2s, s_ijl, hamiltonian, random = True, same = False,
 
     print('statesinit function called')
     #initialize the dimers
+    print(len(d_ijl))
+    print(nt)
     states = [np.array([1 for i in range(len(d_ijl))], dtype='int32') for ignored in range(nt)]
-
+    en_states = [0 for ignored in range(nt)]
     #initialize the spins randomly
     spinstates = [(np.random.randint(0, 2, size=len(s_ijl))*2 - 1) for i in range(nt)]
     print(random)
@@ -780,6 +790,7 @@ def statesinit(nt, d_ijl, d_2s, s_ijl, hamiltonian, random = True, same = False,
         if inittype == "magninit":
             magnetisedInit(spinstates, nt, s_ijl, same)
         elif inittype == "J1":
+            print('J1Init')
             J1Init(spinstates, nt, s_ijl, same)
         elif inittype == "J1J2":
             J1J2Init(spinstates, nt, s_ijl, same)
@@ -793,9 +804,11 @@ def statesinit(nt, d_ijl, d_2s, s_ijl, hamiltonian, random = True, same = False,
             LargeJ3Init(spinstates, nt, s_ijl, same)
         elif inittype == "J1J2J3J4":
             DipolarToJ4Init(spinstates, nt, s_ijl, same)
+            
+    print("Preparing states")
     states = np.array(states, 'int32')
     spinstates = np.array(spinstates, 'int32')
-    #initialise the dimer state according to the spin state
+    ##initialise the dimer state according to the spin state
     for t in range(nt):
         for id_dim in range(len(d_ijl)):
             [id_s1, id_s2] = d_2s[id_dim]
@@ -805,10 +818,10 @@ def statesinit(nt, d_ijl, d_2s, s_ijl, hamiltonian, random = True, same = False,
                 states[t][id_dim] = 1
             else:
                 states[t][id_dim] = -1
-    en_states = [compute_energy(hamiltonian, states[t]) for t in range(nt)] # energy computed via the function in c++
-
+    en_states = [compute_energy(hamiltonian, states[t])-h*spinstates[t].sum() for t in range(nt)] # energy computed via the function in c++
+    #
     en_states = np.array(en_states)
-    
+    #
     return states, en_states, spinstates
 
 

@@ -39,15 +39,17 @@ def main(args):
     backup.params.J3 = J3 = args.J3
     backup.params.J3st = J3st = J3
     backup.params.J4 = J4 = args.J4
+    backup.params.h = h = args.h
     print('J1 ', J1)
     print('J2 ', J2)
     print('J3 ', J3)
     print('J3st ', J3st)
-    print('J4', J4)
+    print('h', h)
     
     couplings = {'J1': J1, 'J2':J2, 'J3':J3, 'J3st':J3st, 'J4':J4}
+    print("Couplings exacted")
     hamiltonian = dw.Hamiltonian(couplings,d_ijl, ijl_d, L)
-
+    print("hamiltonian computed")
     ## Temperatures to simulate
     t_list = [t for t in args.t_list]
     nt_list = args.nt_list
@@ -70,17 +72,17 @@ def main(args):
     print('Magnetisation initialisation = ', magninit)
     
     
-    kwinit = {'random': randominit, 'same': same, 'magninit': magninit}
+    kwinit = {'random': randominit, 'same': same, 'magninit': magninit, 'h':h}
     print(kwinit)
     print('Same initialisation for all temperatures = ', same)
     
-    #dw.statesinit(number of temperatures, dual bond table, spin surrounding dual bonds, spin site table, hamiltonian list, random starting state, same type of starting state for all temperatures)
     
     (states, energies, spinstates) = strst.statesinit(nt, d_ijl, d_2s, s_ijl, hamiltonian, **kwinit)
     backup.params.ncores = ncores = args.ncores
     dw.states_dimers2spins(sidlist, didlist, states, spinstates,nt,ncores)
-    new_en_states = [dim.hamiltonian(hamiltonian, states[t]) for t in range(nt)]
+    new_en_states = [dim.hamiltonian(hamiltonian, states[t])-h*spinstates[t].sum() for t in range(nt)]
     
+
     for t in range(nt):
         if np.absolute(energies[t]-new_en_states[t]) > 1.0e-5:
             print('RunBasis: Issue at temperature index', t)
@@ -184,7 +186,7 @@ def main(args):
     print('Time for all thermalisation steps = ', t2-t1)
 
     dw.states_dimers2spins(sidlist, didlist, states, spinstates,nt,ncores)
-    new_en_states = [dim.hamiltonian(hamiltonian, states[t]) for t in range(nt)]
+    new_en_states = [dim.hamiltonian(hamiltonian, states[t])-h*spinstates[t].sum() for t in range(nt)]
     for t in range(nt):
         if np.absolute(energies[t]-new_en_states[t]) > 1.0e-5:
             print('RunBasis: Issue at temperature index', t)
@@ -243,7 +245,7 @@ def main(args):
 
     #states = np.array(states)
     dw.states_dimers2spins(sidlist, didlist, states, spinstates,nt,ncores)
-    new_en_states = [dim.hamiltonian(hamiltonian, states[t]) for t in range(nt)]
+    new_en_states = [dim.hamiltonian(hamiltonian, states[t])-h*spinstates[t].sum() for t in range(nt)]
     for t in range(nt):
         if np.absolute(energies[t]-new_en_states[t]) > 1.0e-5:
             print('RunBasis: Issue at temperature index', t)
@@ -298,7 +300,9 @@ if __name__ == "__main__":
                         help = '3rd NN coupling') # 3rd NN coupling
     parser.add_argument('--J4', type = float, default = 0.0,
                         help = '4th NN coupling')
-
+    parser.add_argument('--h', type = float, default = 0.0,
+                        help = 'Magnetic field')
+    
     #NUMBER OF STEPS AND ITERATIONS
     parser.add_argument('--nst', type = int, default = 100,
                         help = 'number of thermalisation steps') # number of thermalisation steps
