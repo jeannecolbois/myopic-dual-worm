@@ -803,6 +803,7 @@ def mcs_swaps(states, spinstates, statesen,
                 'ijl_s': idem
                 'L': system size
                 'ncores':ncores
+                'h':h
         < states, spins states = tables that will be updated as the new 
         states and spinstates get computed
         < statesen : energy of the states
@@ -841,6 +842,7 @@ def mcs_swaps(states, spinstates, statesen,
     c2s = kwargs.get('c2s', None)
     csign = kwargs.get('csign', None)
     measperiod = kwargs.get('measperiod', 1)
+    h = kwargs.get('h', 0.0)
     
 
     ## Define the table for statistics
@@ -856,23 +858,33 @@ def mcs_swaps(states, spinstates, statesen,
     itermcs = nb*num_in_bin*measperiod
     print("itermcs = ", itermcs)
     swaps = [0 for t in range(nt)]
+    failedupdates = np.array([0 for t in range(nt)],dtype ='int32')
     t_join = 0
     t_spins = 0
     t_tempering = 0
     t_stat = 0
     print("magnstats", magnstats)
     print("statsfunctions", statsfunctions)
+    
     if not magnstats or not statsfunctions:
-
         for it in range(itermcs):
             #### EVOLVE using the mcsevolve function of the dimer
             #### module (C)
             # Note that states, betas, statesen get updated
-            t1 = time()
-            dim.mcsevolve(hamiltonian, states, betas, statesen, d_nd, d_vd, 
-                          d_wn, iterworm, nitermax, ncores)
-            t2 = time()
-            t_join += (t2-t1)/itermcs
+            if h == 0:
+                t1 = time()
+                dim.mcsevolve(hamiltonian, states, betas, statesen, failedupdates, d_nd, d_vd, 
+                              d_wn, iterworm, nitermax, ncores)
+                t2 = time()
+                t_join += (t2-t1)/itermcs
+            else:
+                t1 = time()
+                dim.magneticmcsevolve(hamiltonian, h, states, spinstates, d_nd,
+                                      d_vd, d_wn, sidlist, didlist, betas,
+                                      statesen, failedupdates, nitermax, iterworm,ncores)
+                t2 = time()
+                t_join += (t2-t1)/itermcs
+
 
             #### TEMPERING perform "parallel" tempering
             tempering(nt, statesen, betas, states, swaps)
@@ -880,23 +892,21 @@ def mcs_swaps(states, spinstates, statesen,
             t_tempering +=(t3-t2)/itermcs
 
             #### STATS update the statistics
-            if len(statsfunctions) != 0 or check:
+            if (len(statsfunctions) != 0 or check) and h == 0:
                 dim.updatespinstates(states, spinstates, np.array(stat_temps, dtype='int32'), 
                                      np.array(sidlist, dtype='int32'), np.array(didlist, dtype='int32'), ncores)
-            
+            # if h !=0 the spinstates have been updated already
+                
             if measperiod == 1 or it%measperiod == 0:
                 bid = (it//measperiod)//num_in_bin
                 if len(statsfunctions) != 0 or check:
                     #print(bid)
                     if measupdate:                
-                        np.array(nnspins,dtype = 'int32')
-                        np.array(s2p, dtype = 'int32')
-                        np.array(didlist, dtype='int32')
                         dim.measupdates(states, spinstates,
                                         np.array(stat_temps, dtype='int32'), np.array(sidlist, dtype = 'int32'),
                                         np.array(didlist, dtype='int32'),np.array(nnspins,dtype = 'int32'), 
                                         np.array(s2p, dtype = 'int32'), ncores, p);
-                
+
 
                     for resid,tid in enumerate(stat_temps):
                         statistics(tid, resid, bid, states, statesen, statstables,
@@ -928,11 +938,20 @@ def mcs_swaps(states, spinstates, statesen,
             #### EVOLVE using the mcsevolve function of the dimer
             #### module (C)
             # Note that states, betas, statesen get updated
-            t1 = time()
-            dim.mcsevolve(hamiltonian, states, betas, statesen, d_nd, d_vd, 
-                          d_wn, iterworm, nitermax, ncores)
-            t2 = time()
-            t_join += (t2-t1)/itermcs
+            if h == 0:
+                t1 = time()
+                dim.mcsevolve(hamiltonian, states, betas, statesen, failedupdates, d_nd, d_vd, 
+                              d_wn, iterworm, nitermax, ncores)
+                t2 = time()
+                t_join += (t2-t1)/itermcs
+            else:
+                t1 = time()
+                dim.magneticmcsevolve(hamiltonian, h, states, spinstates, d_nd,
+                                      d_vd, d_wn, sidlist, didlist, betas,
+                                      statesen, failedupdates, nitermax, iterworm,ncores)
+                t2 = time()
+                t_join += (t2-t1)/itermcs
+
 
             #### TEMPERING perform "parallel" tempering
             tempering(nt, statesen, betas, states, swaps)
@@ -940,8 +959,7 @@ def mcs_swaps(states, spinstates, statesen,
             t_tempering +=(t3-t2)/itermcs
 
             #### STATS update the statistics
-            bid = it//num_in_bin
-            if len(statsfunctions) != 0 or check:
+            if (len(statsfunctions) != 0 or check) and h == 0:
                 dim.updatespinstates(states, spinstates, np.array(stat_temps, dtype='int32'), 
                                      np.array(sidlist, dtype='int32'), np.array(didlist, dtype='int32'), ncores)
             
@@ -950,7 +968,6 @@ def mcs_swaps(states, spinstates, statesen,
                 if len(statsfunctions) != 0 or check:
                     #print(bid)
                     if measupdate:                  
-
                         dim.measupdates(states, spinstates,
                                         np.array(stat_temps, dtype='int32'), np.array(sidlist, dtype = 'int32'),
                                         np.array(didlist, dtype='int32'),np.array(nnspins,dtype = 'int32'), 
@@ -960,7 +977,7 @@ def mcs_swaps(states, spinstates, statesen,
                         magnstatistics(magnfuncid, tid, resid, bid, states, statesen,
                                        magnstatstables,spinstates,statsfunctions, sidlist, didlist,
                                        L, s_ijl, ijl_s, num_in_bin, stlen,
-                                      c2s = c2s, csign = csign,nnlists = nnlists)
+                                       c2s = c2s, csign = csign,nnlists = nnlists)
             ##### (Sometimes implement parallel updating of the statistics, if worth it)
             ##### (the trade-off is between the memory and the )
             t4 = time()
