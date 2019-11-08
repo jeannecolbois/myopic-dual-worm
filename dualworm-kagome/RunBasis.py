@@ -30,7 +30,8 @@ def main(args):
     backup.params.L = L = args.L
     print('Lattice side size: ', L)
     [d_ijl, ijl_d, s_ijl, ijl_s, d_2s, s2_d, 
-     d_nd, d_vd, d_wn, sidlist, didlist] = dw.latticeinit(L)
+     d_nd, d_vd, d_wn, sidlist, didlist, c_ijl, ijl_c, c2s, csign] = dw.latticeinit(L)
+    
 
     ## Energy
     backup.params.J1 = J1 = args.J1
@@ -62,9 +63,7 @@ def main(args):
 
     ## States
     backup.params.randominit = randominit = args.randominit    
-
-    print('Random initialisation = ', randominit)
-
+    print('Fully random initialisation = ', randominit)
     backup.params.same = same = args.same
     print('Identical initialisation = ', same)
     backup.params.magninit = magninit = args.magninit
@@ -91,6 +90,7 @@ def main(args):
     ### INITIALISATION FOR THE MEASUREMENTS
 
     # Observables to measure
+    nnlists = []
     observables = []
     observableslist = []
     backup.params.energy = energy = args.energy
@@ -101,8 +101,15 @@ def main(args):
     if magnetisation:
         observables.append(obs.magnetisation)
         observableslist.append('Magnetisation')
+        magnfuncid = observableslist.index('Magnetisation')
+    backup.params.charges = charges = args.charges
+    if charges:
+        observables.append(obs.charges)
+        observableslist.append('Charges')
+        cfuncid = observableslist.index('Magnetisation')
     backup.params.correlations = correlations = args.correlations
     backup.params.all_correlations = all_correlations = args.all_correlations
+    backup.params.firstcorrelations = firstcorrelations = args.firstcorrelations
     if correlations:
         observables.append(obs.si)
         observableslist.append('Si')
@@ -110,8 +117,19 @@ def main(args):
             observables.append(obs.allcorrelations)
             observableslist.append('All_Correlations')
         else:
-            observables.append(obs.centralcorrelations)
-            observableslist.append('Central_Correlations')
+            if firstcorrelations:
+                print("Check: length of s_ijl", len(s_ijl))
+                print("Check: lengthon NN pairslist:", len(dw.NNpairs(ijl_s, s_ijl, L)))
+                print("Check: length of 2ndNN pairs list: ", len(dw.NN2pairs(ijl_s, s_ijl, L)))
+                print("Check: length of 3rdNN pairs list: ", len(dw.NN3pairs(ijl_s, s_ijl, L)))
+                print("Check: length of 4thNN pairs list: ", len(dw.NN4pairs(ijl_s, s_ijl, L)))
+                nnlists = [dw.NNpairs(ijl_s, s_ijl, L), dw.NN2pairs(ijl_s, s_ijl, L),
+                           dw.NN3pairs(ijl_s, s_ijl, L), dw.NN4pairs(ijl_s, s_ijl, L)]
+                observables.append(obs.firstcorrelations)
+                observableslist.append('FirstCorrelations')
+            else:
+                observables.append(obs.centralcorrelations)
+                observableslist.append('Central_Correlations')
 
     print('List of measurements to be performed:', observableslist)
 
@@ -183,14 +201,38 @@ def main(args):
     backup.results.namefunctions = observableslist #TODO set functions corresponding to the above
     print(backup.results.namefunctions)
     check = 1 #turn to spins and check match works
-
+    backup.params.measperiod = measperiod = args.measperiod
+    print('Measurement period:', measperiod)
+    backup.params.measupdate = measupdate = args.measupdate
+    if measupdate:
+        nnspins, s2p = dw.spin2plaquette(ijl_s, s_ijl, s2_d,L)
+        backup.params.p = p = args.p
+    else:
+        nnspins = []
+        s2p = []
+        p = 0
+    
+    backup.params.magnstats = magnstats = args.magnstats
+    if magnstats:
+        def m2id(magn):
+            if abs(magn)< 0.1:
+                return 0
+            else:
+                return 1
+    else:
+        def m2id(magn):
+            return 0
+            
     kw = {'nb':nb,'num_in_bin':num_in_bin, 'iterworm':iterworm,
           'nitermax':nmaxiter,'check':check,
           'statsfunctions':statsfunctions,
           'nt':nt, 'hamiltonian':hamiltonian,
+          'nnlists':nnlists,
           'd_nd':d_nd,'d_vd':d_vd,'d_wn':d_wn, 'd_2s':d_2s, 's2_d':s2_d,
           'sidlist':sidlist,'didlist':didlist,'s_ijl':s_ijl,'ijl_s':ijl_s,'L':L,
-          'ncores':ncores}
+          'ncores':ncores, 'measupdate': measupdate, 'nnspins': nnspins, 's2p':s2p, 
+          'magnstats':magnstats, 'm2id':m2id, 'magnfuncid':magnfuncid, 'p':p,
+          'c2s':c2s, 'csign':csign, 'measperiod':measperiod}
     #states = list(states)
     # Run measurements
     print(type(spinstates))
@@ -208,15 +250,14 @@ def main(args):
 
 
     ## STATISTICS ##
-#
     t_meanfunc = list() #for each function, for each temperature, mean of the state function
     t_varmeanfunc = list() #for each function, for each temperature, variance of the state function
     numsites = len(s_ijl)
-#
+
     for idtuple, stattuple in enumerate(meanstat):
         # means:
         t_meanfunc.append((np.array(stattuple[0]).sum(1)/nb, np.array(stattuple[1]).sum(1)/nb))
-#
+
         #variances:
         tuplevar1 = [0 for t in stat_temps]
         tuplevar2 = [0 for t in stat_temps]
@@ -225,9 +266,9 @@ def main(args):
                 tuplevar1[resid] += ((stattuple[0][resid][b] - t_meanfunc[idtuple][0][resid]) ** 2)/(nb * (nb - 1))
                 tuplevar2[resid] += ((stattuple[1][resid][b] - t_meanfunc[idtuple][1][resid]) ** 2)/(nb * (nb - 1))
         t_varmeanfunc.append((tuplevar1, tuplevar2))
-#
+
     # Additional results for the correlations are handled directly in AnalysisBasis_3dot1dot5
-#
+
     #Save the final results
     backup.results.t_meanfunc = t_meanfunc
     backup.results.t_varmeanfunc = t_varmeanfunc
@@ -235,7 +276,7 @@ def main(args):
     backup.results.spinstates = spinstates
     #Save the backup object in a file
     pickle.dump(backup, open(args.output + '.pkl','wb'))
-    print('Job done')
+    return meanstat
 
 
 # In[ ]:
@@ -265,6 +306,8 @@ if __name__ == "__main__":
                         help = 'number of measurements steps') # number of measurement steps
     parser.add_argument('--nips', type = int, default = 10,
                         help = 'number of worm constructions per MC step')
+    parser.add_argument('--measperiod', type = int, default = 1,
+                        help = 'number of nips worm building + swaps between measurements')
     parser.add_argument('--nb', type = int, default = 20,
                         help = 'number of bins')
 
@@ -282,7 +325,13 @@ if __name__ == "__main__":
     parser.add_argument('--same', default = False, action = 'store_true',
                         help = '''initialise all temperatures with the same
                         state (debug purposes)''')
-
+    parser.add_argument('--magninit', default = False, action = 'store_true',
+                        help = '''initialise all the temperature with the maximally magnetised GS''')
+    parser.add_argument('--measupdate', default = False, action = 'store_true',
+                       help = '''activate to mimic the action of the measuring tip''')
+    parser.add_argument('--p', type = float, default = 0.1, 
+                       help = '''prob of the measuring tip flipping the spin (number between 0 and 1)''')
+    
     #TEMPERATURE PARAMETERS
     parser.add_argument('--t_list', nargs = '+', type = float, default = [0.5, 15.0],
                         help = 'list of limiting temperature values')
@@ -294,20 +343,53 @@ if __name__ == "__main__":
                         help = '''limiting temperatures for the various ranges of
                         measurements''') 
                         #default will be set to none, and then we can decide what to do later on.
-
+    
     #CORRELATIONS PARAMETER
     parser.add_argument('--energy', default = False, action = 'store_true',
                         help = 'activate if you want to save the energy')
     parser.add_argument('--magnetisation', default = False, action = 'store_true',
                         help = 'activate if you want to save the magnetisation')
+    parser.add_argument('--magnstats', default = False, action = 'store_true', 
+                       help = 'activate if you want to compute the magnetisation statistics')
+    parser.add_argument('--charges', default = False, action = 'store_true',
+                        help = 'activate if you want to save the charges')
     parser.add_argument('--correlations', default = False, action = 'store_true',
                         help = 'activate if you want to save either central or all correlations')
     parser.add_argument('--all_correlations', default = False, action = 'store_true',
                         help = '''activate if you want to save the correlations for all non-equivalent
                         pairs of sites. Otherwise, will save central correlations.''')
+    parser.add_argument('--firstcorrelations', default = False, action = 'store_true',
+                        help = 'activate if you want to save first correlations, otherwise will save central')
     #SAVE
     parser.add_argument('--output', type = str, default = "randomoutput.dat", help = 'saving filename (.pkl will be added)')
     args = parser.parse_args()
     
     main(args)
+
+
+# In[ ]:
+
+
+#    t_meanfunc = list() #for each function, for each temperature, mean of the state function
+#    t_varmeanfunc = list() #for each function, for each temperature, variance of the state function
+#    numsites = len(s_ijl)
+#    if not magnstats:
+#        for idtuple, stattuple in enumerate(meanstat):
+#            # means:
+#            t_meanfunc.append((np.array(stattuple[0]).sum(1)/nb, np.array(stattuple[1]).sum(1)/nb))
+#
+#            #variances:
+#            tuplevar1 = [0 for t in stat_temps]
+#            tuplevar2 = [0 for t in stat_temps]
+#            for resid, t in enumerate(stat_temps):
+#                for b in range(nb):
+#                    tuplevar1[resid] += ((stattuple[0][resid][b] - t_meanfunc[idtuple][0][resid]) ** 2)/(nb * (nb - 1))
+#                    tuplevar2[resid] += ((stattuple[1][resid][b] - t_meanfunc[idtuple][1][resid]) ** 2)/(nb * (nb - 1))
+#            t_varmeanfunc.append((tuplevar1, tuplevar2))
+#
+#    # Additional results for the correlations are handled directly in AnalysisBasis_3dot1dot5
+#    print("avg magn: ", t_meanfunc[magnfuncid])
+#    #Save the final results
+#    backup.results.t_meanfunc = t_meanfunc
+#    backup.results.t_varmeanfunc = t_varmeanfunc
 
