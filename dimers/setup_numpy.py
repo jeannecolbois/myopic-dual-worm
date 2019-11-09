@@ -4,7 +4,7 @@ import numpy as np
 from distutils.core import setup, Extension
 
 cext = Extension(name = "dimers",
-                sources=["dimers.cpp", "hamiltonian.cpp","manydualworms.cpp", "mcsevolve.cpp", "updatespinstates.cpp"],
+                sources=["dimers.cpp", "hamiltonian.cpp","manydualworms.cpp", "mcsevolve.cpp", "updatespinstates.cpp","measupdate.cpp"],
                 extra_compile_args=['-std=c++11', '-fopenmp'],
                 include_dirs = [np.get_include()],
                 extra_link_args=['-lgomp'],
@@ -12,4 +12,4 @@ cext = Extension(name = "dimers",
 
 
 if __name__=="__main__":
-	setup(ext_modules=[cext], include_dirs = [np.get_include()])
+	setup(ext_modules=[cext])

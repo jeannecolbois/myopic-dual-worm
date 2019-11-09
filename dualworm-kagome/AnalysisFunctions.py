@@ -1,17 +1,17 @@
 
 # coding: utf-8
 
-# In[ ]:
+# In[1]:
 
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pickle
-#import KagomeFunctions as kf # "library" allowing to work on Kagome
+import KagomeFunctions as kf # "library" allowing to work on Kagome
 import DualwormFunctions as dw
 
 
-# In[ ]:
+# In[2]:
 
 
 def correlationsTester(state, latsize, d_ijl, ijl_d, L):
@@ -35,7 +35,7 @@ def correlationsTester(state, latsize, d_ijl, ijl_d, L):
     hamiltonian = dw.Hamiltonian(couplings, d_ijl, ijl_d, L)
     EJ4 = dw.compute_energy(hamiltonian, state, latsize)
     
-    config = {'J1':EJ1, 'J2': EJ2, 'J3':, EJ3, 'J4': EJ4}
+    config = {'J1':EJ1, 'J2': EJ2, 'J3':EJ3, 'J4': EJ4}
     print('J1 :', EJ1, '\nJ2 :', EJ2, '\nJ3 :', EJ3, '\nJ4 :', EJ4)
     
     return config
@@ -119,6 +119,83 @@ def LoadParametersFromFile(foldername, filename):
 # In[ ]:
 
 
+def ExtractStatistics(idfunc, meanstat, nb, stat_temps, sq = 0, **kwargs):
+    '''
+        This function gets the statistics from a file and
+        computes the expectation values and variances of 
+        the operator corresponding to idfunc
+        
+        sq = 0 -> not square stats
+        sq = 1 -> square stats
+    '''
+    stattuple = meanstat[idfunc];
+    t_meanfunc = np.array(stattuple[sq]).sum(1)/nb
+    
+    binning = kwargs.get('binning', False)
+
+    t_varmeanfunc = [0 for t in stat_temps]
+    for resid, t in enumerate(stat_temps):
+        for b in range(nb):
+            t_varmeanfunc[resid] += ((stattuple[sq][resid][b] - t_meanfunc[resid]) ** 2)/(nb * (nb - 1))
+    if binning:
+        print('binning!')
+        Binning(t_meanfunc,t_varmeanfunc, stattuple[sq], nb,
+                                stat_temps, **kwargs)
+        
+    return t_meanfunc, t_varmeanfunc
+
+
+# In[ ]:
+
+
+def Binning(t_mean, t_varmean, stattuple, nb, stat_temps, **kwargs):
+    '''
+        This function implements a binning analysis
+    '''
+    ### NAIVE IMPLEMENTATION
+    nblist = []
+    nbb = nb
+    while nbb >= 15:
+        nblist.append(nbb)
+        nbb = nbb//2
+        
+        
+    t_vars = [[] for resid in range(len(stat_temps))]
+    for resid, t in enumerate(stat_temps):
+        var = []
+        for l,nbb in enumerate(nblist):
+            avg = np.array(stattuple[resid][0:(2**l)]).sum(0)/(2**l)
+            varl=((avg - t_mean[resid])**2)/(nbb*(nbb-1))
+            for b in range(1,nbb):
+                avg = np.array(stattuple[resid][(2**l)*b:(2**l)*(b+1)]).sum(0)/(2**l)
+                varl+=((avg - t_mean[resid])**2)/(nbb*(nbb-1))
+            if len(varl.shape) == 0:
+                var.append(varl)
+            else:
+                var.append(np.max(varl))
+            if resid == 0:
+                print(nbb, " --- ", var[l])
+           
+        t_vars[resid] = var
+            
+    plzplot = kwargs.get('plzplot', False)
+    plotmin = kwargs.get('plotmin', 0)
+    plotmax = kwargs.get('plotmax', 10)
+    if plzplot:
+        print('plotting!')
+        plt.figure(figsize=(18, 12),dpi=300)
+        minplt = max(0, plotmin)
+        maxplt = min(plotmax, len(stat_temps))
+        for resid, t in enumerate(stat_temps[minplt:maxplt]):
+            plt.plot(range(len(t_vars[resid])), t_vars[resid], '.-', label = 't = {0}'.format(t))
+        plt.legend()
+        plt.show()
+    t_varmean = [max(var) for var in t_vars] 
+
+
+# In[ ]:
+
+
 def LoadSwaps(foldername, filenamelist, nb, num_in_bin):
     n = len(filenamelist)
     swapsth = [[] for _ in range(n)]
@@ -148,7 +225,7 @@ def LoadSwapsFromFile(foldername, filename, nb, num_in_bin):
 # In[ ]:
 
 
-def LoadEnergy(foldername, filenamelist, numsites, nb, stat_temps, temperatures, listfunctions):
+def LoadEnergy(foldername, filenamelist, numsites, nb, stat_temps, temperatures, listfunctions, **kwargs):
     n = len(filenamelist)
     
     t_MeanE = [[] for _ in range(n)]
@@ -161,7 +238,7 @@ def LoadEnergy(foldername, filenamelist, numsites, nb, stat_temps, temperatures,
     for nf, filename in enumerate(filenamelist):
         if 'Energy' in listfunctions[nf]:
             idfunc = listfunctions[nf].index('Energy')
-            [t_MeanE[nf], t_MeanEsq[nf], t_varMeanE[nf], t_varMeanEsq[nf], C[nf], ErrC[nf]] =                 LoadEnergyFromFile(foldername, filename, numsites[nf], nb[nf], stat_temps[nf], temperatures[nf], idfunc)
+            [t_MeanE[nf], t_MeanEsq[nf], t_varMeanE[nf], t_varMeanEsq[nf], C[nf], ErrC[nf]] =                 LoadEnergyFromFile(foldername, filename, numsites[nf], nb[nf], stat_temps[nf], temperatures[nf], idfunc, **kwargs)
         else:
             [t_MeanE[nf], t_MeanEsq[nf], t_varMeanE[nf], t_varMeanEsq[nf], C[nf], ErrC[nf]] = [[],[],[],[],[],[]]
         
@@ -171,19 +248,20 @@ def LoadEnergy(foldername, filenamelist, numsites, nb, stat_temps, temperatures,
 # In[ ]:
 
 
-def LoadEnergyFromFile(foldername, filename, numsites, nb, stat_temps, temperatures, idfunc):
+def LoadEnergyFromFile(foldername, filename, numsites, nb, stat_temps, temperatures, idfunc, **kwargs):
     f = open('./' + foldername + filename +'.pkl', 'rb')
     backup = pickle.load(f) 
     
     meanstat = backup.results.meanstat
-    t_meanfunc = backup.results.t_meanfunc
-    t_varmeanfunc = backup.results.t_varmeanfunc
+    #t_meanfunc = backup.results.t_meanfunc
+    #t_varmeanfunc = backup.results.t_varmeanfunc
     
-    t_MeanE = t_meanfunc[idfunc][0].tolist()
-    t_MeanEsq = t_meanfunc[idfunc][1].tolist()
-    t_varMeanE = t_varmeanfunc[idfunc][0]
-    t_varMeanEsq = t_varmeanfunc[idfunc][1]
-    
+    t_MeanE, t_varMeanE = ExtractStatistics(idfunc, meanstat, nb, stat_temps, **kwargs)
+    t_MeanEsq, t_varMeanEsq = ExtractStatistics(idfunc, meanstat, nb, stat_temps, sq = 1, **kwargs)
+    #t_MeanE = t_meanfunc[idfunc][0].tolist()
+    #t_MeanEsq = t_meanfunc[idfunc][1].tolist()
+    #t_varMeanE = t_varmeanfunc[idfunc][0]
+    #t_varMeanEsq = t_varmeanfunc[idfunc][1]
     
     C = []
     ErrC = []
@@ -206,7 +284,7 @@ def LoadEnergyFromFile(foldername, filename, numsites, nb, stat_temps, temperatu
                 Mean_VarE += (tb_Esq[resid][b] - tb_E[resid][b] ** 2)/nb
                 Mean_VarE_Sq += ((tb_Esq[resid][b] - tb_E[resid][b] ** 2) ** 2)/nb
         if (Mean_VarE_Sq - Mean_VarE ** 2 >= 0) :
-            ErrC.append(numsites / (T ** 2) * np.sqrt(Mean_VarE_Sq - Mean_VarE ** 2)) 
+            ErrC.append(numsites / (T ** 2) * np.sqrt(Mean_VarE_Sq - Mean_VarE ** 2))
         else:
             assert(Mean_VarE_Sq - Mean_VarE ** 2 >= -1e-15)
             ErrC.append(0)
@@ -219,7 +297,7 @@ def LoadEnergyFromFile(foldername, filename, numsites, nb, stat_temps, temperatu
 # In[ ]:
 
 
-def LoadMagnetisation(foldername, filenamelist, numsites, nb, stat_temps, temperatures, listfunctions):
+def LoadMagnetisation(foldername, filenamelist, numsites, nb, stat_temps, temperatures, listfunctions, **kwargs):
     n = len(filenamelist)
     
     t_MeanM = [[] for _ in range(n)]
@@ -232,7 +310,7 @@ def LoadMagnetisation(foldername, filenamelist, numsites, nb, stat_temps, temper
     for nf, filename in enumerate(filenamelist):
         if 'Magnetisation' in listfunctions[nf]:
             idfunc = listfunctions[nf].index('Magnetisation')
-            [t_MeanM[nf], t_MeanMsq[nf], t_varMeanM[nf], t_varMeanMsq[nf], Chi[nf], ErrChi[nf]] =                 LoadMagnetisationFromFile(foldername, filename, numsites[nf], nb[nf], stat_temps[nf], temperatures[nf], idfunc)
+            [t_MeanM[nf], t_MeanMsq[nf], t_varMeanM[nf], t_varMeanMsq[nf], Chi[nf], ErrChi[nf]] =                 LoadMagnetisationFromFile(foldername, filename, numsites[nf], nb[nf], stat_temps[nf], temperatures[nf], idfunc, **kwargs)
         else:
             [t_MeanM[nf], t_MeanMsq[nf], t_varMeanM[nf], t_varMeanMsq[nf], Chi[nf], ErrChi[nf]] = [[],[],[],[],[],[]]
         
@@ -242,20 +320,14 @@ def LoadMagnetisation(foldername, filenamelist, numsites, nb, stat_temps, temper
 # In[ ]:
 
 
-def LoadMagnetisationFromFile(foldername, filename, numsites, nb, stat_temps, temperatures, idfunc):
+def LoadMagnetisationFromFile(foldername, filename, numsites, nb, stat_temps, temperatures, idfunc,  **kwargs):
     f = open('./' + foldername + filename +'.pkl', 'rb')
     backup = pickle.load(f) 
     
     meanstat = backup.results.meanstat
-    t_meanfunc = backup.results.t_meanfunc
-    t_varmeanfunc = backup.results.t_varmeanfunc
     
-    t_MeanM = t_meanfunc[idfunc][0].tolist()
-    t_MeanMsq = t_meanfunc[idfunc][1].tolist()
-    t_varMeanM = t_varmeanfunc[idfunc][0]
-    t_varMeanMsq = t_varmeanfunc[idfunc][1]
-    
-    
+    t_MeanM, t_varMeanM = ExtractStatistics(idfunc, meanstat, nb, stat_temps, **kwargs)
+    t_MeanMsq, t_varMeanMsq = ExtractStatistics(idfunc, meanstat, nb, stat_temps, sq = 1, **kwargs)
     Chi = []
     ErrChi = []
     for resid, t in enumerate(stat_temps):
@@ -286,7 +358,7 @@ def LoadMagnetisationFromFile(foldername, filename, numsites, nb, stat_temps, te
 # In[ ]:
 
 
-def LoadCentralCorrelations(foldername, filenamelist, listfunctions, sref, stat_temps, nb):
+def LoadCentralCorrelations(foldername, filenamelist, listfunctions, sref, stat_temps, nb, **kwargs):
     n = len(filenamelist)
     
     ## "Correlations" <sisj>
@@ -306,7 +378,7 @@ def LoadCentralCorrelations(foldername, filenamelist, listfunctions, sref, stat_
             idfuncsi = listfunctions[nf].index('Si')
 
             [t_MeanSs[nf], t_varMeanSs[nf], t_MeanSi[nf], t_varMeanSi[nf], t_MeanCorr[nf], 
-             t_errCorrEstim[nf]] = LoadCorrelationsFromFile(foldername, filename, idfunc, idfuncsi, sref[nf], stat_temps, nb[nf])
+             t_errCorrEstim[nf]] = LoadCorrelationsFromFile(foldername, filename, idfunc, idfuncsi, sref[nf], stat_temps[nf], nb[nf], **kwargs)
         else:
             [t_MeanSs[nf], t_varMeanSs[nf], t_MeanSi[nf], t_varMeanSi[nf], t_MeanCorr[nf], 
              t_errCorrEstim[nf]] = [[],[],[],[],[]]
@@ -316,21 +388,23 @@ def LoadCentralCorrelations(foldername, filenamelist, listfunctions, sref, stat_
 # In[ ]:
 
 
-def LoadCorrelationsFromFile(foldername, filename, idfunc, idfuncsi, sref, stat_temps, nb):
+def LoadCorrelationsFromFile(foldername, filename, idfunc, idfuncsi, sref, stat_temps, nb, **kwargs):
     f = open('./' + foldername + filename +'.pkl', 'rb')
     backup = pickle.load(f) 
     
     meanstat = backup.results.meanstat
-    t_meanfunc = backup.results.t_meanfunc
-    t_varmeanfunc = backup.results.t_varmeanfunc
+    #t_meanfunc = backup.results.t_meanfunc
+    #t_varmeanfunc = backup.results.t_varmeanfunc
     
     # Averages and corresponding variances
-    t_MeanSi = t_meanfunc[idfuncsi][0] # <si>
-    t_varMeanSi = t_varmeanfunc[idfuncsi][0] # var(<si>)
+    #t_MeanSi = t_meanfunc[idfuncsi][0] # <si>
+    #t_varMeanSi = t_varmeanfunc[idfuncsi][0] # var(<si>)
+    t_MeanSi, t_varMeanSi = ExtractStatistics(idfuncsi, meanstat, nb, stat_temps, **kwargs)
     
+    #t_MeanSs = t_meanfunc[idfunc][0]
+    #t_varMeanSs = t_varmeanfunc[idfunc][0]
+    t_MeanSs, t_varMeanSs = ExtractStatistics(idfunc, meanstat, nb, stat_temps, **kwargs)
     
-    t_MeanSs = t_meanfunc[idfunc][0]
-    t_varMeanSs = t_varmeanfunc[idfunc][0]
     
     t_MeanCorr = []
     for i in range(len(sref)):
@@ -379,7 +453,7 @@ def CorrelErrorEstimator(meanstat, idfunc, idfuncsi, sref, stat_temps, nb):
 # In[ ]:
 
 
-def LoadSi(foldername, filenamelist, listfunctions):
+def LoadSi(foldername, filenamelist, listfunctions, **kwargs):
     n = len(filenamelist)
     
     t_MeanSi = [[] for _ in range(n)]
@@ -388,7 +462,7 @@ def LoadSi(foldername, filenamelist, listfunctions):
     for nf, filename in enumerate(filenamelist):
         if 'Si' in listfunctions[nf]:
             idfunc = listfunctions[nf].index('Si')
-            [t_MeanSi[nf], t_varMeanSi[nf]] = LoadSiFromFile(foldername, filename, idfunc)
+            [t_MeanSi[nf], t_varMeanSi[nf]] = LoadSiFromFile(foldername, filename, idfunc,stat_temps[nf], **kwargs)
         else:
             [t_MeanSi[nf], t_varMeanSi[nf]] = [[],[]]
             
@@ -398,16 +472,13 @@ def LoadSi(foldername, filenamelist, listfunctions):
 # In[ ]:
 
 
-def LoadSiFromFile(foldername, filename, idfunc):
+def LoadSiFromFile(foldername, filename, idfunc, stat_temps, **kwargs):
     f = open('./' + foldername + filename +'.pkl', 'rb')
     backup = pickle.load(f) 
     
     meanstat = backup.results.meanstat
-    t_meanfunc = backup.results.t_meanfunc
-    t_varmeanfunc = backup.results.t_varmeanfunc
     
-    t_MeanSi = t_meanfunc[idfunc][0].tolist()
-    t_varMeanSi = t_varmeanfunc[idfunc][0]
+    t_MeanSi, t_varMeanSi = ExtractStatistics(idfuncsi, meanstat, nb, stat_temps, **kwargs)
     
     f.close()
     
@@ -441,16 +512,16 @@ def BasicPlotsE(L, n, tidmin, tidmax, temperatures_plots, foldername, results_fo
     
     # Mean E
     margin = [0.18, 0.2, 0.02, 0.02]
-    plt.figure(figsize=(6, 4))
+    plt.figure(figsize=(18, 12),dpi=300)
     plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
     for i in range(n):
         col = [0 + i/n, (1 - i/n)**2, 1 - i/n]
         if J2[i] != 0:
             ratio = J3[i]/J2[i]
-            plt.plot(temperatures_plots[i]  , t_MeanE[i], '.-', label = r'$J_3 / J_2$ = {:f}'.format(ratio), color = col)
+            plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]]  , t_MeanE[i][tidmin:tidmax[i]], '.-', label = r'$J_3 / J_2$ = {:f}'.format(ratio), color = col)
         else:
-            plt.plot(temperatures_plots[i]  , t_MeanE[i], '.-', label = r'$J_3 / J_2$ = $\infty$', color = col)
-        plt.fill_between(temperatures_plots[i], (t_MeanE[i] - np.sqrt(t_varMeanE[i])), (t_MeanE[i] + np.sqrt(t_varMeanE[i])), alpha=0.4, color = col)
+            plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]]  , t_MeanE[i][tidmin:tidmax[i]], '.-', label = r'$J_3 / J_2$ = $\infty$', color = col)
+        plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]], (t_MeanE[i][tidmin:tidmax[i]] - np.sqrt(t_varMeanE[i][tidmin:tidmax[i]])), (t_MeanE[i][tidmin:tidmax[i]] + np.sqrt(t_varMeanE[i][tidmin:tidmax[i]])), alpha=0.4, color = col)
     plt.xlabel(r'Temperature $T$')
     plt.ylabel(r'$E$')
     plt.legend(loc= 'best', framealpha=0.5)
@@ -459,15 +530,15 @@ def BasicPlotsE(L, n, tidmin, tidmax, temperatures_plots, foldername, results_fo
     
     #Heat capacity
     margin = [0.18, 0.2, 0.02, 0.02]
-    plt.figure(figsize=(6, 4))
+    plt.figure(figsize=(18, 12), dpi=300)
     plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
     for i in range(n):
         col = [0 + i/n, (1-i/n) **2, 1 -  i/n]
         if J2[i] != 0:
             ratio = J3[i]/J2[i]
-            plt.plot(temperatures_plots[i][tidmin:tidmax[i]]  , C[i][tidmin:tidmax[i]], '.-', label = r'$J_3 / J_2$ = {:f}'.format(ratio), color = col)
+            plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]]  , C[i][tidmin:tidmax[i]], '.-', label = r'$J_3 / J_2$ = {:f}'.format(ratio), color = col)
         else:
-            plt.plot(temperatures_plots[i][tidmin:tidmax[i]]  , C[i][tidmin:tidmax[i]], '.-', label = r'$J_3 / J_2$ = $\infty$', color = col)
+            plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]]  , C[i][tidmin:tidmax[i]], '.-', label = r'$J_3 / J_2$ = $\infty$', color = col)
         plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]], C[i][tidmin:tidmax[i]] - ErrC[i][tidmin:tidmax[i]], C[i][tidmin:tidmax[i]] + ErrC[i][tidmin:tidmax[i]], alpha = 0.5, color = col)
         #print('Error on the heat capacity for file ', filenamelist[i])
         #print(ErrC[i])
@@ -479,15 +550,15 @@ def BasicPlotsE(L, n, tidmin, tidmax, temperatures_plots, foldername, results_fo
 
     #Heat capacity
     margin = [0.18, 0.2, 0.02, 0.02]
-    plt.figure(figsize=(6, 4))
+    plt.figure(figsize=(18, 12), dpi=300)
     plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
     for i in range(n):
         col = [0 + i/n, (1- i/n)**2, 1 -  i/n]
         if J2[i] != 0:
             ratio = J3[i]/J2[i]    
-            plt.plot(temperatures_plots[i][tidmin:tidmax[i]]  , C[i][tidmin:tidmax[i]] / temperatures_plots[i][tidmin:tidmax[i]], '.-', label = r'$J_3 / J_2$ = {:f}'.format(ratio), color = col)
+            plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]]  , C[i][tidmin:tidmax[i]] / temperatures_plots[i][tidmin:tidmax[i]], '.-', label = r'$J_3 / J_2$ = {:f}'.format(ratio), color = col)
         else:
-            plt.plot(temperatures_plots[i][tidmin:tidmax[i]]  , C[i][tidmin:tidmax[i]] / temperatures_plots[i][tidmin:tidmax[i]], '.-', label = r'$J_3 / J_2$ = $\infty$', color = col)
+            plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]]  , C[i][tidmin:tidmax[i]] / temperatures_plots[i][tidmin:tidmax[i]], '.-', label = r'$J_3 / J_2$ = $\infty$', color = col)
         plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]], (C[i][tidmin:tidmax[i]] - ErrC[i][tidmin:tidmax[i]])/temperatures_plots[i][tidmin:tidmax[i]], (C[i][tidmin:tidmax[i]] + ErrC[i][tidmin:tidmax[i]])/temperatures_plots[i][tidmin:tidmax[i]], alpha = 0.5, color = col)
     plt.xlabel(r'Temperature $T$ ')
     plt.ylabel(r'$\frac{c}{k_B T}$')
@@ -534,7 +605,7 @@ def BasicPlotsE(L, n, tidmin, tidmax, temperatures_plots, foldername, results_fo
     plt.savefig('./' + foldername + 'Plots' + results_foldername + '/E(ratio).pgf')
 
 
-# In[2]:
+# In[ ]:
 
 
 def BasicPlotsM(L, n, tidmin, tidmax, temperatures_plots, foldername, results_foldername, filenamelist, t_MeanM, t_MeanMsq, t_varMeanM, t_varMeanMsq, Chi, ErrChi, J1, J2, J3, J4):
@@ -550,7 +621,7 @@ def BasicPlotsM(L, n, tidmin, tidmax, temperatures_plots, foldername, results_fo
     plt.figure(figsize=(6, 4))
     plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
     for i in range(n):
-        plt.plot(temperatures_plots[i][tidmin:tidmax[i]], t_MeanM[i][tidmin:tidmax[i]], '.-')
+        plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]], t_MeanM[i][tidmin:tidmax[i]], '.-')
         plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]],(t_MeanM[i][tidmin:tidmax[i]] - np.sqrt(t_varMeanM[i][tidmin:tidmax[i]])), (t_MeanM[i][tidmin:tidmax[i]] + np.sqrt(t_varMeanM[i][tidmin:tidmax[i]])), alpha=0.4)
     plt.xlabel(r'Temperature $T$ ')
     plt.ylabel('Magnetisation per site')
@@ -562,7 +633,7 @@ def BasicPlotsM(L, n, tidmin, tidmax, temperatures_plots, foldername, results_fo
     plt.figure(figsize=(6, 4))
     plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
     for i in range(n):
-        plt.plot(temperatures_plots[i][tidmin:tidmax[i]]  , Chi[i][tidmin:tidmax[i]], '.-')
+        plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]]  , Chi[i][tidmin:tidmax[i]], '.-')
         plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]], Chi[i][tidmin:tidmax[i]] - ErrChi[i][tidmin:tidmax[i]], Chi[i][tidmin:tidmax[i]] + ErrChi[i][tidmin:tidmax[i]], alpha = 0.5)
     plt.xlabel(r'Temperature $T$ ')
     plt.ylabel('Susceptibility')

@@ -4,9 +4,11 @@
 
 using namespace std;
 
-void updatespinstates(int* states, int* spinstates, int* stat_temps, int* sidlist, int* didlist, int nbstat, int statesize, int spinstatesize, int nthreads, int nbit) {
+void updatespinstates(int* states, int* spinstates, int* stat_temps,
+	int* sidlist, int* didlist, int nbstat, int statesize,
+	int spinstatesize, int nthreads, int nbit) {
 
-	//#pragma omp parallel for schedule(dynamic,1) num_threads(nthreads)
+	#pragma omp parallel for schedule(dynamic,1) num_threads(nthreads)
 	for(int resindex = 0; resindex < nbstat; resindex++){
 		// for each result index temperature, we are going to update the spinstate
 		// first, get the  temperature index so we know where to look in spinstates
@@ -20,7 +22,8 @@ void updatespinstates(int* states, int* spinstates, int* stat_temps, int* sidlis
 
 
 
-void updatespinstate(int* state, int* spinstate, int* sidlist, int* didlist, int nbit){
+void updatespinstate(int* state, int* spinstate, int* sidlist,
+	int* didlist, int nbit){
 	uniform_int_distribution<int> int_distrib(0, 1);
 	int s = int_distrib(random_gen())*2 -1;
 	spinstate[sidlist[0]] = s;

@@ -43,7 +43,7 @@ def main(args):
     print('J3 ', J3)
     print('J3st ', J3st)
     print('J4', J4)
-
+    
     couplings = {'J1': J1, 'J2':J2, 'J3':J3, 'J3st':J3st, 'J4':J4}
     hamiltonian = dw.Hamiltonian(couplings,d_ijl, ijl_d, L)
 
@@ -66,13 +66,22 @@ def main(args):
     print('Random initialisation = ', randominit)
 
     backup.params.same = same = args.same
-
+    print('Identical initialisation = ', same)
+    backup.params.magninit = magninit = args.magninit
+    print('Magnetisation initialisation = ', magninit)
+    
+    
+    kwinit = {'random': randominit, 'same': same, 'magninit': magninit}
+    print(kwinit)
     print('Same initialisation for all temperatures = ', same)
-        #dw.statesinit(number of temperatures, dual bond table, spin surrounding dual bonds, spin site table, hamiltonian list, random starting state, same type of starting state for all temperatures)
-    (states, energies, spinstates) = strst.statesinit(nt, d_ijl, d_2s, s_ijl, hamiltonian, randominit, same)
+    
+    #dw.statesinit(number of temperatures, dual bond table, spin surrounding dual bonds, spin site table, hamiltonian list, random starting state, same type of starting state for all temperatures)
+    
+    (states, energies, spinstates) = strst.statesinit(nt, d_ijl, d_2s, s_ijl, hamiltonian, **kwinit)
     backup.params.ncores = ncores = args.ncores
     dw.states_dimers2spins(sidlist, didlist, states, spinstates,nt,ncores)
     new_en_states = [dim.hamiltonian(hamiltonian, states[t]) for t in range(nt)]
+    
     for t in range(nt):
         if np.absolute(energies[t]-new_en_states[t]) > 1.0e-5:
             print('RunBasis: Issue at temperature index', t)
@@ -199,15 +208,15 @@ def main(args):
 
 
     ## STATISTICS ##
-
+#
     t_meanfunc = list() #for each function, for each temperature, mean of the state function
     t_varmeanfunc = list() #for each function, for each temperature, variance of the state function
     numsites = len(s_ijl)
-
+#
     for idtuple, stattuple in enumerate(meanstat):
         # means:
         t_meanfunc.append((np.array(stattuple[0]).sum(1)/nb, np.array(stattuple[1]).sum(1)/nb))
-
+#
         #variances:
         tuplevar1 = [0 for t in stat_temps]
         tuplevar2 = [0 for t in stat_temps]
@@ -216,9 +225,9 @@ def main(args):
                 tuplevar1[resid] += ((stattuple[0][resid][b] - t_meanfunc[idtuple][0][resid]) ** 2)/(nb * (nb - 1))
                 tuplevar2[resid] += ((stattuple[1][resid][b] - t_meanfunc[idtuple][1][resid]) ** 2)/(nb * (nb - 1))
         t_varmeanfunc.append((tuplevar1, tuplevar2))
-
+#
     # Additional results for the correlations are handled directly in AnalysisBasis_3dot1dot5
-
+#
     #Save the final results
     backup.results.t_meanfunc = t_meanfunc
     backup.results.t_varmeanfunc = t_varmeanfunc
@@ -262,48 +271,6 @@ if __name__ == "__main__":
     #PARALLELISATION
     parser.add_argument('--ncores', type = int, default = 4,
                         help = 'number of threads to use')
-
-    #WORM PARAMETERS
-    parser.add_argument('--nmaxiter', type = int, default = 10,
-                        help = '''maximal number of segments in a loop update over the
-                        size of the lattice (1 = 1times the number of dualbonds in the
-                        lattice)''')
-    parser.add_argument('--randominit', default = False, action ='store_true',
-                        help = 'intialise the states randomly')
-    parser.add_argument('--same', default = False, action = 'store_true',
-                        help = '''initialise all temperatures with the same
-                        state (debug purposes)''')
-
-    #TEMPERATURE PARAMETERS
-    parser.add_argument('--t_list', nargs = '+', type = float, default = [0.5, 15.0],
-                        help = 'list of limiting temperature values')
-    parser.add_argument('--nt_list', nargs = '+', type = int, default = [28],
-                        help = 'list of number of temperatures in between the given limiting temperatures')
-    parser.add_argument('--log_tlist', default = False, action='store_true',
-                        help = 'state whether you want the temperature be spaced log-like or linear-like (activate if you want log)')
-    parser.add_argument('--stat_temps_lims', nargs = '+', type = float,
-                        help = '''limiting temperatures for the various ranges of
-                        measurements''') 
-                        #default will be set to none, and then we can decide what to do later on.
-
-    #CORRELATIONS PARAMETER
-    parser.add_argument('--energy', default = False, action = 'store_true',
-                        help = 'activate if you want to save the energy')
-    parser.add_argument('--magnetisation', default = False, action = 'store_true',
-                        help = 'activate if you want to save the magnetisation')
-    parser.add_argument('--correlations', default = False, action = 'store_true',
-                        help = 'activate if you want to save either central or all correlations')
-    parser.add_argument('--all_correlations', default = False, action = 'store_true',
-                        help = '''activate if you want to save the correlations for all non-equivalent
-                        pairs of sites. Otherwise, will save central correlations.''')
-    #SAVE
-    parser.add_argument('--output', type = str, default = "randomoutput.dat", help = 'saving filename (.pkl will be added)')
-    args = parser.parse_args()
-    
-    main(args)
-
-
-# In[ ]:
 
     #WORM PARAMETERS
     parser.add_argument('--nmaxiter', type = int, default = 10,
