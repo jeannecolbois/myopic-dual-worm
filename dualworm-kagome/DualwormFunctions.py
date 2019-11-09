@@ -751,13 +751,14 @@ def magnstatistics(magnfuncid, tid, resid, bid, states, statesen, magnstatstable
 # In[ ]:
 
 
-def tempering(nt, statesen, betas, states, swaps):
+def tempering(nt, statesen, betas, states, spinstates, swaps):
     for t in range(nt-1, 0, -1):
         #throw a dice
         if (statesen[t] - statesen[t-1]) * (betas[t] - betas[t-1]) > 0: 
             # if bigger than 0 flip for sure
             #states:
             states[[t-1 , t]] = states[[t, t-1]]
+            spinstates[[t-1 , t]] = spinstates[[t, t-1]]
             #energy:
             statesen[[t - 1, t]] = statesen[[t, t - 1]]
             swaps[t] += 1
@@ -769,6 +770,7 @@ def tempering(nt, statesen, betas, states, swaps):
             states[[t-1 , t]] = states[[t, t-1]]
             #energy:
             statesen[[t - 1, t]] = statesen[[t, t - 1]]
+            spinstates[[t-1 , t]] = spinstates[[t, t-1]]
             swaps[t] += 1
             swaps[t-1] +=1
 
@@ -867,6 +869,7 @@ def mcs_swaps(states, spinstates, statesen,
     print("magnstats", magnstats)
     print("statsfunctions", statsfunctions)
     
+    print("h = ", h)
     if not magnstats or not statsfunctions:
         for it in range(itermcs):
             #### EVOLVE using the mcsevolve function of the dimer
@@ -888,7 +891,7 @@ def mcs_swaps(states, spinstates, statesen,
 
 
             #### TEMPERING perform "parallel" tempering
-            tempering(nt, statesen, betas, states, swaps)
+            tempering(nt, statesen, betas, states, spinstates,swaps)
             t3 = time()
             t_tempering +=(t3-t2)/itermcs
 
@@ -931,7 +934,7 @@ def mcs_swaps(states, spinstates, statesen,
         print('Time for tempering = {0}'.format(t_tempering))
         print('Time for mapping to spins + computing statistics= {0}'.format(t_spins))
 
-        return statstables, swaps
+        return statstables, swaps, failedupdates
     elif magnstats or (magnstats and statsfunctions):
         assert num_in_bin == 1
         print(itermcs)
@@ -952,10 +955,9 @@ def mcs_swaps(states, spinstates, statesen,
                                       statesen, failedupdates, nitermax, iterworm,ncores)
                 t2 = time()
                 t_join += (t2-t1)/itermcs
-
-
+    
             #### TEMPERING perform "parallel" tempering
-            tempering(nt, statesen, betas, states, swaps)
+            tempering(nt, statesen, betas, states, spinstates,swaps)
             t3 = time()
             t_tempering +=(t3-t2)/itermcs
 
@@ -997,6 +999,6 @@ def mcs_swaps(states, spinstates, statesen,
         print('Time for mcsevolve = {0}'.format(t_join))
         print('Time for tempering = {0}'.format(t_tempering))
         print('Time for mapping to spins + computing statistics= {0}'.format(t_spins))
-        return magnstatstables, swaps
+        return magnstatstables, swaps, failedupdates
     
 

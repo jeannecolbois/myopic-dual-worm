@@ -79,13 +79,16 @@ def main(args):
     
     (states, energies, spinstates) = strst.statesinit(nt, d_ijl, d_2s, s_ijl, hamiltonian, **kwinit)
     backup.params.ncores = ncores = args.ncores
-    dw.states_dimers2spins(sidlist, didlist, states, spinstates,nt,ncores)
     new_en_states = [dim.hamiltonian(hamiltonian, states[t])-h*spinstates[t].sum() for t in range(nt)]
     
 
     for t in range(nt):
         if np.absolute(energies[t]-new_en_states[t]) > 1.0e-5:
-            print('RunBasis: Issue at temperature index', t)
+            print('RunBasis: Issue at temperature index ', t)
+            print("   energies[t] = ", energies[t])
+            print("   H0[t] = ", dim.hamiltonian(hamiltonian, states[t]))
+            print("   magntot[t] ", spinstates[t].sum())
+            print("   new_E[t] = H0[t] - h*magntot[t]", dim.hamiltonian(hamiltonian, states[t]) - h*spinstates[t].sum())
     if not dw.statescheck(spinstates, states, d_2s):
         mistakes = [dw.onestatecheck(spinstate, state, d_2s) for spinstate, state in zip(spinstates, states)]
         print('Mistakes: ', mistakes)
@@ -104,6 +107,8 @@ def main(args):
         observables.append(obs.magnetisation)
         observableslist.append('Magnetisation')
         magnfuncid = observableslist.index('Magnetisation')
+    else:
+        magnfuncid = -1
     backup.params.charges = charges = args.charges
     if charges:
         observables.append(obs.charges)
@@ -158,6 +163,7 @@ def main(args):
 
     ## THERMALISATION
     #preparation
+    print("-----------Thermalisation------------------")
     nb = 1 # only one bin, no statistics
     num_in_bin = args.nst# mcs iterations per bins
     iterworm = nips = args.nips #number of worm iterations before considering swaps
@@ -173,27 +179,31 @@ def main(args):
     kw = {'nb':nb,'num_in_bin':num_in_bin, 'iterworm':iterworm,
           'nitermax':nmaxiter,'check':check,
           'statsfunctions':statsfunctions,
-          'nt':nt, 'hamiltonian':hamiltonian,
+          'nt':nt, 'hamiltonian':hamiltonian,'ncores':ncores,
           'd_nd':d_nd,'d_vd':d_vd,'d_wn':d_wn, 'd_2s':d_2s, 's2_d':s2_d,
-          'sidlist':sidlist,'didlist':didlist,'s_ijl':s_ijl,'ijl_s':ijl_s, 'L':L}
+          'sidlist':sidlist,'didlist':didlist,'s_ijl':s_ijl,'ijl_s':ijl_s, 'L':L, 'h':h}
 
 
     t1 = time()
-    (meanstatth, swapsth) = dw.mcs_swaps(states, spinstates, energies, betas, [], **kw)
+    (meanstatth, swapsth, failedupdatesth) = dw.mcs_swaps(states, spinstates, energies, betas, [], **kw)
     t2 = time()
+    
     #states = np.array(states)
     backup.results.swapsth = swapsth
+    backup.results.failedupdatesth = failedupdatesth
     print('Time for all thermalisation steps = ', t2-t1)
-
-    dw.states_dimers2spins(sidlist, didlist, states, spinstates,nt,ncores)
     new_en_states = [dim.hamiltonian(hamiltonian, states[t])-h*spinstates[t].sum() for t in range(nt)]
     for t in range(nt):
         if np.absolute(energies[t]-new_en_states[t]) > 1.0e-5:
-            print('RunBasis: Issue at temperature index', t)
-
+            print('RunBasis: Issue at temperature index ', t)
+            print("   energies[t] = ", energies[t])
+            print("   H0[t] = ", dim.hamiltonian(hamiltonian, states[t]))
+            print("   magntot[t] ", spinstates[t].sum())
+            print("   new_E[t] = H0[t] - h*magntot[t]", dim.hamiltonian(hamiltonian, states[t]) - h*spinstates[t].sum())
 
     ## MEASUREMENT PREPARATION 
 
+    print("-----------Measurements-----------------")
     # Preparation to call the method
     backup.params.nb = nb = args.nb # number of bins
     backup.params.num_in_bin = num_in_bin = args.nsm//nb
@@ -215,15 +225,6 @@ def main(args):
         p = 0
     
     backup.params.magnstats = magnstats = args.magnstats
-    if magnstats:
-        def m2id(magn):
-            if abs(magn)< 0.1:
-                return 0
-            else:
-                return 1
-    else:
-        def m2id(magn):
-            return 0
             
     kw = {'nb':nb,'num_in_bin':num_in_bin, 'iterworm':iterworm,
           'nitermax':nmaxiter,'check':check,
@@ -233,22 +234,23 @@ def main(args):
           'd_nd':d_nd,'d_vd':d_vd,'d_wn':d_wn, 'd_2s':d_2s, 's2_d':s2_d,
           'sidlist':sidlist,'didlist':didlist,'s_ijl':s_ijl,'ijl_s':ijl_s,'L':L,
           'ncores':ncores, 'measupdate': measupdate, 'nnspins': nnspins, 's2p':s2p, 
-          'magnstats':magnstats, 'm2id':m2id, 'magnfuncid':magnfuncid, 'p':p,
-          'c2s':c2s, 'csign':csign, 'measperiod':measperiod}
-    #states = list(states)
-    # Run measurements
-    print(type(spinstates))
+          'magnstats':magnstats,'magnfuncid':magnfuncid, 'p':p,
+          'c2s':c2s, 'csign':csign, 'measperiod':measperiod, 'h':h}
+        # Run measurements
     t1 = time()
-    (backup.results.meanstat, backup.results.swaps) = (meanstat, swaps) = dw.mcs_swaps(states, spinstates,energies, betas, stat_temps,**kw)
+    (backup.results.meanstat, backup.results.swaps, backup.results.failedupdates) = (meanstat, swaps, failedupdates) = dw.mcs_swaps(states, spinstates, energies, betas, stat_temps,**kw)
     t2 = time()
     print('Time for all measurements steps = ', t2-t1)
 
-    #states = np.array(states)
-    dw.states_dimers2spins(sidlist, didlist, states, spinstates,nt,ncores)
     new_en_states = [dim.hamiltonian(hamiltonian, states[t])-h*spinstates[t].sum() for t in range(nt)]
     for t in range(nt):
         if np.absolute(energies[t]-new_en_states[t]) > 1.0e-5:
-            print('RunBasis: Issue at temperature index', t)
+            print('RunBasis: Issue at temperature index ', t)
+            print("   energies[t] = ", energies[t])
+            print("   H0[t] = ", dim.hamiltonian(hamiltonian, states[t]))
+            print("   magntot[t] ", spinstates[t].sum())
+            print("   new_E[t] = H0[t] - h*magntot[t]", dim.hamiltonian(hamiltonian, states[t]) - h*spinstates[t].sum())
+
 
 
     ## STATISTICS ##
@@ -278,6 +280,7 @@ def main(args):
     backup.results.spinstates = spinstates
     #Save the backup object in a file
     pickle.dump(backup, open(args.output + '.pkl','wb'))
+    print("Job done")
     return meanstat
 
 

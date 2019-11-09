@@ -40,7 +40,7 @@ def magnetisedInit(spinstates, nt, s_ijl, same):
 
 def J1J2Init(spinstates, nt, s_ijl, same):
     if same:
-        print("In same (J1J2)")
+        #print("In same (J1J2)")
         version = np.random.randint(0,3)
         sign = np.random.randint(0,2)*2 -1
         
@@ -56,10 +56,10 @@ def J1J2Init(spinstates, nt, s_ijl, same):
         for t in range(nt):
             spinstates[t] = np.copy(spinstate)
     else:
-        print("In Differents (J1J2)")
+        #print("In Differents (J1J2)")
         versions = [np.random.randint(0,3) for t in range(nt)]
         signs = [np.random.randint(0,2)*2 -1 for t in range(nt)]
-        print("versions and signs generated (J1J2)")
+        #print("versions and signs generated (J1J2)")
         for t in range(nt):
             for s, (i, j, l) in enumerate(s_ijl):
                 if l == versions[t]:
@@ -695,24 +695,23 @@ def DipolarToJ4Init(spinstates, nt, s_ijl):
 
 
 def J1Init(spinstates, nt, s_ijl, same):
-    print('In J1 init')
+    #print('In J1 init')
     if same:
-        print('In J1 init same')
+        #print('In J1 init same')
         version = np.random.randint(0,2)
         if version == 0:
             J1J2Init(spinstates, nt, s_ijl, same)
         else:
             J1J3Init(spinstates, nt, s_ijl, same)
     else:
-        print('In J1 init diff')
+        #print('In J1 init diff')
         for t in range(nt):
             version = np.random.randint(0,2)
-            print(version)
             if version == 0:
-                print("version = J1J2")
+            #    print("version = J1J2")
                 J1J2Init([spinstates[t]],1, s_ijl, same)
             else:
-                print("version = J1J3")
+            #    print("version = J1J3")
                 J1J3Init([spinstates[t]], 1, s_ijl, same)
 
 
@@ -774,10 +773,8 @@ def statesinit(nt, d_ijl, d_2s, s_ijl, hamiltonian, h = 0, random = True, same =
        It returns the list of the states for each temperature and the energies.
     '''
 
-    print('statesinit function called')
+
     #initialize the dimers
-    print(len(d_ijl))
-    print(nt)
     states = [np.array([1 for i in range(len(d_ijl))], dtype='int32') for ignored in range(nt)]
     en_states = [0 for ignored in range(nt)]
     #initialize the spins randomly
@@ -805,7 +802,6 @@ def statesinit(nt, d_ijl, d_2s, s_ijl, hamiltonian, h = 0, random = True, same =
         elif inittype == "J1J2J3J4":
             DipolarToJ4Init(spinstates, nt, s_ijl, same)
             
-    print("Preparing states")
     states = np.array(states, 'int32')
     spinstates = np.array(spinstates, 'int32')
     ##initialise the dimer state according to the spin state
@@ -818,7 +814,8 @@ def statesinit(nt, d_ijl, d_2s, s_ijl, hamiltonian, h = 0, random = True, same =
                 states[t][id_dim] = 1
             else:
                 states[t][id_dim] = -1
-    en_states = [compute_energy(hamiltonian, states[t])-h*spinstates[t].sum() for t in range(nt)] # energy computed via the function in c++
+    en_states = [compute_energy(hamiltonian, states[t]) for t in range(nt)] # energy computed via the function in c++
+    en_states = [compute_energy(hamiltonian, states[t]) - h*spinstates[t].sum() for t in range(nt)] # energy computed via the function in c++
     #
     en_states = np.array(en_states)
     #
