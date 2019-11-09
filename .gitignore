@@ -6,3 +6,4 @@ dualworm-kagome/*.out
 dualworm-kagome/*.pkl
 dualworm-kagome/__pycache__/
 ANALYSIS_CSCS/
+Analysis_PSI/
