@@ -281,7 +281,7 @@ def main(args):
     #Save the backup object in a file
     pickle.dump(backup, open(args.output + '.pkl','wb'))
     print("Job done")
-    return meanstat
+    return meanstat, failedupdatesth, failedupdates
 
 
 # In[ ]:

@@ -3,12 +3,18 @@
 #include <random>
 #include <cmath> //exp
 #include <algorithm>
+#include <iostream>
+#include <iomanip>
 
 #include "mersenne.h" // random_gen()
 #include "manydualworms.h"
 #include "updatespinstates.h"
 
 using namespace std;
+
+int sign(double x){
+  return (int)copysign(1.0, x);
+}
 
 std::tuple<double, bool, std::vector<int>, std::vector<int>> magneticdualworms(double J1,
   std::vector<std::tuple<double, int*, int, int>> interactions, double h,
@@ -40,17 +46,32 @@ std::tuple<double, bool, std::vector<int>, std::vector<int>> magneticdualworms(d
         updatespinstate(state, spinstate, sidlist, didlist, nbit, randspinstate);
         //// Compute the acceptance ratio
         //    1- compute the difference of magnetic energy
-        int spinsdiff = 0;
+        int spinsold = 0;
+        int spinsnew = 0;
         for( int spin = 0; spin < spinstatesize; spin++){
-          spinsdiff += spinstate[spin] - savespinstate[spin];
+          spinsold += savespinstate[spin];
+          spinsnew += spinstate[spin];
         }
         //    2- compute exp(-beta*DELTAE) (but DeltaE = -h*spinsdiff)
+        // std::cerr << "spinsold " << spinsold << endl;
+        // std::cerr << "spinsnew " << sign(h)*abs(spinsnew) << endl;
+        int spinsdiff =  sign(h)*(abs(spinsnew))-spinsold; // if h is +, we are interested in positive magnetisation;
+        // if h is -, we are interested in negative magnetisation
+
         double p = exp(beta*h*spinsdiff);
         // Accept or reject by throwing a dice
         uniform_real_distribution<double> real_distrib(0.0, 1.0);
         double r = real_distrib(random_gen());
-        if(r<p){// accept -> change energy
-          deltaE += -h*spinsdiff;
+        // std::cerr << "p = " << p << endl;
+        // std::cerr << " r = " << r << endl;
+        if(r<p){// accept -> change energy and choose the right spin state
+          // std::cerr << " accepted " << endl;
+          if(sign(h)*abs(spinsnew) != spinsnew){ // if the sign of the magnetisation is not correct, we flip!
+            for(int spin = 0; spin < spinstatesize; spin ++){
+                spinstate[spin] = - spinstate[spin];
+            }
+          }
+          deltaE += -h*spinsdiff; // for now always accept to see
         }else{// reject
           // revert state
           for( int dim = 0; dim < statesize; dim++){
