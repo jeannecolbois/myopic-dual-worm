@@ -11,27 +11,38 @@ import numpy as np
 # In[2]:
 
 
-def magnetisedInit(spinstates, nt, s_ijl, same):
+def magnetisedInit(spinstates, nt, s_ijl, h, same):
+   
     if same:
+        if h == 0:
+            sign = np.random.randint(0,2)*2-1
+        else:
+            sign = np.sign(h)
+        
         version = np.random.randint(0,3)
-        spinstate = np.ones(len(s_ijl))
+        
+        spinstate = sign*np.ones(len(s_ijl))
+        
         for s, (i,j,l) in enumerate(s_ijl):
             if l == version:
-                spinstate[s] = -1
-            else:
-                spinstate[s] = 1
+                spinstate[s] = -sign
+                
         for t in range(nt):
             spinstates[t] = np.copy(spinstate) # to make sure that it is DIFFERENT states
         
     else:
         versions = [np.random.randint(0,3) for t in range(nt)]
-
+        if h == 0:
+            signs = [np.random.randint(0,2)*2-1 for t in range(nt)]
+        else:
+            signs = [np.sign(h) for t in range(nt)]
+        
         for t in range(nt):
             for s, (i,j,l) in enumerate(s_ijl):
                 if l == versions[t]:
-                    spinstates[t][s] = -1
+                    spinstates[t][s] = -signs[t]
                 else:
-                    spinstates[t][s] = 1
+                    spinstates[t][s] = signs[t]
             
 
 
@@ -413,7 +424,7 @@ def LargeJ2Init(spinstates, nt, s_ijl, same):
         versions = [np.random.randint(0,3) for t in range(nt)]
         signs = [np.random.randint(0,2)*2-1 for t in range(nt)]
         shifts = [np.random.randint(0,4) for t in range(nt)]
-        ros = [np.random.randint(0,3) for t in range(nt)]
+        rots = [np.random.randint(0,3) for t in range(nt)]
         
         for t in range(nt):
             LargeJ2InitOneState(spinstates[t], s_ijl, versions[t], signs[t], shifts[t], rots[t])
@@ -513,7 +524,7 @@ def IntermediateInit(spinstates, nt, s_ijl, same):
 # In[9]:
 
 
-def LargeJ3Init(spinstates, nt, s_ijl):
+def LargeJ3Init(spinstates, nt, s_ijl, same):
     for t in range(nt):
         sign = np.random.randint(0,2)*2-1
         for s, (i, j, l) in enumerate(s_ijl):
@@ -785,7 +796,7 @@ def statesinit(nt, d_ijl, d_2s, s_ijl, hamiltonian, h = 0, random = True, same =
         inittype = determine_init(hamiltonian, magninit, **kwargs) 
         print("Initialisation type: ", inittype)
         if inittype == "magninit":
-            magnetisedInit(spinstates, nt, s_ijl, same)
+            magnetisedInit(spinstates, nt, s_ijl, h, same)
         elif inittype == "J1":
             print('J1Init')
             J1Init(spinstates, nt, s_ijl, same)
