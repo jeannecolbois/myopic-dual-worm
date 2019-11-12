@@ -325,7 +325,7 @@ if __name__ == "__main__":
                         help = 'number of worm constructions per MC step')
     parser.add_argument('--measperiod', type = int, default = 1,
                         help = 'number of nips worm building + swaps between measurements')
-    parser.add_argument('--ssp', default = False, action = 'store_true',
+    parser.add_argument('--ssf', default = False, action = 'store_true',
                         help = 'activate for single spin flip update')
     parser.add_argument('--nb', type = int, default = 20,
                         help = 'number of bins')
