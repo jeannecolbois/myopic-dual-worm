@@ -45,6 +45,11 @@ def main(args):
     print('J3 ', J3)
     print('J3st ', J3st)
     print('h', h)
+    backup.params.ssf = ssf = args.ssf
+    if ssf:
+        nnspins, s2p = dw.spin2plaquette(ijl_s, s_ijl, s2_d,L)
+    
+    assert (not (ssf and (J2 != 0 or J3 !=0 or J3st != 0 or J4!=0))), "The ssf is only available with J1"
     
     couplings = {'J1': J1, 'J2':J2, 'J3':J3, 'J3st':J3st, 'J4':J4}
     print("Couplings exacted")
@@ -181,7 +186,8 @@ def main(args):
           'statsfunctions':statsfunctions,
           'nt':nt, 'hamiltonian':hamiltonian,'ncores':ncores,
           'd_nd':d_nd,'d_vd':d_vd,'d_wn':d_wn, 'd_2s':d_2s, 's2_d':s2_d,
-          'sidlist':sidlist,'didlist':didlist,'s_ijl':s_ijl,'ijl_s':ijl_s, 'L':L, 'h':h}
+          'sidlist':sidlist,'didlist':didlist,'s_ijl':s_ijl,'ijl_s':ijl_s,
+          'L':L, 'h':h, 's2p':s2p, 'ssf':ssf}
 
 
     t1 = time()
@@ -220,9 +226,13 @@ def main(args):
         nnspins, s2p = dw.spin2plaquette(ijl_s, s_ijl, s2_d,L)
         backup.params.p = p = args.p
     else:
-        nnspins = []
-        s2p = []
-        p = 0
+        if not ssf:
+            nnspins = []
+            s2p = []
+            p = 0
+        else:
+            nnspins = []
+            p = 0
     
     backup.params.magnstats = magnstats = args.magnstats
             
@@ -235,7 +245,7 @@ def main(args):
           'sidlist':sidlist,'didlist':didlist,'s_ijl':s_ijl,'ijl_s':ijl_s,'L':L,
           'ncores':ncores, 'measupdate': measupdate, 'nnspins': nnspins, 's2p':s2p, 
           'magnstats':magnstats,'magnfuncid':magnfuncid, 'p':p,
-          'c2s':c2s, 'csign':csign, 'measperiod':measperiod, 'h':h}
+          'c2s':c2s, 'csign':csign, 'measperiod':measperiod, 'h':h,'ssf':ssf}
         # Run measurements
     t1 = time()
     (backup.results.meanstat, backup.results.swaps, backup.results.failedupdates) = (meanstat, swaps, failedupdates) = dw.mcs_swaps(states, spinstates, energies, betas, stat_temps,**kw)
@@ -315,6 +325,8 @@ if __name__ == "__main__":
                         help = 'number of worm constructions per MC step')
     parser.add_argument('--measperiod', type = int, default = 1,
                         help = 'number of nips worm building + swaps between measurements')
+    parser.add_argument('--ssp', default = False, action = 'store_true',
+                        help = 'activate for single spin flip update')
     parser.add_argument('--nb', type = int, default = 20,
                         help = 'number of bins')
 

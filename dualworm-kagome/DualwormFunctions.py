@@ -846,7 +846,7 @@ def mcs_swaps(states, spinstates, statesen,
     csign = kwargs.get('csign', None)
     measperiod = kwargs.get('measperiod', 1)
     h = kwargs.get('h', 0.0)
-    
+    ssf = kwargs.get('ssf', False)
 
     ## Define the table for statistics
     if len(statsfunctions) != 0:
@@ -882,12 +882,18 @@ def mcs_swaps(states, spinstates, statesen,
                 t2 = time()
                 t_join += (t2-t1)/itermcs
             else:
-                t1 = time()
-                dim.magneticmcsevolve(hamiltonian, h, states, spinstates, d_nd,
-                                      d_vd, d_wn, sidlist, didlist, betas,
-                                      statesen, failedupdates, nitermax, iterworm,ncores)
-                t2 = time()
-                t_join += (t2-t1)/itermcs
+                if not ssf:
+                    t1 = time()
+                    dim.magneticmcsevolve(hamiltonian, h, states, spinstates, d_nd,
+                                          d_vd, d_wn, sidlist, didlist, betas,
+                                          statesen, failedupdates, nitermax, iterworm,ncores)
+                    t2 = time()
+                    t_join += (t2-t1)/itermcs
+                else:
+                    t1 = time()
+                    dim.ssfsevolve(hamiltonian[0], h, states, spinstates, np.array(s2p, dtype = 'int32'), betas, statesen, failedupdates, ncores, iterworm)
+                    t2 = time()
+                    t_join += (t2-t1)/itermcs
 
 
             #### TEMPERING perform "parallel" tempering
@@ -933,7 +939,8 @@ def mcs_swaps(states, spinstates, statesen,
         print('Time for mcsevolve = {0}'.format(t_join))
         print('Time for tempering = {0}'.format(t_tempering))
         print('Time for mapping to spins + computing statistics= {0}'.format(t_spins))
-
+        if ssf:
+            failedupdates = failedupdates/len(s_ijl)
         return statstables, swaps, failedupdates
     elif magnstats or (magnstats and statsfunctions):
         assert num_in_bin == 1
@@ -949,13 +956,18 @@ def mcs_swaps(states, spinstates, statesen,
                 t2 = time()
                 t_join += (t2-t1)/itermcs
             else:
-                t1 = time()
-                dim.magneticmcsevolve(hamiltonian, h, states, spinstates, d_nd,
-                                      d_vd, d_wn, sidlist, didlist, betas,
-                                      statesen, failedupdates, nitermax, iterworm,ncores)
-                t2 = time()
-                t_join += (t2-t1)/itermcs
-    
+                if not ssf:
+                    t1 = time()
+                    dim.magneticmcsevolve(hamiltonian, h, states, spinstates, d_nd,
+                                          d_vd, d_wn, sidlist, didlist, betas,
+                                          statesen, failedupdates, nitermax, iterworm,ncores)
+                    t2 = time()
+                    t_join += (t2-t1)/itermcs
+                else:
+                    t1 = time()
+                    dim.ssfsevolve(hamiltonian[0], h, states, spinstates, np.array(s2p, dtype = 'int32'), betas, statesen, failedupdates, ncores, iterworm)
+                    t2 = time()
+                    t_join += (t2-t1)/itermcs
             #### TEMPERING perform "parallel" tempering
             tempering(nt, statesen, betas, states, spinstates,swaps)
             t3 = time()
@@ -999,6 +1011,8 @@ def mcs_swaps(states, spinstates, statesen,
         print('Time for mcsevolve = {0}'.format(t_join))
         print('Time for tempering = {0}'.format(t_tempering))
         print('Time for mapping to spins + computing statistics= {0}'.format(t_spins))
+        if ssf:
+            failedupdates = failedupdates/len(s_ijl)
         return magnstatstables, swaps, failedupdates
     
 

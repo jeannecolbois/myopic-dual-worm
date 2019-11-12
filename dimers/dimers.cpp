@@ -10,7 +10,7 @@
 #include "magneticmcsevolve.h"
 #include "updatespinstates.h"
 #include "measupdate.h"
-#include "sspsevolve.h"
+#include "ssfsevolve.h"
 
 
 
@@ -55,7 +55,7 @@ static char mcsevolve_docstring[] =
 	"From a set of states, performs a myopic worm update of the set of dimer states taking into account the dimers interactions and the temperature associated with each state. Returns 0 if success ";
 static char magneticmcsevolve_docstring[] =
   	"From a set of states and spinstates, performs a myopic worm update of the set of dimer states taking into account the dimers interactions and the temperature associated with each state, accepts or rejects based on magnetic field. Returns 0 if success ";
-static char sspsevolve_docstring[] =
+static char ssfsevolve_docstring[] =
       	"From a set of states and spinstates, performs a single spin flip update of the set of dimer states taking into account the dimers interactions and the temperature associated with each state, accepts or rejects based on magnetic field and J1 interaction. Returns 0 if success ";
 static char updatespinstates_docstring[] =
 	"From a set of states, updates the spinstates given the connectivity ";
@@ -70,7 +70,7 @@ static PyObject* dimers_hamiltonian(PyObject *self, PyObject *args);
 //static PyObject* dimers_manydualworms(PyObject *self, PyObject *args);
 static PyObject* dimers_mcsevolve(PyObject *self, PyObject *args);
 static PyObject* dimers_magneticmcsevolve(PyObject *self, PyObject *args);
-static PyObject* dimers_sspsevolve(PyObject *self, PyObject *args);
+static PyObject* dimers_ssfsevolve(PyObject *self, PyObject *args);
 static PyObject* dimers_updatespinstates(PyObject *self, PyObject *args);
 static PyObject* dimers_measupdates(PyObject *self, PyObject *args);
 /* Module specifications */
@@ -78,7 +78,7 @@ static PyMethodDef module_methods[] = {
     {"hamiltonian", dimers_hamiltonian, METH_VARARGS, hamiltonian_docstring},
     {"mcsevolve", dimers_mcsevolve, METH_VARARGS, mcsevolve_docstring},
     {"magneticmcsevolve", dimers_magneticmcsevolve, METH_VARARGS, magneticmcsevolve_docstring},
-    {"sspsevolve", dimers_sspsevolve, METH_VARARGS, sspsevolve_docstring},
+    {"ssfsevolve", dimers_ssfsevolve, METH_VARARGS, ssfsevolve_docstring},
     {"updatespinstates", dimers_updatespinstates, METH_VARARGS, updatespinstates_docstring},
     {"measupdates", dimers_measupdates, METH_VARARGS, measupdates_docstring},
     {nullptr, nullptr, 0, nullptr}
@@ -704,8 +704,8 @@ static PyObject* dimers_magneticmcsevolve(PyObject *self, PyObject *args) {
 //--------------------------------------------------------------------------//
 ////////////////////////////////////////////////////////////////////////////////
 
-//****** SSPSEVOLVE *****//
-static PyObject* dimers_sspsevolve(PyObject *self, PyObject *args) {
+//****** ssfSEVOLVE *****//
+static PyObject* dimers_ssfsevolve(PyObject *self, PyObject *args) {
     /* What we want to get from the arguments:
      * >> A J1 interaction
      * >> A magnetic field
@@ -725,8 +725,9 @@ static PyObject* dimers_sspsevolve(PyObject *self, PyObject *args) {
      PyObject *betas_obj, *energies_obj;
      PyObject *failedupdates_obj; //*saveloops_obj,
      int nthreads;
+     int iters;
      // take the arguments as pointers + int
-     if(!PyArg_ParseTuple(args,"ddOOOOOOi", &J1, &h, &states_obj, &spinstates_obj, &s2p_obj, &betas_obj, &energies_obj, &failedupdates_obj, &nthreads))
+     if(!PyArg_ParseTuple(args,"ddOOOOOOii", &J1, &h, &states_obj, &spinstates_obj, &s2p_obj, &betas_obj, &energies_obj, &failedupdates_obj, &nthreads, &iters))
 	    return nullptr;
 
     //-------------------------------//
@@ -846,8 +847,8 @@ static PyObject* dimers_sspsevolve(PyObject *self, PyObject *args) {
     /* Call the magneticmcs C function */
     //------------------------------------//
     PyThreadState* threadState = PyEval_SaveThread(); // release the GIL
-    sspsevolve(J1, h, states, statesize, spinstates, spinstatesize,
-      s2p, nd, betas, energies, failedupdates, nbt, nthreads); //saveloops = 0
+    ssfsevolve(J1, h, states, statesize, spinstates, spinstatesize,
+      s2p, nd, betas, energies, failedupdates, nbt, nthreads, iters); //saveloops = 0
     PyEval_RestoreThread(threadState); // claim the GIL
 
     // Clean up
