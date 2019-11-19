@@ -7,7 +7,7 @@ dualworm-kagome/*.out
 dualworm-kagome/*.pkl
 dualworm-kagome/*.png
 dualworm-kagome/__pycache__/
-dualworm-kagome/PlotsResults*
+dualworm-kagome/Plot*
 ANALYSIS_CSCS/
 Analysis_CSCS/
 Analysis_PSI/
