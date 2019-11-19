@@ -183,7 +183,7 @@ def Binning(t_mean, t_varmean, stattuple, nb, stat_temps, **kwargs):
     plotmax = kwargs.get('plotmax', 10)
     if plzplot:
         print('plotting!')
-        plt.figure(figsize=(18, 12),dpi=300)
+        plt.figure(figsize=(12, 8),dpi=300)
         minplt = max(0, plotmin)
         maxplt = min(plotmax, len(stat_temps))
         for resid, t in enumerate(stat_temps[minplt:maxplt]):
@@ -502,7 +502,7 @@ def SwapsAnalysis(L, n, tidmin, tidmax, temperatures, foldername, results_folder
 # In[ ]:
 
 
-def BasicPlotsE(L, n, tidmin, tidmax, temperatures_plots, foldername, results_foldername, filenamelist, t_MeanE, t_MeanEsq, t_varMeanE, t_varMeanEsq, C, ErrC, J1, J2, J3, J4):
+def BasicPlotsE(L, n, tidmin, tidmax, temperatures_plots, foldername, results_foldername, filenamelist, t_MeanE, t_MeanEsq, t_varMeanE, t_varMeanEsq, C, ErrC, J1, J2, J3, J4, S0 = np.log(2)):
     t_MeanE = np.array(t_MeanE)
     t_MeanEsq =  np.array(t_MeanEsq)
     t_varMeanE =  np.array(t_varMeanE)
@@ -512,7 +512,7 @@ def BasicPlotsE(L, n, tidmin, tidmax, temperatures_plots, foldername, results_fo
     
     # Mean E
     margin = [0.18, 0.2, 0.02, 0.02]
-    plt.figure(figsize=(18, 12),dpi=300)
+    plt.figure(figsize=(12, 8),dpi=300)
     plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
     for i in range(n):
         col = [0 + i/n, (1 - i/n)**2, 1 - i/n]
@@ -530,7 +530,7 @@ def BasicPlotsE(L, n, tidmin, tidmax, temperatures_plots, foldername, results_fo
     
     #Heat capacity
     margin = [0.18, 0.2, 0.02, 0.02]
-    plt.figure(figsize=(18, 12), dpi=300)
+    plt.figure(figsize=(12, 8), dpi=300)
     plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
     for i in range(n):
         col = [0 + i/n, (1-i/n) **2, 1 -  i/n]
@@ -550,7 +550,7 @@ def BasicPlotsE(L, n, tidmin, tidmax, temperatures_plots, foldername, results_fo
 
     #Heat capacity
     margin = [0.18, 0.2, 0.02, 0.02]
-    plt.figure(figsize=(18, 12), dpi=300)
+    plt.figure(figsize=(12, 8), dpi=300)
     plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
     for i in range(n):
         col = [0 + i/n, (1- i/n)**2, 1 -  i/n]
@@ -566,6 +566,26 @@ def BasicPlotsE(L, n, tidmin, tidmax, temperatures_plots, foldername, results_fo
     plt.savefig('./' + foldername + 'Plots' + results_foldername+ '/HeatCapacityT_various-nsms.png')
     plt.savefig('./' + foldername + 'Plots' + results_foldername+ '/HeatCapacityT.pgf')
     
+    # Residual entropy
+    S = [[] for i in range(n)]
+    DeltaS = [[0 for tid in range(tidmax[i]-tidmin)] for i in range(n)]
+    CoverT = [C[i][tidmin:tidmax[i]] / temperatures_plots[i][tidmin:tidmax[i]] for i in range(n)]
+    
+    for i in range(n):
+        for tid in range(tidmax[i]-tidmin-2, -1, -1): #going through the temperatures in decreasing order
+            DeltaS[i][tid] = DeltaS[i][tid+1] + np.trapz(CoverT[i][tid:tid+2], temperatures_plots[i][tid+tidmin:tid+2+tidmin])
+        for tid in range(0, tidmax[i]-tidmin):    
+            S[i].append(S0 - DeltaS[i][tid])
+    plt.figure(figsize = (12,8), dpi = 300)       
+    for i in range(n):
+        col = [0 + i/n, (1- i/n)**2, 1 -  i/n]
+        plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]]  , S[i], '.-', label = r'$L$ = {0}'.format(L[i]), color = col)
+        plt.xlabel(r'Temperature $T$ ')
+    plt.ylabel(r'$S$')
+    plt.legend(loc= 'best', framealpha=0.5)
+    plt.savefig('./' + foldername + 'Plots' + results_foldername+ '/EntropyT.png')
+    plt.savefig('./' + foldername + 'Plots' + results_foldername+ '/EntropyT.pgf')
+       
     # Ground-state energy
     r1 = [0, 0.5]
     E1 = [-2/3, -1/6]
@@ -618,7 +638,7 @@ def BasicPlotsM(L, n, tidmin, tidmax, temperatures_plots, foldername, results_fo
     ErrChi = np.array(ErrChi)
     #Magnetisation:
     margin = [0.18, 0.2, 0.02, 0.02]
-    plt.figure(figsize=(6, 4))
+    plt.figure(figsize=(12, 8), dpi=300)
     plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
     for i in range(n):
         plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]], t_MeanM[i][tidmin:tidmax[i]], '.-')
@@ -630,7 +650,7 @@ def BasicPlotsM(L, n, tidmin, tidmax, temperatures_plots, foldername, results_fo
     
     #Susceptibility
     margin = [0.18, 0.2, 0.02, 0.02]
-    plt.figure(figsize=(6, 4))
+    plt.figure(figsize=(12, 8), dpi=300)
     plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
     for i in range(n):
         plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]]  , Chi[i][tidmin:tidmax[i]], '.-')
@@ -639,16 +659,4 @@ def BasicPlotsM(L, n, tidmin, tidmax, temperatures_plots, foldername, results_fo
     plt.ylabel('Susceptibility')
     plt.savefig('./' + foldername + 'Plots' + results_foldername+ '/Susceptibility_various-nsms.png')
     plt.savefig('./' + foldername + 'Plots' + results_foldername+ '/Susceptibility.pgf')
-
-
-# In[ ]:
-
-
-def PBCKagomeLatticeNeighboursLists(s0, s1, s2, s_pos, distconds):
-    '''
-        Given the reference sites s0, s1 and s2, and given the spin index <-> position
-        table s_pos and the conditions delimitating the various distances at which
-        there are neighbours, returns the lists of neighbours for each spin.
-    '''
-    nn = len(distconds)
 

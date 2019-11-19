@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 
 import numpy as np
-from distutils.core import setup, Extension
+from numpy.distutils.core import setup
+from numpy.distutils.core import Extension
 
 cext = Extension(name = "dimers",
-                sources=["dimers.cpp", "hamiltonian.cpp","manydualworms.cpp", "mcsevolve.cpp", "updatespinstates.cpp","measupdate.cpp"],
+                sources=["hamiltonian.cpp", "updatespinstates.cpp", "magneticdualworms.cpp", "measupdate.cpp", "mcsevolve.cpp", "manydualworms.cpp", "magneticmcsevolve.cpp", "dimers.cpp"],
                 extra_compile_args=['-std=c++11', '-fopenmp'],
                 include_dirs = [np.get_include()],
                 extra_link_args=['-lgomp'],

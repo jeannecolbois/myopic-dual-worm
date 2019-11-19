@@ -5,7 +5,10 @@
 #include "mersenne.h"
 using namespace std;
 
-tuple<double, vector<int>, vector<int>> manydualworms(double J1, vector<tuple<double, int*, int, int>> interactions, int* state, int statesize, int* d_nd, int n_nd, int* d_vd, int n_vd, int* d_wn, double beta, int saveloops, int nmaxiter, int iterworm) {
+tuple<double, bool, vector<int>, vector<int>> manydualworms(double J1,
+  vector<tuple<double, int*, int, int>> interactions, int* state, int statesize,
+  int* d_nd, int n_nd, int* d_vd, int n_vd, int* d_wn, double beta, int saveloops,
+  int nmaxiter, int iterworm) {
     /* INITIALISAION */
     // save a copy of the state:
     int *savestate = new int[statesize];
@@ -46,7 +49,9 @@ tuple<double, vector<int>, vector<int>> manydualworms(double J1, vector<tuple<do
     vector<int> effective_update(0);
 
     // if loop not closed
+    bool updated = false;
     if(!loopclosed) {
+        updated = false;
         deltaE = 0;
         update.clear();
         looplengths.clear();
@@ -54,6 +59,7 @@ tuple<double, vector<int>, vector<int>> manydualworms(double J1, vector<tuple<do
             state[dim] = savestate[dim];
         }
     }else{
+        updated = true;
         if(saveloops) {
             for (int db=0 ; db < statesize; db++){
                 if(update[db]%2 == 1){
@@ -65,7 +71,7 @@ tuple<double, vector<int>, vector<int>> manydualworms(double J1, vector<tuple<do
 
     //clean up savestate
     delete[] savestate;
-    tuple<double, vector<int>, vector<int>> resultingtuple = make_tuple(deltaE, effective_update, looplengths);
+    tuple<double, bool, vector<int>, vector<int>> resultingtuple = make_tuple(deltaE, updated, effective_update, looplengths);
     return resultingtuple;
 }
 
