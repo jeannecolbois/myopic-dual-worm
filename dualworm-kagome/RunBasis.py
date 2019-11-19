@@ -46,6 +46,7 @@ def main(args):
     print('J3st ', J3st)
     print('h', h)
     backup.params.ssf = ssf = args.ssf
+    s2p = dw.spin2plaquette(ijl_s, s_ijl, s2_d,L)
     if ssf:
         nnspins, s2p = dw.spin2plaquette(ijl_s, s_ijl, s2_d,L)
     
