@@ -183,7 +183,7 @@ def Binning(t_mean, t_varmean, stattuple, nb, stat_temps, **kwargs):
     plotmax = kwargs.get('plotmax', 10)
     if plzplot:
         print('plotting!')
-        plt.figure(figsize=(12, 8),dpi=300)
+        plt.figure(figsize=(6,4),dpi=300)
         minplt = max(0, plotmin)
         maxplt = min(plotmax, len(stat_temps))
         for resid, t in enumerate(stat_temps[minplt:maxplt]):
@@ -269,7 +269,8 @@ def LoadEnergyFromFile(foldername, filename, numsites, nb, stat_temps, temperatu
         T = temperatures[t]
         C.append(numsites * (t_MeanEsq[resid] - t_MeanE[resid] ** 2) / T ** 2)
 
-    # to compute the error on C, we need to compute sqrt(<C^2> - <C>^2) where "<>" stands for the average over all the bins
+    # to compute the error on C, we need to compute sqrt(<C^2> - <C>^2) where "<>"
+    # stands for the average over all the bins
     # i.e. <C> = 1/nb * sum_b C_b where C_b is the value of C over the bin b
     # Note that C_b = N/T^2 * (<E^2>_b - <E>_b ^2) where <>_b stands for the average over bin b
 
@@ -278,16 +279,24 @@ def LoadEnergyFromFile(foldername, filename, numsites, nb, stat_temps, temperatu
 
     for resid, t in enumerate(stat_temps):
         T = temperatures[t]
-        Mean_VarE = 0
-        Mean_VarE_Sq = 0
+        #Mean_VarE = 0
+        #Mean_VarE_Sq = 0
+        #Mean_w = 0
+        #Mean_deltaw = 0
+        w0 = 0
+        w = [0 for _ in range(nb)]
+        #jackknife analysis
         for b in range(nb):
-                Mean_VarE += (tb_Esq[resid][b] - tb_E[resid][b] ** 2)/nb
-                Mean_VarE_Sq += ((tb_Esq[resid][b] - tb_E[resid][b] ** 2) ** 2)/nb
-        if (Mean_VarE_Sq - Mean_VarE ** 2 >= 0) :
-            ErrC.append(numsites / (T ** 2) * np.sqrt(Mean_VarE_Sq - Mean_VarE ** 2))
-        else:
-            assert(Mean_VarE_Sq - Mean_VarE ** 2 >= -1e-15)
-            ErrC.append(0)
+                w0 += (tb_E[resid][b]- t_MeanE[resid])**2/nb # this is our function whose average is VarE
+                #Mean_VarE += (tb_Esq[resid][b] - tb_E[resid][b] ** 2)/nb
+                #Mean_VarE_Sq += ((tb_Esq[resid][b] - tb_E[resid][b] ** 2) ** 2)/nb
+                for boff in range(nb): 
+                    if boff != b:
+                        w[b] += (tb_E[resid][boff]- t_MeanE[resid])**2/(nb-1)
+        
+        avgw = sum(w)/nb
+        varw = (nb -1)/nb*sum((np.array(w)-avgw)**2)
+        ErrC.append(numsites/(T**2) * np.sqrt(varw))
             
     f.close()
     
@@ -512,15 +521,15 @@ def BasicPlotsE(L, n, tidmin, tidmax, temperatures_plots, foldername, results_fo
     
     # Mean E
     margin = [0.18, 0.2, 0.02, 0.02]
-    plt.figure(figsize=(12, 8),dpi=300)
+    plt.figure(figsize=(6,4),dpi=300)
     plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
     for i in range(n):
         col = [0 + i/n, (1 - i/n)**2, 1 - i/n]
         if J2[i] != 0:
             ratio = J3[i]/J2[i]
-            plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]]  , t_MeanE[i][tidmin:tidmax[i]], '.-', label = r'$J_3 / J_2$ = {:f}'.format(ratio), color = col)
+            plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]]  , t_MeanE[i][tidmin:tidmax[i]], '.-', label = r'$L$ = {0}'.format(L[i]), color = col)
         else:
-            plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]]  , t_MeanE[i][tidmin:tidmax[i]], '.-', label = r'$J_3 / J_2$ = $\infty$', color = col)
+            plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]]  , t_MeanE[i][tidmin:tidmax[i]], '.-', label = r'$L$ = {0}'.format(L[i]), color = col)
         plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]], (t_MeanE[i][tidmin:tidmax[i]] - np.sqrt(t_varMeanE[i][tidmin:tidmax[i]])), (t_MeanE[i][tidmin:tidmax[i]] + np.sqrt(t_varMeanE[i][tidmin:tidmax[i]])), alpha=0.4, color = col)
     plt.xlabel(r'Temperature $T$')
     plt.ylabel(r'$E$')
@@ -530,15 +539,15 @@ def BasicPlotsE(L, n, tidmin, tidmax, temperatures_plots, foldername, results_fo
     
     #Heat capacity
     margin = [0.18, 0.2, 0.02, 0.02]
-    plt.figure(figsize=(12, 8), dpi=300)
+    plt.figure(figsize=(6,4), dpi=300)
     plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
     for i in range(n):
         col = [0 + i/n, (1-i/n) **2, 1 -  i/n]
         if J2[i] != 0:
             ratio = J3[i]/J2[i]
-            plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]]  , C[i][tidmin:tidmax[i]], '.-', label = r'$J_3 / J_2$ = {:f}'.format(ratio), color = col)
+            plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]]  , C[i][tidmin:tidmax[i]], '.-', label = r'$L$ = {0}'.format(L[i]), color = col)
         else:
-            plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]]  , C[i][tidmin:tidmax[i]], '.-', label = r'$J_3 / J_2$ = $\infty$', color = col)
+            plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]]  , C[i][tidmin:tidmax[i]], '.-', label = r'$L$ = {0}'.format(L[i]), color = col)
         plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]], C[i][tidmin:tidmax[i]] - ErrC[i][tidmin:tidmax[i]], C[i][tidmin:tidmax[i]] + ErrC[i][tidmin:tidmax[i]], alpha = 0.5, color = col)
         #print('Error on the heat capacity for file ', filenamelist[i])
         #print(ErrC[i])
@@ -550,7 +559,7 @@ def BasicPlotsE(L, n, tidmin, tidmax, temperatures_plots, foldername, results_fo
 
     #Heat capacity
     margin = [0.18, 0.2, 0.02, 0.02]
-    plt.figure(figsize=(12, 8), dpi=300)
+    plt.figure(figsize=(6,4), dpi=300)
     plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
     for i in range(n):
         col = [0 + i/n, (1- i/n)**2, 1 -  i/n]
@@ -568,23 +577,47 @@ def BasicPlotsE(L, n, tidmin, tidmax, temperatures_plots, foldername, results_fo
     
     # Residual entropy
     S = [[] for i in range(n)]
+    Smin = [[] for i in range(n)]
+    Smax = [[] for i in range(n)]
+    DeltaSmin = [[0 for tid in range(tidmax[i]-tidmin)] for i in range(n)]
+    DeltaSmax = [[0 for tid in range(tidmax[i]-tidmin)] for i in range(n)]
     DeltaS = [[0 for tid in range(tidmax[i]-tidmin)] for i in range(n)]
     CoverT = [C[i][tidmin:tidmax[i]] / temperatures_plots[i][tidmin:tidmax[i]] for i in range(n)]
+    CminoverT = [(C[i][tidmin:tidmax[i]] - ErrC[i][tidmin:tidmax[i]]) / temperatures_plots[i][tidmin:tidmax[i]] for i in range(n)]
+    CmaxoverT = [(C[i][tidmin:tidmax[i]] + ErrC[i][tidmin:tidmax[i]]) / temperatures_plots[i][tidmin:tidmax[i]] for i in range(n)]
     
     for i in range(n):
         for tid in range(tidmax[i]-tidmin-2, -1, -1): #going through the temperatures in decreasing order
             DeltaS[i][tid] = DeltaS[i][tid+1] + np.trapz(CoverT[i][tid:tid+2], temperatures_plots[i][tid+tidmin:tid+2+tidmin])
+            DeltaSmin[i][tid] = DeltaSmin[i][tid+1] + np.trapz(CminoverT[i][tid:tid+2], temperatures_plots[i][tid+tidmin:tid+2+tidmin])
+            DeltaSmax[i][tid] = DeltaSmax[i][tid+1] + np.trapz(CmaxoverT[i][tid:tid+2], temperatures_plots[i][tid+tidmin:tid+2+tidmin])
         for tid in range(0, tidmax[i]-tidmin):    
             S[i].append(S0 - DeltaS[i][tid])
-    plt.figure(figsize = (12,8), dpi = 300)       
+            Smin[i].append(S0 - DeltaSmax[i][tid])
+            Smax[i].append(S0 - DeltaSmin[i][tid])
+            
+    plt.figure(figsize = (6,4), dpi = 300)       
     for i in range(n):
         col = [0 + i/n, (1- i/n)**2, 1 -  i/n]
         plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]]  , S[i], '.-', label = r'$L$ = {0}'.format(L[i]), color = col)
+        plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]], Smin[i], Smax[i], alpha = 0.5, color = col)
         plt.xlabel(r'Temperature $T$ ')
     plt.ylabel(r'$S$')
     plt.legend(loc= 'best', framealpha=0.5)
     plt.savefig('./' + foldername + 'Plots' + results_foldername+ '/EntropyT.png')
     plt.savefig('./' + foldername + 'Plots' + results_foldername+ '/EntropyT.pgf')
+    
+    plt.figure(figsize = (6,4), dpi = 300)       
+    for i in range(n):
+        plt.plot(1/(9*L[i]**2) , S[i][tidmin], 'x', color = col)
+        plt.plot([1/(9*L[i]**2), 1/(9*L[i]**2)] , [Smin[i][tidmin], Smax[i][tidmin]], color = col)
+    plt.xlabel(r'Inverse system size $1/(9L^2)$ ')
+    plt.ylabel(r'$S$')
+    plt.xlim(left=0)
+    plt.savefig('./' + foldername + 'Plots' + results_foldername+ '/EntropyL.png')
+    plt.savefig('./' + foldername + 'Plots' + results_foldername+ '/EntropyL.pgf')
+    
+    
        
     # Ground-state energy
     r1 = [0, 0.5]
@@ -638,7 +671,7 @@ def BasicPlotsM(L, n, tidmin, tidmax, temperatures_plots, foldername, results_fo
     ErrChi = np.array(ErrChi)
     #Magnetisation:
     margin = [0.18, 0.2, 0.02, 0.02]
-    plt.figure(figsize=(12, 8), dpi=300)
+    plt.figure(figsize=(6,4), dpi=300)
     plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
     for i in range(n):
         plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]], t_MeanM[i][tidmin:tidmax[i]], '.-')
@@ -650,7 +683,7 @@ def BasicPlotsM(L, n, tidmin, tidmax, temperatures_plots, foldername, results_fo
     
     #Susceptibility
     margin = [0.18, 0.2, 0.02, 0.02]
-    plt.figure(figsize=(12, 8), dpi=300)
+    plt.figure(figsize=(6,4), dpi=300)
     plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
     for i in range(n):
         plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]]  , Chi[i][tidmin:tidmax[i]], '.-')
