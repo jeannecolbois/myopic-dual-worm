@@ -53,10 +53,11 @@ def main(args):
     assert (not (ssf and (J2 != 0 or J3 !=0 or J3st != 0 or J4!=0))), "The ssf is only available with J1"
     
     couplings = {'J1': J1, 'J2':J2, 'J3':J3, 'J3st':J3st, 'J4':J4}
-    print("Couplings exacted")
+    print("Couplings extracted")
     hamiltonian = dw.Hamiltonian(couplings,d_ijl, ijl_d, L)
     print("hamiltonian computed")
-    ## Temperatures to simulate
+    
+    ## Temperatures and magnetic fields to simulate
     t_list = [t for t in args.t_list]
     nt_list = args.nt_list
     backup.params.loglist = loglist = args.log_tlist
@@ -67,8 +68,21 @@ def main(args):
     betas = 1/temperatures
     backup.params.temperatures = temperatures
     backup.params.nt = nt = len(temperatures) # total number of different temperatures
+    if args.h_list:
+        h_list = [h for h in args.h_list]
+        nh_list = args.nh_list
+        hfields = dw.create_hfields(nh_list, h_list)
+        nh = len(hfields)
+    else:
+        hfields = np.array([h])
+        nh = 1
+    backup.params.hfields = hfields;
+    backup.params.nh = h;
     print('Number of temperatures: ', nt)
-
+    print('Number of magnetic fields: ', nh)
+    
+    walker2params, id2walker = dw.walkerstable(temperatures, nt, hfields, nh)
+    
     ## States
     backup.params.randominit = randominit = args.randominit    
     print('Fully random initialisation = ', randominit)
@@ -76,16 +90,13 @@ def main(args):
     print('Identical initialisation = ', same)
     backup.params.magninit = magninit = args.magninit
     print('Magnetisation initialisation = ', magninit)
-    
-    
+        
     kwinit = {'random': randominit, 'same': same, 'magninit': magninit, 'h':h}
-    print(kwinit)
-    print('Same initialisation for all temperatures = ', same)
+
+    (states, energies, spinstates) = strst.statesinit(nt, nh, hfields, id2walker, d_ijl, d_2s, s_ijl, hamiltonian, **kwinit)
     
-    
-    (states, energies, spinstates) = strst.statesinit(nt, d_ijl, d_2s, s_ijl, hamiltonian, **kwinit)
     backup.params.ncores = ncores = args.ncores
-    new_en_states = [dim.hamiltonian(hamiltonian, states[t])-h*spinstates[t].sum() for t in range(nt)]
+    new_en_states = [dim.hamiltonian(hamiltonian, states[id2walker[t,hid]])-hfields[hid]*spinstates[id2walker[t,hid]].sum() for t in range(nt) for hid in range(nh)]
     
 
     for t in range(nt):
@@ -188,7 +199,7 @@ def main(args):
           'nt':nt, 'hamiltonian':hamiltonian,'ncores':ncores,
           'd_nd':d_nd,'d_vd':d_vd,'d_wn':d_wn, 'd_2s':d_2s, 's2_d':s2_d,
           'sidlist':sidlist,'didlist':didlist,'s_ijl':s_ijl,'ijl_s':ijl_s,
-          'L':L, 'h':h, 's2p':s2p, 'ssf':ssf}
+          'L':L, 'nh':nh, 'hfields':hfields, 'walker2params':walker2params,'s2p':s2p, 'ssf':ssf}
 
 
     t1 = time()
@@ -246,7 +257,9 @@ def main(args):
           'sidlist':sidlist,'didlist':didlist,'s_ijl':s_ijl,'ijl_s':ijl_s,'L':L,
           'ncores':ncores, 'measupdate': measupdate, 'nnspins': nnspins, 's2p':s2p, 
           'magnstats':magnstats,'magnfuncid':magnfuncid, 'p':p,
-          'c2s':c2s, 'csign':csign, 'measperiod':measperiod, 'h':h,'ssf':ssf}
+          'c2s':c2s, 'csign':csign, 'measperiod':measperiod,
+          'nh':nh, 'hfields':hfields, 'walker2params':walker2params,
+          'ssf':ssf}
         # Run measurements
     t1 = time()
     (backup.results.meanstat, backup.results.swaps, backup.results.failedupdates) = (meanstat, swaps, failedupdates) = dw.mcs_swaps(states, spinstates, energies, betas, stat_temps,**kw)
@@ -363,6 +376,11 @@ if __name__ == "__main__":
                         help = '''limiting temperatures for the various ranges of
                         measurements''') 
                         #default will be set to none, and then we can decide what to do later on.
+    # MAGNETIC FIELD PARAMETERS
+    parser.add_argument('--h_list', nargs = '+', type = float, default = [0.5, 15.0],
+                        help = 'list of limiting magnetic field values')
+    parser.add_argument('--nh_list', nargs = '+', type = int, default = [28],
+                        help = 'list of number of magnetic fields in between the given limiting temperatures')
     
     #CORRELATIONS PARAMETER
     parser.add_argument('--energy', default = False, action = 'store_true',

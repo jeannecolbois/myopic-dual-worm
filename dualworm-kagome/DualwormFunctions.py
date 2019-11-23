@@ -9,6 +9,7 @@ import dimers as dim
 import KagomeFunctions as lattice
 from scipy.special import erfc
 from time import time
+import itertools
 
 
 # In[ ]:
@@ -546,6 +547,42 @@ def create_temperatures(nt_list, t_list):
 # In[ ]:
 
 
+def create_hfields(nh_list, h_list):
+    assert(len(h_list) == len(nh_list) + 1)
+    nh = 0
+    for nhe in nh_list:
+        nh += nhe
+
+    hfields = np.zeros(nh)
+
+    nh_start = 0
+    for id_nh, nhe in enumerate(nh_list):
+        hfields[nh_start: nhe+nh_start] =            np.linspace(h_list[id_nh], h_list[id_nh + 1], nhe)
+        nh_start += nhe
+
+    return np.unique(hfields)
+
+
+# In[ ]:
+
+
+def walkerstable(temperatures, nt, hfields, nh):
+    walker2params = np.array(list(itertools.product(temperatures, hfields)))
+    walker2id = np.array(list(itertools.product(list(range(0,nt)), list(range(0,nh)))))
+    #params2walk = {}
+    id2walker = np.zeros((nt, nh), dtype='int32')
+    
+    for i in range(walker2id.shape[0]):
+        tid = walker2id[i][0]
+        hid = walker2id[i][1]
+        id2walker[tid, hid] = i
+        
+    return walker2params, id2walker
+
+
+# In[ ]:
+
+
 def create_log_temperatures(nt_list, t_list):
     assert(len(t_list) == len(nt_list) + 1)
     nt = 0
@@ -778,6 +815,13 @@ def tempering(nt, statesen, betas, states, spinstates, swaps):
 # In[ ]:
 
 
+def replicas(nt, nh, statesen, betas, hfields, states, spinstates, swapst, swapsh):
+    print('replicas')
+
+
+# In[ ]:
+
+
 def mcs_swaps(states, spinstates, statesen, 
               betas, stat_temps, **kwargs):
     '''
@@ -806,7 +850,8 @@ def mcs_swaps(states, spinstates, statesen,
                 'ijl_s': idem
                 'L': system size
                 'ncores':ncores
-                'h':h
+                'hfields':hfields
+                'walker-02params': walker2params
         < states, spins states = tables that will be updated as the new 
         states and spinstates get computed
         < statesen : energy of the states
@@ -845,7 +890,9 @@ def mcs_swaps(states, spinstates, statesen,
     c2s = kwargs.get('c2s', None)
     csign = kwargs.get('csign', None)
     measperiod = kwargs.get('measperiod', 1)
-    h = kwargs.get('h', 0.0)
+    hfields = kwargs.get('hfields', None)
+    nh = kwargs.get('nh',None)
+    walker2params = kwargs.get('walker2params',[])
     ssf = kwargs.get('ssf', False)
 
     ## Define the table for statistics
@@ -853,36 +900,40 @@ def mcs_swaps(states, spinstates, statesen,
         if magnstats and magnfuncid != -1: # dictionary not empty
             magnstatstables = [{} for resid in range(len(stat_temps))]
         else:
-            statstables = [(np.zeros((len(stat_temps), nb)).tolist(), np.zeros((len(stat_temps), nb)).tolist()) 
+            statstables = [(np.zeros((len(stat_temps)*nh, nb)).tolist(), np.zeros((len(stat_temps)*nh, nb)).tolist()) 
                        for i in range(len(statsfunctions))]
     else:
         statstables =  []
     ## Iterate
     itermcs = nb*num_in_bin*measperiod
     print("itermcs = ", itermcs)
-    swaps = [0 for t in range(nt)]
-    failedupdates = np.array([0 for t in range(nt)],dtype ='int32')
+    swapst = [0 for t in range(nt)]
+    swapsh = [0 for h in range(nh)]
+    
+    failedupdates = np.array([0 for i in range(nt*nh)],dtype ='int32')
+    
     t_join = 0
     t_spins = 0
     t_tempering = 0
     t_stat = 0
+    
     print("magnstats", magnstats)
     print("statsfunctions", statsfunctions)
     
-    print("h = ", h)
+    
     if not magnstats or not statsfunctions:
         for it in range(itermcs):
             #### EVOLVE using the mcsevolve function of the dimer
             #### module (C)
             # Note that states, betas, statesen get updated
-            if h == 0:
+            if nh == 1 and h == 0.0:
                 t1 = time()
                 dim.mcsevolve(hamiltonian, states, betas, statesen, failedupdates, d_nd, d_vd, 
                               d_wn, iterworm, nitermax, ncores)
                 t2 = time()
                 t_join += (t2-t1)/itermcs
             else:
-                if not ssf:
+                if not ssf and nh == 1:
                     t1 = time()
                     dim.magneticmcsevolve(hamiltonian, h, states, spinstates, d_nd,
                                           d_vd, d_wn, sidlist, didlist, betas,
@@ -891,13 +942,18 @@ def mcs_swaps(states, spinstates, statesen,
                     t_join += (t2-t1)/itermcs
                 else:
                     t1 = time()
-                    dim.ssfsevolve(hamiltonian[0], h, states, spinstates, np.array(s2p, dtype = 'int32'), betas, statesen, failedupdates, ncores, iterworm)
+                    dim.ssfsevolve(hamiltonian[0], states, spinstates, np.array(s2p, dtype = 'int32'), walker2params,
+                                   statesen, failedupdates, ncores, iterworm)
                     t2 = time()
                     t_join += (t2-t1)/itermcs
 
 
             #### TEMPERING perform "parallel" tempering
-            tempering(nt, statesen, betas, states, spinstates,swaps)
+            if nh == 1:
+                tempering(nt, statesen, betas, states, spinstates, swapst)
+            else: # replicas in both
+                replicas(nt, nh, statesen, betas, hfields, states, spinstates, swapst, swapsh)
+                
             t3 = time()
             t_tempering +=(t3-t2)/itermcs
 
