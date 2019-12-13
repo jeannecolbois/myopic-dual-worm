@@ -225,6 +225,36 @@ def LoadSwapsFromFile(foldername, filename, nb, num_in_bin):
 # In[ ]:
 
 
+def LoadFailed(foldername, filenamelist, nb, num_in_bin):
+    n = len(filenamelist)
+    failedth = [[] for _ in range(n)]
+    failed = [[] for _ in range(n)]
+
+    for nf, filename in enumerate(filenamelist):
+        [failedth[nf], failed[nf]] = LoadFailedFromFile(foldername, filename, nb[nf], num_in_bin[nf])
+    
+    return failedth, failed
+
+
+# In[ ]:
+
+
+def LoadFailedFromFile(foldername, filename, nb, num_in_bin):
+    f = open('./' + foldername + filename +'.pkl', 'rb')
+    backup = pickle.load(f)
+    
+    nitermeas = nb*num_in_bin*backup.params.measperiod
+    
+    failedth = backup.results.failedupdatesth/backup.params.thermsteps
+    failed = np.array(backup.results.failedupdates)/nitermeas
+    
+    f.close()
+    return failedth, failed
+
+
+# In[ ]:
+
+
 def LoadEnergy(foldername, filenamelist, numsites, nb, stat_temps, temperatures, listfunctions, **kwargs):
     n = len(filenamelist)
     
@@ -506,6 +536,19 @@ def SwapsAnalysis(L, n, tidmin, tidmax, temperatures, foldername, results_folder
         plt.ylabel('Number of swaps')
         plt.title('Number of swaps as a function of the temperature')
         plt.savefig('./' + foldername + 'Plots' + results_foldername+ '/NumberSwaps_L={0}_various-nsms.png'.format(L[i]))
+
+
+# In[ ]:
+
+
+def FailedAnalysis(L, n, tidmin, tidmax, temperatures, foldername, results_foldername, failed):
+    for i in range(n):
+        plt.figure()
+        plt.loglog(temperatures[i][tidmin:tidmax[i]], failed[i][tidmin:tidmax[i]], '.-', color = 'green')
+        plt.xlabel('Temperature')
+        plt.ylabel('Ratio of failed updates')
+        plt.title('Ratio of failed updates as a function of the temperature')
+        plt.savefig('./' + foldername + 'Plots' + results_foldername+ '/Numberfailed_L={0}_various-nsms.png'.format(L[i]))
 
 
 # In[ ]:
