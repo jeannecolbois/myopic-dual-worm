@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# Last update 23.07.2019
+# Last update 16.12.2019
 # Author : Jeanne Colbois
 # Please send any comments, questions or remarks to Jeanne Colbois: jeanne.colbois@epfl.ch.
 # The author would appreciate to be cited in uses of this code, and would be very happy to hear about potential nice developments.
@@ -9,55 +9,15 @@
 # In[ ]:
 
 
+import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import numpy as np
 import KagomeFunctions_OBC as kf # "library" allowing to work on Kagome
 import itertools
 
+
 # In[ ]:
-
-
-def OtherComputeNthCorrList(NNListN, sconf, x, y, factor):
-    '''
-        Computes <sisj> instead of <(si-<si>)(sj-<sj>)>
-    '''
-
-
-    nNth = len(NNListN)
-
-    # For now, we assume that the various correlations are uncorrelated, and we work with l = 1
-
-    l = sconf[0].size
-    assert l == 1
-
-    s1 = 0
-    s2 = 0
-
-    ldist = []
-
-    for pair in NNListN:
-        s1 += sconf[pair[0]]/nNth# computing the average s1 over configurations
-        s2 += sconf[pair[1]]/nNth # computing the average s2 over configurations
-
-        distval = expdist(pair[0], pair[1], x,y, factor)
-        ldist.append(distval)
-
-    w12 = np.array([sconf[pair[0]]*sconf[pair[1]] for pair in NNListN]);
-    avgw12 = sum(w12)/nNth
-    cov12 = avgw12*nNth/(nNth-1)
-    varw12 = sum((w12-avgw12)**2)/(nNth-1)
-    varcov12 = varw12*nNth/((nNth-1)**2)
-
-    ldist = np.array(ldist)
-    avgdist = sum(ldist)/nNth
-    vardist = sum((ldist - avgdist)**2)/(nNth-1)
-
-
-    return cov12, varcov12, avgdist, vardist
-
-
-# In[1]:
 
 
 def ComputeNthCorrList(NNListN, sconf, x, y, factor):
@@ -101,7 +61,7 @@ def ComputeNthCorrList(NNListN, sconf, x, y, factor):
     return cov12, varcov12, avgdist, vardist
 
 
-# In[1]:
+# In[ ]:
 
 
 def ComputeNthCorr(firstpairs, rss, s42_realpos):
@@ -184,7 +144,53 @@ def LoadSpinConfigsLarge(foldername, spinconfigfile, imgfile, alpha = 0.3, facto
     return configlist, x, y, sconf
 
 
-# In[1]:
+# In[ ]:
+
+
+def DrawClusterOnConfig(secondfoldername, L, refid, x, y, factor = 1, doplot = False, domap = False, **kwargs):
+    '''
+        Creates a cluster of side size L (9L^2 sites tot)
+        Maps it onto the configuration with 
+        refloc =  [(L-1, 0, 0), (L-1, 0, 1), (L-1, 0, 2)]
+        in the usual language
+    '''
+    x = np.asarray(x)
+    y = np.asarray(y)
+    
+    refpos = np.zeros((3,2))
+    for i in range(3):
+        refpos[i,:] = np.array((x[refid[i]]/factor,y[refid[i]]/factor))
+    print(refpos)
+    
+    s_ijl, ijl_s = kf.createspinsitetable(L)
+    sv_ijl, ijl_sv, e_2sv, pos = kf.graphkag(L,2)
+    ori = np.array([pos[ijl_sv[(L-1, 0, 0)]], pos[ijl_sv[(L-1, 0, 1)]],pos[ijl_sv[(L-1, 0, 2)]]])
+    
+    # 0) Checking the factor
+    dist12_ori = np.linalg.norm(ori[0] - ori[1])
+    dist12_map = np.linalg.norm(refpos[0] - refpos[1])
+    assert abs(dist12_ori - dist12_map) < 1e-3, "Please factor positions properly, currently {0} and {1}".format(dist12_ori, dist12_map)
+
+    plotSpinSites(secondfoldername, "", ori[:,0], ori[:,1],[i for i in range(3)], putimage = False, **kwargs)
+    if domap:
+        # We just want one solution --- 
+        # 1) check crossing of lines 1-2:
+        # -- a) Find the angle 
+        cosangle = np.dot(ori[1]-ori[0], refpos[1]-refpos[0])
+    # 2) if too far check crossing of lines 2-3
+    # 3) If both are basically a zero angle assume that it is only a translation
+    #   and just find the difference
+
+    #if not doplot:
+    #    print("Original: ", ori)
+    #else:
+    #    if doplot and x.size and y.size and sconf.size: # testing if not empty
+    #        fig, ax = plt.subplots(figsize = (8,8),dpi=200)
+    #        plotSpinSites(foldername, "", x/factor, y/factor, sconf[:,0], putimage = False, color = 'lightblue', alpha = alpha)
+    return ori, cosangle
+
+
+# In[ ]:
 
 
 def plotSpinSites(foldername, imgfile, x, y, listsites, putimage = True, marker = '.', color = 'blue', alpha = 0.3, linestyle='none'):
@@ -286,6 +292,8 @@ def KagomeLatticeNeighboursLists(distances_s1s2, distconds):
 
 
 # In[ ]:
+
+
 def KagomeLatticeTriangles(NNList,sizelatt):
     trianglelist = []
 
@@ -310,6 +318,23 @@ def KagomeLatticeTriangles(NNList,sizelatt):
                     trianglelist.append(triangle)
     return trianglelist
 
+
+# In[ ]:
+
+
+def LoadSpinConfigs(L,n,spinconfigfile):
+    assert(n==1)
+
+    s_ijl, ijl_s = kf.createspinsitetable(L[0])
+    s42_ijl, ijl_s42, s42_realpos, s42_pos, pos_s42, configlist = OBCmapping(L[0], s_ijl, spinconfigfile)
+
+    realspinstates = configlist[:,2:]
+    return s42_ijl, ijl_s42, s42_realpos, s42_pos, pos_s42, realspinstates
+
+
+# In[ ]:
+
+
 def KagomeLatticeCharges(NNList, sconf, x, y):
     trianglelist = KagomeLatticeTriangles(NNList,len(sconf))
     chargeconf = []
@@ -325,16 +350,6 @@ def KagomeLatticeCharges(NNList, sconf, x, y):
         yc.append((y[s1] + y[s2] + y[s3])/3)
 
     return np.array(chargeconf), np.array(xc), np.array(yc), trianglelist
-
-#
-def LoadSpinConfigs(L,n,spinconfigfile):
-    assert(n==1)
-
-    s_ijl, ijl_s = kf.createspinsitetable(L[0])
-    s42_ijl, ijl_s42, s42_realpos, s42_pos, pos_s42, configlist = OBCmapping(L[0], s_ijl, spinconfigfile)
-
-    realspinstates = configlist[:,2:]
-    return s42_ijl, ijl_s42, s42_realpos, s42_pos, pos_s42, realspinstates
 
 
 # In[ ]:
@@ -372,3 +387,4 @@ def OBCmapping(L, s_ijl, filename):
                 y += np.sqrt(3) / 4.0
             s42_pos.append(np.array((x,y)))
     return s42_ijl, ijl_s42, s42_realpos, s42_pos, pos_s42, configlist
+

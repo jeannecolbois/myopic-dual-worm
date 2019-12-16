@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# 18.02.2019
+# 18.02.2019; Last update 16.12.2019
 # Author : Jeanne Colbois
 # Please send any comments, questions or remarks to Jeanne Colbois: jeanne.colbois@epfl.ch.
 # The author would appreciate to be cited in uses of this code, and would be very happy to hear about potential nice developments.
@@ -16,6 +16,7 @@
 
 # import
 import numpy as np # maths
+from functools import lru_cache
 
 # In[2]:
 
@@ -147,6 +148,41 @@ def OBC_NeighboursList(foldername):
     return listpairs
 # In[5]:
 
+@lru_cache(maxsize = None)
+def graphkag(L, a):
+    '''
+        For the kagomé lattice:
+        Returns two vertex <-> (i, j, l) tables, a table linking edge to the two corresponding vertices, as well as a dictionary giving the position (x,y) of each vertex
+    '''
+    #vertices table
+    sv_ijl = [(i, j, l) for i in range(-1, 2*L+1) for j in range(-1, 2*L+1) for l in range(3) if (i+j >= L-2) and (i+j <= 3*L - 1)]
+    
+    #vertices dictionary:
+    ijl_sv = {}
+    for sv, triplet in enumerate(sv_ijl):
+        ijl_sv[triplet] = sv
+    
+    #create the edges (sv1, sv2)
+    #table of where to look at 
+    nv = [[(0, 0, 1), (1, 0, 2)],[(-1, 1, 0), (1, 0, 2)], [(0, 0, 1), (-1, 1, 0)]]
+    #edge -> vertex: l from 0 to 5 indicates the edge
+    e_2sv = [((i, j, l),(i + nv[l][u][0], j + nv[l][u][1], nv[l][u][2])) for i in range(-1, 2*L+1) for j in range(-1, 2*L+1) for l in range(3) for u in range(2) if (i+j >= L-2) and (i+j <= 3*L - 1)]
+    e_2sv = [(ijl_sv[i, j, l], ijl_sv[ni, nj, nl]) for ((i, j, l), (ni, nj, nl)) in e_2sv if (ni, nj, nl) in sv_ijl]
+    #position
+    pos = {} #empty dictionary
+    for sv, (i,j,l) in enumerate(sv_ijl):
+        x = a * (i + j / 2.0)
+        y = a * j * np.sqrt(3) / 2.0
+        if l == 0:
+            x += a / 2.0
+        if l == 1:
+            x += a / 4.0
+            y += a * np.sqrt(3) / 4.0
+        if l == 2:
+            x -= a / 4.0
+            y += a * np.sqrt(3) / 4.0
+        pos[sv] = (x,y)
+    return sv_ijl, ijl_sv, e_2sv, pos
 
 
 # create a function to fix the periodic boundary conditions
