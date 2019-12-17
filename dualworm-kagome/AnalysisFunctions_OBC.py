@@ -161,6 +161,9 @@ def DrawClusterOnConfig(secondfoldername, L, refid, x, y, factor = 1, doplot = F
     for i in range(3):
         refpos[i,:] = np.array((x[refid[i]]/factor,y[refid[i]]/factor))
     print(refpos)
+    plotSpinSites(secondfoldername, "", np.array([refpos[0,0]]), np.array([refpos[0,1]]),[0], putimage = False, color = "red", alpha = 1)
+    plotSpinSites(secondfoldername, "", np.array([refpos[1,0]]), np.array([refpos[1,1]]),[0], putimage = False, color = "pink", alpha = 1)
+    plotSpinSites(secondfoldername, "", np.array([refpos[2,0]]), np.array([refpos[2,1]]),[0], putimage = False, color = "purple", alpha = 1)    
     
     s_ijl, ijl_s = kf.createspinsitetable(L)
     sv_ijl, ijl_sv, e_2sv, pos = kf.graphkag(L,2)
@@ -169,14 +172,28 @@ def DrawClusterOnConfig(secondfoldername, L, refid, x, y, factor = 1, doplot = F
     # 0) Checking the factor
     dist12_ori = np.linalg.norm(ori[0] - ori[1])
     dist12_map = np.linalg.norm(refpos[0] - refpos[1])
-    assert abs(dist12_ori - dist12_map) < 1e-3, "Please factor positions properly, currently {0} and {1}".format(dist12_ori, dist12_map)
+    if not abs(dist12_ori - dist12_map) < 1e-3:
+        print("Please factor positions properly, currently {0} and {1}".format(dist12_ori, dist12_map))
 
-    plotSpinSites(secondfoldername, "", ori[:,0], ori[:,1],[i for i in range(3)], putimage = False, **kwargs)
+    plotSpinSites(secondfoldername, "", np.array([ori[0,0]]), np.array([ori[0,1]]),[0], putimage = False, color = "red", alpha = 1)
+    plotSpinSites(secondfoldername, "", np.array([ori[1,0]]), np.array([ori[1,1]]),[0], putimage = False, color = "pink", alpha = 1)
+    plotSpinSites(secondfoldername, "", np.array([ori[2,0]]), np.array([ori[2,1]]),[0], putimage = False, color = "purple", alpha = 1)    
     if domap:
         # We just want one solution --- 
         # 1) check crossing of lines 1-2:
         # -- a) Find the angle 
-        cosangle = np.dot(ori[1]-ori[0], refpos[1]-refpos[0])
+        cosangle = np.dot(refpos[1]-refpos[0],ori[1]-ori[0])
+        sinangle = np.sqrt(1-cosangle**2)
+        rot = np.array([[cosangle, -sinangle],[sinangle, cosangle]])
+        rotori = np.array([np.dot(rot, ori[i]) for i in range(3)])
+        plotSpinSites(secondfoldername, "", rotori[:,0], rotori[:,1],[i for i in range(3)], putimage = False, **kwargs)
+        tr = refpos[0]-rotori[0]
+        mapori = np.array([rotori[i]+tr for i in range(3)])
+        mappos = np.array([np.dot(rot, pos[i])+tr for i in range(len(pos))])
+        plotSpinSites(secondfoldername, "", mapori[:,0], mapori[:,1],[i for i in range(3)], putimage = False, **kwargs)
+        plotSpinSites(secondfoldername, "", mappos[:,0], mappos[:,1],[i for i in range(len(pos))], putimage = False, **kwargs)
+    else:
+        cosangle = 1
     # 2) if too far check crossing of lines 2-3
     # 3) If both are basically a zero angle assume that it is only a translation
     #   and just find the difference
@@ -187,6 +204,7 @@ def DrawClusterOnConfig(secondfoldername, L, refid, x, y, factor = 1, doplot = F
     #    if doplot and x.size and y.size and sconf.size: # testing if not empty
     #        fig, ax = plt.subplots(figsize = (8,8),dpi=200)
     #        plotSpinSites(foldername, "", x/factor, y/factor, sconf[:,0], putimage = False, color = 'lightblue', alpha = alpha)
+    
     return ori, cosangle
 
 
