@@ -474,7 +474,7 @@ def plot_function_reciprocal(f, L, a, **kargs):
     gdw.draw_function(pos, f, list(pos.keys()), s = s, **kargs)
     
     plt.axis('equal')
-   # plt.axis([0, 1, -10, 10])
+    #plt.axis([0, 1, -10, 10])
     plt.tick_params(  
         which = 'both',      # both major and minor ticks are affected
         bottom = 'off',      # ticks along the bottom edge are off

@@ -192,6 +192,9 @@ def DrawClusterOnConfig(secondfoldername, L, refid, x, y, factor = 1, doplot = F
         mappos = np.array([np.dot(rot, pos[i])+tr for i in range(len(pos))])
         plotSpinSites(secondfoldername, "", mapori[:,0], mapori[:,1],[i for i in range(3)], putimage = False, **kwargs)
         plotSpinSites(secondfoldername, "", mappos[:,0], mappos[:,1],[i for i in range(len(pos))], putimage = False, **kwargs)
+        
+        rot = np.array([[cosangle, sinangle],[-sinangle, cosangle]])
+        tr = -tr
     else:
         cosangle = 1
     # 2) if too far check crossing of lines 2-3
@@ -205,7 +208,7 @@ def DrawClusterOnConfig(secondfoldername, L, refid, x, y, factor = 1, doplot = F
     #        fig, ax = plt.subplots(figsize = (8,8),dpi=200)
     #        plotSpinSites(foldername, "", x/factor, y/factor, sconf[:,0], putimage = False, color = 'lightblue', alpha = alpha)
     
-    return ori, cosangle
+    return rot,tr
 
 
 # In[ ]:
