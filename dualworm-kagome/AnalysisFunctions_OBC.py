@@ -1,8 +1,10 @@
 
 # coding: utf-8
 
-# Last update 16.12.2019
+# Last update 19.12.2019
+# 
 # Author : Jeanne Colbois
+# 
 # Please send any comments, questions or remarks to Jeanne Colbois: jeanne.colbois@epfl.ch.
 # The author would appreciate to be cited in uses of this code, and would be very happy to hear about potential nice developments.
 
@@ -14,6 +16,7 @@ import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import numpy as np
 import KagomeFunctions_OBC as kf # "library" allowing to work on Kagome
+import KagomeDrawing as kdraw
 import itertools
 
 
@@ -147,56 +150,123 @@ def LoadSpinConfigsLarge(foldername, spinconfigfile, imgfile, alpha = 0.3, facto
 # In[ ]:
 
 
-def DrawClusterOnConfig(secondfoldername, L, refid, x, y, factor = 1, doplot = False, domap = False, **kwargs):
+def DrawClusterOnConfig(secondfoldername, L, refid, spos, factor = 1, doplot = False,
+                        domap = False, a = 2, **kwargs):
     '''
         Creates a cluster of side size L (9L^2 sites tot)
         Maps it onto the configuration with 
-        refloc =  [(L-1, 0, 0), (L-1, 0, 1), (L-1, 0, 2)]
+        refloc =  [(L-1, 0, 0), (L-1, 0, 1), (L-1, 0, 2), (2L-1, 0)]
         in the usual language
     '''
-    x = np.asarray(x)
-    y = np.asarray(y)
     
-    refpos = np.zeros((3,2))
-    for i in range(3):
-        refpos[i,:] = np.array((x[refid[i]]/factor,y[refid[i]]/factor))
+    ## Getting the reference positions in the lattice and in the experimental lattice
+    # exp lattice
+    numdots = len(refid)
+    refpos = np.zeros((numdots,2))
+    for i in range(numdots):
+        refpos[i,:] = spos[refid[i],:]
     print(refpos)
-    plotSpinSites(secondfoldername, "", np.array([refpos[0,0]]), np.array([refpos[0,1]]),[0], putimage = False, color = "red", alpha = 1)
-    plotSpinSites(secondfoldername, "", np.array([refpos[1,0]]), np.array([refpos[1,1]]),[0], putimage = False, color = "pink", alpha = 1)
-    plotSpinSites(secondfoldername, "", np.array([refpos[2,0]]), np.array([refpos[2,1]]),[0], putimage = False, color = "purple", alpha = 1)    
+    plotSpinSites(secondfoldername, "", refpos[:,0], refpos[:,1],[i for i in range(numdots)], 
+                  putimage = False, color = "purple", alpha = 1)
+    plotSpinSites(secondfoldername, "", np.array([refpos[numdots-1,0]]),
+                  np.array([refpos[numdots-1,1]]),[0], putimage = False, color = "magenta", alpha = 1)
+    plotSpinSites(secondfoldername, "", np.array([refpos[0,0]]), np.array([refpos[0,1]]),[0],
+                  putimage = False, color = "purple", alpha = 1)    
     
+    # actual lattice
     s_ijl, ijl_s = kf.createspinsitetable(L)
     sv_ijl, ijl_sv, e_2sv, pos = kf.graphkag(L,2)
-    ori = np.array([pos[ijl_sv[(L-1, 0, 0)]], pos[ijl_sv[(L-1, 0, 1)]],pos[ijl_sv[(L-1, 0, 2)]]])
+    ori = np.array([pos[ijl_sv[(L-1, 0, 0)]], pos[ijl_sv[(L-1, 0, 1)]],pos[ijl_sv[(L-1, 0, 2)]],
+                    pos[ijl_sv[(2*L-1, 0, 0)]]])
+    pos = np.array([pos[i] for i in range(len(pos))])
     
     # 0) Checking the factor
-    dist12_ori = np.linalg.norm(ori[0] - ori[1])
-    dist12_map = np.linalg.norm(refpos[0] - refpos[1])
-    if not abs(dist12_ori - dist12_map) < 1e-3:
-        print("Please factor positions properly, currently {0} and {1}".format(dist12_ori, dist12_map))
+    dist12_ori = np.linalg.norm(ori[0] - ori[3])
+    dist12_map = np.linalg.norm(refpos[0] - refpos[3])
+    
+    if not abs(dist12_ori - dist12_map) < 1e-8:
+        print("Help for factor: currently {0} and {1}".format(dist12_ori, dist12_map))
 
-    plotSpinSites(secondfoldername, "", np.array([ori[0,0]]), np.array([ori[0,1]]),[0], putimage = False, color = "red", alpha = 1)
-    plotSpinSites(secondfoldername, "", np.array([ori[1,0]]), np.array([ori[1,1]]),[0], putimage = False, color = "pink", alpha = 1)
-    plotSpinSites(secondfoldername, "", np.array([ori[2,0]]), np.array([ori[2,1]]),[0], putimage = False, color = "purple", alpha = 1)    
+    # 1) Plotting the situation (to test before doing map)
+    plotSpinSites(secondfoldername, "", np.array([ori[0,0]]), np.array([ori[0,1]]),[0],
+                  putimage = False, color = "red", alpha = 1)
+    plotSpinSites(secondfoldername, "", np.array([ori[1,0]]), np.array([ori[1,1]]),[0],
+                  putimage = False, color = "pink", alpha = 1)
+    plotSpinSites(secondfoldername, "", np.array([ori[2,0]]), np.array([ori[2,1]]),[0],
+                  putimage = False, color = "purple", alpha = 1)    
+    plotSpinSites(secondfoldername, "", np.array([ori[3,0]]), np.array([ori[3,1]]),[0],
+                  putimage = False, color = "pink", alpha = 1)    
+    plotSpinSites(secondfoldername, "", pos[:,0], pos[:,1], [i for i in range(len(pos))],
+                  putimage = False, color = "blue", alpha = 0.1)
+    
+    # 2) Performing the map
     if domap:
+        
+        fig, ax = plt.subplots(figsize = (8,8),dpi=200)
         # We just want one solution --- 
         # 1) check crossing of lines 1-2:
         # -- a) Find the angle 
-        cosangle = np.dot(refpos[1]-refpos[0],ori[1]-ori[0])
+        nref = np.dot(refpos[3]-refpos[0], refpos[3]-refpos[0])
+        nori = np.dot(ori[3]-ori[0], ori[3] - ori[0])
+        cosangle = np.dot(refpos[3]-refpos[0],ori[3]-ori[0])/np.sqrt(nref*nori)
         sinangle = np.sqrt(1-cosangle**2)
-        rot = np.array([[cosangle, -sinangle],[sinangle, cosangle]])
-        rotori = np.array([np.dot(rot, ori[i]) for i in range(3)])
-        plotSpinSites(secondfoldername, "", rotori[:,0], rotori[:,1],[i for i in range(3)], putimage = False, **kwargs)
-        tr = refpos[0]-rotori[0]
-        mapori = np.array([rotori[i]+tr for i in range(3)])
-        mappos = np.array([np.dot(rot, pos[i])+tr for i in range(len(pos))])
-        plotSpinSites(secondfoldername, "", mapori[:,0], mapori[:,1],[i for i in range(3)], putimage = False, **kwargs)
-        plotSpinSites(secondfoldername, "", mappos[:,0], mappos[:,1],[i for i in range(len(pos))], putimage = False, **kwargs)
-        
         rot = np.array([[cosangle, sinangle],[-sinangle, cosangle]])
-        tr = -tr
+        
+        rotrefpos = np.dot(rot, refpos.T).T
+        rotpos = np.dot(rot, spos.T).T
+        #      (plot to check)
+        plotSpinSites(secondfoldername, "", rotrefpos[:,0], rotrefpos[:,1],
+                      [i for i in range(len(rotrefpos))], putimage = False, color = "red", alpha = 0.5)
+        plotSpinSites(secondfoldername, "", pos[:,0], pos[:,1],
+                      [i for i in range(len(pos))], putimage = False, color = "blue")
+        # -- b) Find the translation 
+        fig, ax = plt.subplots(figsize = (8,8),dpi=200)
+        tr = ori[0]-rotrefpos[0] 
+        mappos = rotpos.T
+        mappos[0,:] += tr[0]
+        mappos[1,:] += tr[1]
+        mappos = mappos.T
+        #      (plot to check)
+        plotSpinSites(secondfoldername, "", mappos[:,0], mappos[:,1],
+                      [i for i in range(len(mappos))], putimage = False, **kwargs)
+        plotSpinSites(secondfoldername, "", pos[:,0], pos[:,1],
+                      [i for i in range(len(pos))], putimage = False, color = "blue")
+        
+        # -- c) express the (x,y) positions in (m1, m2) coordinates (i.e. on the [a1,a2] basis)
+        m1m2 = mappos
+        m1m2[:,0] = (1/a) * (mappos[:,0] - mappos[:,1]/np.sqrt(3))
+        m1m2[:,1] = (2/a) * (mappos[:,1]/np.sqrt(3))
+        
+        # -- d) now, from m1m2, get (i,j,l)
+        m1m2[:,0] += -1/2 # translate from -1/2 a1
+        # check if l == 0:
+        ijl = np.zeros((len(mappos),3), dtype = 'int')
+        for s in range(len(mappos)):
+            if abs(m1m2[s,0] - round(m1m2[s,0])) > 1e-2:
+                # then l = 1
+                i = m1m2[s,0] + 0.5
+                j = m1m2[s,1] - 0.5
+                if abs(i - round(i)) < 1e-2 and abs(j - round(j)) < 1e-2:
+                    ijl[s,:] = np.array([round(i),round(j),1])
+            else:
+                # then l = 0 or 2
+                if abs(m1m2[s,1] - round(m1m2[s,1])) > 1e-2:
+                    # then l = 2
+                    i = m1m2[s,0] + 1
+                    j = m1m2[s,1] - 0.5
+                    if abs(i - round(i)) < 1e-2 and abs(j - round(j)) < 1e-2:
+                        ijl[s,:] = np.array([round(i),round(j),2])
+                else:
+                    # then l = 0
+                    i = m1m2[s,0]
+                    j = m1m2[s,1]
+                    if abs(i - round(i)) < 1e-2 and abs(j - round(j)) < 1e-2:
+                        ijl[s,:] = np.array([round(i),round(j),0])
     else:
-        cosangle = 1
+        rot = np.array([[1,0],[0,1]])
+        tr = np.array([0,0])
+        m1m2 = np.array([])
+        ijl = np.array([])
     # 2) if too far check crossing of lines 2-3
     # 3) If both are basically a zero angle assume that it is only a translation
     #   and just find the difference
@@ -206,9 +276,35 @@ def DrawClusterOnConfig(secondfoldername, L, refid, x, y, factor = 1, doplot = F
     #else:
     #    if doplot and x.size and y.size and sconf.size: # testing if not empty
     #        fig, ax = plt.subplots(figsize = (8,8),dpi=200)
-    #        plotSpinSites(foldername, "", x/factor, y/factor, sconf[:,0], putimage = False, color = 'lightblue', alpha = alpha)
+    #        plotSpinSites(foldername, "", x/factor, y/factor, sconf[:,0],
+    #               putimage = False, color = 'lightblue', alpha = alpha)
     
-    return rot,tr
+    return rot,tr,m1m2,ijl
+
+
+# In[1]:
+
+
+def StrctFact(ijl,m1m2, sconf,L, factor = 1):
+    (q_k1k2, k1k2_q) = kdraw.KagomeReciprocal(L)
+    q_k1k2 = np.array(q_k1k2)
+    
+    StrctFact = np.zeros((q_k1k2.shape[0],3, 3), dtype = 'complex128')
+    nspins = len(sconf)
+    m = sum(sconf)/sum(abs(sconf))
+    N = np.sqrt((nspins**2)/2)
+    for s1 in range(nspins):
+        (i1,j1,l1) = ijl[s1]
+        for s2 in range(s1+1, nspins):
+            # correlation
+            c = np.asscalar(sconf[s1]*sconf[s2]-m**2)
+            # structure factor computation
+            (i2,j2,l2) = ijl[s2]
+            exponent = 1j*2 * np.pi * np.dot(q_k1k2, (m1m2[s1]-m1m2[s2]))
+            StrctFact[:,l1,l2] += c * np.exp(exponent)/N
+            StrctFact[:,l2,l1] += c * np.exp(-exponent)/N
+            
+    return StrctFact, m
 
 
 # In[ ]:

@@ -63,27 +63,6 @@ def createspinsitetable(L):
 # In[ ]:
 
 
-def createspinsitetable(L):
-    '''
-        Creates the table of spin sites corresponding to a dice lattice 
-        of side size L.
-        Returns a table identifing an int with the three coordinates of 
-        the spin site and a dictionnary identifying the
-        three coordinates with the spin site's int index. This allows 
-        to handle other relations between spin sites in an
-        easier way.
-    '''
-    s_ijl = [(i, j, l) for i in range(2*L) for j in range(2*L) for l in range(3) if (i+j > L-2) and (i+j < 3*L-1)]
-    # dictionary
-    ijl_s = {}
-    for s, triplet in enumerate(s_ijl):
-        ijl_s[triplet] = s
-    return s_ijl, ijl_s
-
-
-# In[ ]:
-
-
 @lru_cache(maxsize = None)
 def graphdice(L, a):
     '''
@@ -462,15 +441,14 @@ def plot_reciprocal(L, a, n, color = 'blue', **kargs):
 # In[ ]:
 
 
-def plot_function_reciprocal(f, L, a, **kargs):
+def plot_function_reciprocal(f, L, a, s = 400, **kargs):
     '''
         Plots the function f over the reciprocal lattice. f has to be defined on the "square" brillouin zone
         for k1, k2 in range(0, L), which will be the usual output of the FT
     '''
     #get the shape of the lattice
     (qv_k1k2, k1k2_qv, pos, factor) = reciprocalgraph(L, a) # drawing lattice
-    
-    s =(110/L)**2
+
     gdw.draw_function(pos, f, list(pos.keys()), s = s, **kargs)
     
     plt.axis('equal')
