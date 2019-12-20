@@ -150,7 +150,7 @@ def LoadSpinConfigsLarge(foldername, spinconfigfile, imgfile, alpha = 0.3, facto
 # In[ ]:
 
 
-def DrawClusterOnConfig(secondfoldername, L, refid, spos, factor = 1, doplot = False,
+def DrawClusterOnConfig(secondfoldername, L, refid, spos, LParam = (0,0,0), factor = 1, doplot = False,
                         domap = False, a = 2, **kwargs):
     '''
         Creates a cluster of side size L (9L^2 sites tot)
@@ -159,6 +159,8 @@ def DrawClusterOnConfig(secondfoldername, L, refid, spos, factor = 1, doplot = F
         in the usual language
     '''
     
+    if LParam == (0,0,0):
+        LParam = (2*L -1,0,0)
     ## Getting the reference positions in the lattice and in the experimental lattice
     # exp lattice
     numdots = len(refid)
@@ -177,7 +179,7 @@ def DrawClusterOnConfig(secondfoldername, L, refid, spos, factor = 1, doplot = F
     s_ijl, ijl_s = kf.createspinsitetable(L)
     sv_ijl, ijl_sv, e_2sv, pos = kf.graphkag(L,2)
     ori = np.array([pos[ijl_sv[(L-1, 0, 0)]], pos[ijl_sv[(L-1, 0, 1)]],pos[ijl_sv[(L-1, 0, 2)]],
-                    pos[ijl_sv[(2*L-1, 0, 0)]]])
+                    pos[ijl_sv[LParam]]])
     pos = np.array([pos[i] for i in range(len(pos))])
     
     # 0) Checking the factor
@@ -242,26 +244,32 @@ def DrawClusterOnConfig(secondfoldername, L, refid, spos, factor = 1, doplot = F
         # check if l == 0:
         ijl = np.zeros((len(mappos),3), dtype = 'int')
         for s in range(len(mappos)):
-            if abs(m1m2[s,0] - round(m1m2[s,0])) > 1e-2:
+            if abs(m1m2[s,0] - round(m1m2[s,0])) > 3e-1:
                 # then l = 1
                 i = m1m2[s,0] + 0.5
                 j = m1m2[s,1] - 0.5
-                if abs(i - round(i)) < 1e-2 and abs(j - round(j)) < 1e-2:
+                if abs(i - round(i)) < 3e-1 and abs(j - round(j)) < 3e-1:
                     ijl[s,:] = np.array([round(i),round(j),1])
+                else:
+                    ijl[s,:] = np.array([0,0,-1])
             else:
                 # then l = 0 or 2
-                if abs(m1m2[s,1] - round(m1m2[s,1])) > 1e-2:
+                if abs(m1m2[s,1] - round(m1m2[s,1])) > 3e-1:
                     # then l = 2
                     i = m1m2[s,0] + 1
                     j = m1m2[s,1] - 0.5
-                    if abs(i - round(i)) < 1e-2 and abs(j - round(j)) < 1e-2:
+                    if abs(i - round(i)) < 3e-1 and abs(j - round(j)) < 3e-1:
                         ijl[s,:] = np.array([round(i),round(j),2])
+                    else:
+                        ijl[s,:] = np.array([0,0,-1])
                 else:
                     # then l = 0
                     i = m1m2[s,0]
                     j = m1m2[s,1]
-                    if abs(i - round(i)) < 1e-2 and abs(j - round(j)) < 1e-2:
+                    if abs(i - round(i)) < 3e-1 and abs(j - round(j)) < 3e-1:
                         ijl[s,:] = np.array([round(i),round(j),0])
+                    else:
+                        ijl[s,:] = np.array([0,0,-1])
     else:
         rot = np.array([[1,0],[0,1]])
         tr = np.array([0,0])
@@ -285,25 +293,32 @@ def DrawClusterOnConfig(secondfoldername, L, refid, spos, factor = 1, doplot = F
 # In[1]:
 
 
-def StrctFact(ijl,m1m2, sconf,L, factor = 1):
+def StrctFact(ijl,m1m2, sconf,L, factor = 1, subtractm = True):
     (q_k1k2, k1k2_q) = kdraw.KagomeReciprocal(L)
     q_k1k2 = np.array(q_k1k2)
     
     StrctFact = np.zeros((q_k1k2.shape[0],3, 3), dtype = 'complex128')
     nspins = len(sconf)
     m = sum(sconf)/sum(abs(sconf))
+    if not subtractm:
+        m = 0
+    
     N = np.sqrt((nspins**2)/2)
     for s1 in range(nspins):
         (i1,j1,l1) = ijl[s1]
-        for s2 in range(s1+1, nspins):
-            # correlation
-            c = np.asscalar(sconf[s1]*sconf[s2]-m**2)
-            # structure factor computation
-            (i2,j2,l2) = ijl[s2]
-            exponent = 1j*2 * np.pi * np.dot(q_k1k2, (m1m2[s1]-m1m2[s2]))
-            StrctFact[:,l1,l2] += c * np.exp(exponent)/N
-            StrctFact[:,l2,l1] += c * np.exp(-exponent)/N
-            
+        if not l1 == -1:
+            for s2 in range(s1+1, nspins):
+                # correlation
+                c = np.asscalar(sconf[s1]*sconf[s2]-m**2)
+                # structure factor computation
+                (i2,j2,l2) = ijl[s2]
+                if not l2 == -1:
+                    exponent = 1j*2 * np.pi * np.dot(q_k1k2, (m1m2[s1]-m1m2[s2]))
+                    StrctFact[:,l1,l2] += c * np.exp(exponent)/N
+                    StrctFact[:,l2,l1] += c * np.exp(-exponent)/N
+    
+    m = sum(sconf)/sum(abs(sconf))
+    
     return StrctFact, m
 
 
