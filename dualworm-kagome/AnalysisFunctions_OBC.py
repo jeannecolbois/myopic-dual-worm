@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# Last update 19.12.2019
+# Last update 07.01.2020
 # 
 # Author : Jeanne Colbois
 # 
@@ -17,6 +17,7 @@ import matplotlib.image as mpimg
 import numpy as np
 import KagomeFunctions_OBC as kf # "library" allowing to work on Kagome
 import KagomeDrawing as kdraw
+import KagomeFT as kft
 import itertools
 
 
@@ -150,13 +151,23 @@ def LoadSpinConfigsLarge(foldername, spinconfigfile, imgfile, alpha = 0.3, facto
 # In[ ]:
 
 
-def DrawClusterOnConfig(secondfoldername, L, refid, spos, LParam = (0,0,0), factor = 1, doplot = False,
+def DrawClusterOnConfig(secondfoldername, L, refid, spos, LParam = (0,0,0), factor = 1, factorth = 1, doplot = False,
                         domap = False, a = 2, **kwargs):
     '''
         Creates a cluster of side size L (9L^2 sites tot)
         Maps it onto the configuration with 
         refloc =  [(L-1, 0, 0), (L-1, 0, 1), (L-1, 0, 2), (2L-1, 0)]
         in the usual language
+        factor : overall scaling
+        factorth: scaling in the direction orthogonal to the alignement axis.
+    
+        returns:
+        rot,tr,m1m2,ijl, ijl_sconfig
+        rot : rotation performed
+        tr: translation performed
+        m1m2: mapping s to position in tilted coordinates (tilted axis)
+        ijl[s] = (i,j,l) lattice coordinates
+        ijl_sconfig[(i,j,l)] = s : spin index
     '''
     
     if LParam == (0,0,0):
@@ -223,101 +234,138 @@ def DrawClusterOnConfig(secondfoldername, L, refid, spos, LParam = (0,0,0), fact
                       [i for i in range(len(pos))], putimage = False, color = "blue")
         # -- b) Find the translation 
         fig, ax = plt.subplots(figsize = (8,8),dpi=200)
-        tr = ori[0]-rotrefpos[0] 
+        tr = ori[0]-rotrefpos[0]
+        rotrefpos = rotrefpos.T
+        rotrefpos[0,:] += tr[0]
+        rotrefpos[1,:] += tr[1]
+        rotrefpos = rotrefpos.T
+        
         mappos = rotpos.T
         mappos[0,:] += tr[0]
         mappos[1,:] += tr[1]
+        
         mappos = mappos.T
         #      (plot to check)
+
         plotSpinSites(secondfoldername, "", mappos[:,0], mappos[:,1],
                       [i for i in range(len(mappos))], putimage = False, **kwargs)
         plotSpinSites(secondfoldername, "", pos[:,0], pos[:,1],
                       [i for i in range(len(pos))], putimage = False, color = "blue")
+        plotSpinSites(secondfoldername, "", rotrefpos[:,0], rotrefpos[:,1],
+                      [i for i in range(len(rotrefpos))], putimage = False, color = "red", alpha = 0.5)
         
-        # -- c) express the (x,y) positions in (m1, m2) coordinates (i.e. on the [a1,a2] basis)
+        # -- c) Perform the orthogonal scaling
+        fig, ax = plt.subplots(figsize = (8,8),dpi=200)
+        u = (rotrefpos[-1,:] - rotrefpos[0,:])
+        print("u : --- ", u)
+        u = u / np.sqrt(np.dot(u,u))
+        print("u : --- ", u)
+        x0 = np.copy(rotrefpos[0,:])
+        
+    
+        rotrefpos = rotrefpos.T # axis 0 : (x,y), axis 1: various vectors
+        rotrefpos[0,:] += - x0[0]
+        rotrefpos[1,:] += - x0[1]
+        dotrefpos = np.dot(u,rotrefpos)
+        rotrefpos[0,:] = (1-factorth)*dotrefpos*u[0] +factorth*rotrefpos[0,:] + x0[0]
+        rotrefpos[1,:] = (1-factorth)*dotrefpos*u[1] +factorth*rotrefpos[1,:] + x0[1]
+        rotrefpos = rotrefpos.T
+        
+        mappos = mappos.T # axis 0 : (x,y), axis 1: various vectors
+        mappos[0,:] += - x0[0]
+        mappos[1,:] += - x0[1]
+        dotmappos = np.dot(u, mappos)
+        mappos[0,:] = (1-factorth)*dotmappos*u[0]+ factorth*mappos[0,:] + x0[0]
+        mappos[1,:] = (1-factorth)*dotmappos*u[1]+ factorth*mappos[1,:] + x0[1]
+        mappos = mappos.T
+        
+         #      (plot to check)
+        plotSpinSites(secondfoldername, "", mappos[:,0], mappos[:,1],
+                      [i for i in range(len(mappos))], putimage = False, **kwargs)
+        plotSpinSites(secondfoldername, "", rotrefpos[:,0], rotrefpos[:,1],
+                      [i for i in range(len(rotrefpos))], putimage = False, color = "red", alpha = 0.5)
+        plotSpinSites(secondfoldername, "", pos[:,0], pos[:,1],
+                      [i for i in range(len(pos))], putimage = False, color = "blue")
+        
+        # -- d) express the (x,y) positions in (m1, m2) coordinates (i.e. on the [a1,a2] basis)
         m1m2 = mappos
         m1m2[:,0] = (1/a) * (mappos[:,0] - mappos[:,1]/np.sqrt(3))
         m1m2[:,1] = (2/a) * (mappos[:,1]/np.sqrt(3))
         
-        # -- d) now, from m1m2, get (i,j,l)
+        # -- e) now, from m1m2, get (i,j,l)
         m1m2[:,0] += -1/2 # translate from -1/2 a1
-        # check if l == 0:
-        ijl = np.zeros((len(mappos),3), dtype = 'int')
-        for s in range(len(mappos)):
-            if abs(m1m2[s,0] - round(m1m2[s,0])) > 3e-1:
-                # then l = 1
-                i = m1m2[s,0] + 0.5
-                j = m1m2[s,1] - 0.5
-                if abs(i - round(i)) < 3e-1 and abs(j - round(j)) < 3e-1:
-                    ijl[s,:] = np.array([round(i),round(j),1])
-                else:
-                    ijl[s,:] = np.array([0,0,-1])
-            else:
-                # then l = 0 or 2
-                if abs(m1m2[s,1] - round(m1m2[s,1])) > 3e-1:
-                    # then l = 2
-                    i = m1m2[s,0] + 1
-                    j = m1m2[s,1] - 0.5
-                    if abs(i - round(i)) < 3e-1 and abs(j - round(j)) < 3e-1:
-                        ijl[s,:] = np.array([round(i),round(j),2])
-                    else:
-                        ijl[s,:] = np.array([0,0,-1])
-                else:
-                    # then l = 0
-                    i = m1m2[s,0]
-                    j = m1m2[s,1]
-                    if abs(i - round(i)) < 3e-1 and abs(j - round(j)) < 3e-1:
-                        ijl[s,:] = np.array([round(i),round(j),0])
-                    else:
-                        ijl[s,:] = np.array([0,0,-1])
+        ijl, ijl_sconfig = m1m2toijl_mapping(m1m2)
     else:
         rot = np.array([[1,0],[0,1]])
         tr = np.array([0,0])
         m1m2 = np.array([])
         ijl = np.array([])
-    # 2) if too far check crossing of lines 2-3
-    # 3) If both are basically a zero angle assume that it is only a translation
-    #   and just find the difference
+        ijl_sconfig = {}
 
-    #if not doplot:
-    #    print("Original: ", ori)
-    #else:
-    #    if doplot and x.size and y.size and sconf.size: # testing if not empty
-    #        fig, ax = plt.subplots(figsize = (8,8),dpi=200)
-    #        plotSpinSites(foldername, "", x/factor, y/factor, sconf[:,0],
-    #               putimage = False, color = 'lightblue', alpha = alpha)
     
-    return rot,tr,m1m2,ijl
+    return rot,tr,m1m2,ijl, ijl_sconfig
 
 
-# In[1]:
+# In[ ]:
 
 
-def StrctFact(ijl,m1m2, sconf,L, factor = 1, subtractm = True):
-    (q_k1k2, k1k2_q) = kdraw.KagomeReciprocal(L)
-    q_k1k2 = np.array(q_k1k2)
+def m1m2toijl_mapping(m1m2):
+    '''
+        Getting (i,j,l) coordinates from (m1, m2) tilted axis coordinates
+    '''
+
+    ijl = np.zeros((len(m1m2),3), dtype = 'int')
+    ijl_sconfig = {}
+    for s in range(len(m1m2)):
+        if abs(m1m2[s,0] - round(m1m2[s,0])) > 3e-1:
+            # then l = 1
+            i = m1m2[s,0] + 0.5
+            j = m1m2[s,1] - 0.5
+            if abs(i - round(i)) < 3e-1 and abs(j - round(j)) < 3e-1:
+                ijl[s,:] = np.array([round(i),round(j),1])
+                ijl_sconfig[(round(i), round(j), 1)] = s
+            else:
+                ijl[s,:] = np.array([0,0,-1])
+        else:
+            # then l = 0 or 2
+            if abs(m1m2[s,1] - round(m1m2[s,1])) > 3e-1:
+                # then l = 2
+                i = m1m2[s,0] + 1
+                j = m1m2[s,1] - 0.5
+                ijl_sconfig[(i,j,2)] = s
+                if abs(i - round(i)) < 3e-1 and abs(j - round(j)) < 3e-1:
+                    ijl[s,:] = np.array([round(i),round(j),2])
+                    ijl_sconfig[(round(i), round(j), 2)] = s
+                else:
+                    ijl[s,:] = np.array([0,0,-1])
+            else:
+                # then l = 0
+                i = m1m2[s,0]
+                j = m1m2[s,1]
+                if abs(i - round(i)) < 3e-1 and abs(j - round(j)) < 3e-1:
+                    ijl[s,:] = np.array([round(i),round(j),0])
+                    ijl_sconfig[(round(i), round(j), 0)] = s
+                else:
+                    ijl[s,:] = np.array([0,0,-1])
+                    
+    return ijl, ijl_sconfig
+
+
+# In[ ]:
+
+
+def StrctFact(ijl, ijl_sconfig, m1m2, sconf,L, periodic = True, subtractm = True, **kwargs):
+    '''
+        Analysis Function calling for kagome ft "subroutines" to
+        compute the structure factor depending on whether the BC
+        are periodic or open
+        
+    '''
     
-    StrctFact = np.zeros((q_k1k2.shape[0],3, 3), dtype = 'complex128')
-    nspins = len(sconf)
-    m = sum(sconf)/sum(abs(sconf))
-    if not subtractm:
-        m = 0
-    
-    N = np.sqrt((nspins**2)/2)
-    for s1 in range(nspins):
-        (i1,j1,l1) = ijl[s1]
-        if not l1 == -1:
-            for s2 in range(s1+1, nspins):
-                # correlation
-                c = np.asscalar(sconf[s1]*sconf[s2]-m**2)
-                # structure factor computation
-                (i2,j2,l2) = ijl[s2]
-                if not l2 == -1:
-                    exponent = 1j*2 * np.pi * np.dot(q_k1k2, (m1m2[s1]-m1m2[s2]))
-                    StrctFact[:,l1,l2] += c * np.exp(exponent)/N
-                    StrctFact[:,l2,l1] += c * np.exp(-exponent)/N
-    
-    m = sum(sconf)/sum(abs(sconf))
+    if not periodic:
+        StrctFact, m = kft.OBCStrctFact(ijl, m1m2, sconf, L, subtractm = subtractm, **kwargs)
+    else:
+        StrctFact, m = kft.PBCStrctFact(L, sconf, ijl_sconfig, subtractm = subtractm, **kwargs)
     
     return StrctFact, m
 
