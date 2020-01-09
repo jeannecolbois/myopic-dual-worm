@@ -1,14 +1,14 @@
 
 # coding: utf-8
 
-# In[1]:
+# In[ ]:
 
 
 from DualwormFunctions import compute_energy
 import numpy as np
 
 
-# In[2]:
+# In[ ]:
 
 
 def magnetisedInit(spinstates, nt, s_ijl, h, same):
@@ -46,7 +46,64 @@ def magnetisedInit(spinstates, nt, s_ijl, h, same):
             
 
 
-# In[3]:
+# In[ ]:
+
+
+def magnetisedInitMaxFlip(spinstates, nt, s_ijl, h, same):
+   
+    if same:
+        if h == 0:
+            sign = np.random.randint(0,2)*2-1
+        else:
+            sign = np.sign(h)
+        
+        version = np.random.randint(0,3)
+        
+        spinstate = sign*np.ones(len(s_ijl))
+        
+        for s, (i,j,l) in enumerate(s_ijl):
+            loc = (i - j + version)%3
+            if loc == 0:
+                if l == 1:
+                    spinstate[s] = -sign
+                else:
+                    spinstate[s] = sign
+            elif loc == 1:
+                spinstate[s] = sign
+            elif loc == 2:
+                if l == 1:
+                    spinstate[s] = sign
+                else:
+                    spinstate[s] = -sign
+                    
+        for t in range(nt):
+            spinstates[t] = np.copy(spinstate) # to make sure that it is DIFFERENT states
+        
+    else:
+        versions = [np.random.randint(0,3) for t in range(nt)]
+        if h == 0:
+            signs = [np.random.randint(0,2)*2-1 for t in range(nt)]
+        else:
+            signs = [np.sign(h) for t in range(nt)]
+        
+        for t in range(nt):
+            for s, (i,j,l) in enumerate(s_ijl):
+                loc = (i - j + versions[t])%3
+                if loc == 0:
+                    if l == 1:
+                        spinstates[t][s] = -signs[t]
+                    else:
+                        spinstates[t][s] = signs[t]
+                elif loc == 1:
+                    spinstates[t][s] = signs[t]
+                elif loc == 2:
+                    if l == 1:
+                        spinstates[t][s] = signs[t]
+                    else:
+                        spinstates[t][s] = -signs[t]
+
+
+# In[ ]:
 
 
 def J1J2Init(spinstates, nt, s_ijl, same):
@@ -81,7 +138,7 @@ def J1J2Init(spinstates, nt, s_ijl, same):
                     spinstates[t][s] = np.random.randint(0,2)*2 - 1
 
 
-# In[4]:
+# In[ ]:
 
 
 def J1J3Init(spinstates, nt, s_ijl, same):
@@ -116,7 +173,7 @@ def J1J3Init(spinstates, nt, s_ijl, same):
                     spinstates[t][s] = np.random.randint(0,2)*2 -1
 
 
-# In[5]:
+# In[ ]:
 
 
 def LargeJ2InitOneState(spinstate, s_ijl, version, sign, shift, rot):
@@ -407,7 +464,7 @@ def LargeJ2InitOneState(spinstate, s_ijl, version, sign, shift, rot):
                         spinstate[s] = sign
 
 
-# In[6]:
+# In[ ]:
 
 
 def LargeJ2Init(spinstates, nt, s_ijl, same):
@@ -430,7 +487,7 @@ def LargeJ2Init(spinstates, nt, s_ijl, same):
             LargeJ2InitOneState(spinstates[t], s_ijl, versions[t], signs[t], shifts[t], rots[t])
 
 
-# In[7]:
+# In[ ]:
 
 
 def IntermediateInitOneState(spinstate, s_ijl):
@@ -506,7 +563,7 @@ def IntermediateInitOneState(spinstate, s_ijl):
                     spinstate[s] = sign
 
 
-# In[8]:
+# In[ ]:
 
 
 def IntermediateInit(spinstates, nt, s_ijl, same):
@@ -521,7 +578,7 @@ def IntermediateInit(spinstates, nt, s_ijl, same):
             IntermediateInitOneState(spinstates[t], s_ijl)
 
 
-# In[9]:
+# In[ ]:
 
 
 def LargeJ3Init(spinstates, nt, s_ijl, same):
@@ -564,7 +621,7 @@ def LargeJ3Init(spinstates, nt, s_ijl, same):
                     spinstates[t][s] = np.random.randint(0, 2)*2 -1
 
 
-# In[10]:
+# In[ ]:
 
 
 def DipolarToJ4Init(spinstates, nt, s_ijl):
@@ -702,7 +759,7 @@ def DipolarToJ4Init(spinstates, nt, s_ijl):
                         spinstates[t][s] = -sign
 
 
-# In[11]:
+# In[ ]:
 
 
 def J1Init(spinstates, nt, s_ijl, same):
@@ -726,7 +783,7 @@ def J1Init(spinstates, nt, s_ijl, same):
                 J1J3Init([spinstates[t]], 1, s_ijl, same)
 
 
-# In[12]:
+# In[ ]:
 
 
 def determine_init(hamiltonian, magninit, **kwargs):
@@ -734,46 +791,50 @@ def determine_init(hamiltonian, magninit, **kwargs):
         Returns the type of init
     '''
     # Extract the hamiltonian
-    J1 = hamiltonian[0]
-    if(len(hamiltonian) > 1):
-        J2 = hamiltonian[1][0]
-    else:
-        J2 = 0
-    if(len(hamiltonian )> 2):
-        J3 = hamiltonian[2][0]
-    else:
-        J3 = 0
-    if(len(hamiltonian )> 4):
-        J4 = hamiltonian[4][0]
-    else:
-        J4 = 0
-        
-    inittype = ""
-    if J1!=0:
-        inittype+="J1"
-    if J2!=0:
-        inittype+="J2"
-    if J3!=0:
-        inittype+="J3"
-    if J4!=0:
-        inittype+="J4"
-    
-    if inittype == "J1J2J3":
-        if J3/J2 <= 0.5 and J3 > 0:
-            inittype += "LJ2"
-        if J3/J2 > 0.5 and J3/J2 <= 1:
-            inittype += "Intermediate"
-        if J3/J2 > 1:
-            inittype += "LJ3"
-    
+    if hamiltonian:
+        J1 = hamiltonian[0]
+        if(len(hamiltonian) > 1):
+            J2 = hamiltonian[1][0]
+        else:
+            J2 = 0
+        if(len(hamiltonian )> 2):
+            J3 = hamiltonian[2][0]
+        else:
+            J3 = 0
+        if(len(hamiltonian )> 4):
+            J4 = hamiltonian[4][0]
+        else:
+            J4 = 0
+
+        inittype = ""
+        if J1!=0:
+            inittype+="J1"
+        if J2!=0:
+            inittype+="J2"
+        if J3!=0:
+            inittype+="J3"
+        if J4!=0:
+            inittype+="J4"
+
+        if inittype == "J1J2J3":
+            if J3/J2 <= 0.5 and J3 > 0:
+                inittype += "LJ2"
+            if J3/J2 > 0.5 and J3/J2 <= 1:
+                inittype += "Intermediate"
+            if J3/J2 > 1:
+                inittype += "LJ3"
+
     if magninit:
-        inittype = "magninit"
-        
+        maximallyflip = kwargs.get('maximallyflip', False)
+        if not maximallyflip:
+            inittype = "magninit"
+        else:
+            inittype = "maxflip"
     return inittype
     
 
 
-# In[13]:
+# In[ ]:
 
 
 def statesinit(nt, d_ijl, d_2s, s_ijl, hamiltonian, h = 0, random = True, same = False, magninit = False, **kwargs):
@@ -797,6 +858,8 @@ def statesinit(nt, d_ijl, d_2s, s_ijl, hamiltonian, h = 0, random = True, same =
         print("Initialisation type: ", inittype)
         if inittype == "magninit":
             magnetisedInit(spinstates, nt, s_ijl, h, same)
+        if inittype == "maxflip":
+            magnetisedInitMaxFlip(spinstates, nt, s_ijl, h, same)
         elif inittype == "J1":
             print('J1Init')
             J1Init(spinstates, nt, s_ijl, same)
@@ -825,15 +888,18 @@ def statesinit(nt, d_ijl, d_2s, s_ijl, hamiltonian, h = 0, random = True, same =
                 states[t][id_dim] = 1
             else:
                 states[t][id_dim] = -1
-    en_states = [compute_energy(hamiltonian, states[t]) for t in range(nt)] # energy computed via the function in c++
-    en_states = [compute_energy(hamiltonian, states[t]) - h*spinstates[t].sum() for t in range(nt)] # energy computed via the function in c++
+    if hamiltonian:
+        en_states = [compute_energy(hamiltonian, states[t]) for t in range(nt)] # energy computed via the function in c++
+        en_states = [compute_energy(hamiltonian, states[t]) - h*spinstates[t].sum() for t in range(nt)] # energy computed via the function in c++
+    else:
+        en_states = []
     #
     en_states = np.array(en_states)
     #
     return states, en_states, spinstates
 
 
-# In[14]:
+# In[ ]:
 
 
 #def candidate(s_ijl):
@@ -973,7 +1039,7 @@ def statesinit(nt, d_ijl, d_2s, s_ijl, hamiltonian, h = 0, random = True, same =
 #    return spinstate
 
 
-# In[15]:
+# In[ ]:
 
 
 #def state7shaped(s_ijl):
@@ -1012,7 +1078,7 @@ def statesinit(nt, d_ijl, d_2s, s_ijl, hamiltonian, h = 0, random = True, same =
 #    return spinstate7
 
 
-# In[16]:
+# In[ ]:
 
 
 #def LargeJ2VersionInit(spinstates, nt, s_ijl, version):
