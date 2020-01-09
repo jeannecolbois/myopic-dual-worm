@@ -312,22 +312,22 @@ def plot_kag_spinstate(spinstate, ijl_s, L, a, edge_color = 'lightblue', up_colo
 
 #FUNCTION ALLOWING TO PLOT THE FULL STATE
 
-def plotstate(temp_id, L, d_ijl, ijl_s, sidlist, didlist, s2_d, states, dim_node_color = 'black', dim_color ='black', no_dim_color = 'lightgrey', spin_edge_color = 'lightblue', spin_up_color = 'blue', spin_down_color = 'red', dimerlinewidth = 5, spinlinewidth = 1, **kargs):    
+def plotstate(temp_id, L, d_ijl, ijl_s, sidlist, didlist, s2_d, states, spinstates, dim_node_color = 'black', dim_color ='black', no_dim_color = 'lightgrey', spin_edge_color = 'lightblue', spin_up_color = 'blue', spin_down_color = 'red', dimerlinewidth = 5, spinlinewidth = 1, **kargs):    
 
     a = 2 #lattice parameter
-    spinstate = onestate_dimers2spins(sidlist, didlist, L, states[temp_id])
+    
     plt.figure(figsize = (2*L,2*L))
     plt.axis('equal')
     plot_dice_dimerstate(states[temp_id], d_ijl, L, a, dim_node_color, dim_color, no_dim_color, linewidth = dimerlinewidth, **kargs)
-    plot_kag_spinstate(spinstate, ijl_s, L, a, spin_edge_color, spin_up_color, spin_down_color, linewidth = spinlinewidth, **kargs)
+    plot_kag_spinstate(spinstates[temp_id], ijl_s, L, a, spin_edge_color, spin_up_color, spin_down_color, linewidth = spinlinewidth, **kargs)
     plt.tick_params(  
         which = 'both',      # both major and minor ticks are affected
-        bottom = 'off',      # ticks along the bottom edge are off
-        top = 'off',         # ticks along the top edge are off
-        labelbottom = 'off',
-        left = 'off',
-        right = 'off',
-        labelleft = 'off') # labels along the bottom edge are off
+        bottom = False,      # ticks along the bottom edge are off
+        top = False,         # ticks along the top edge are off
+        labelbottom = False,
+        left = False,
+        right = False,
+        labelleft = False) # labels along the bottom edge are off
 
 
 # In[ ]:
@@ -356,12 +356,12 @@ def plot_function_kag(f, L, a, **kargs):
     #plt.axis([0, 1, 0, 3*n])
     plt.tick_params(  
         which = 'both',      # both major and minor ticks are affected
-        bottom = 'off',      # ticks along the bottom edge are off
-        top = 'off',         # ticks along the top edge are off
-        labelbottom = 'off',
-        left = 'off',
-        right = 'off',
-        labelleft = 'off') # labels along the bottom edge are off
+        bottom = False,      # ticks along the bottom edge are off
+        top = False,         # ticks along the top edge are off
+        labelbottom = False,
+        left = False,
+        right = False,
+        labelleft = False) # labels along the bottom edge are off
 
 
 # In[ ]:
@@ -430,12 +430,12 @@ def plot_reciprocal(L, a, n, color = 'blue', **kargs):
     plt.axis([0, 1, -3*n, 3*n])
     plt.tick_params(  
         which = 'both',      # both major and minor ticks are affected
-        bottom = 'off',      # ticks along the bottom edge are off
-        top = 'off',         # ticks along the top edge are off
-        labelbottom = 'off',
-        left = 'off',
-        right = 'off',
-        labelleft = 'off') # labels along the bottom edge are off  
+        bottom = False,      # ticks along the bottom edge are off
+        top = False,         # ticks along the top edge are off
+        labelbottom = False,
+        left = False,
+        right = False,
+        labelleft = False) # labels along the bottom edge are off  
 
 
 # In[ ]:
@@ -455,10 +455,10 @@ def plot_function_reciprocal(f, L, a, s = 400, **kargs):
     #plt.axis([0, 1, -10, 10])
     plt.tick_params(  
         which = 'both',      # both major and minor ticks are affected
-        bottom = 'off',      # ticks along the bottom edge are off
-        top = 'off',         # ticks along the top edge are off
-        labelbottom = 'off',
-        left = 'off',
-        right = 'off',
-        labelleft = 'off') # labels along the bottom edge are offb
+        bottom = False,      # ticks along the bottom edge are off
+        top = False,         # ticks along the top edge are off
+        labelbottom = False,
+        left = False,
+        right = False,
+        labelleft = False) # labels along the bottom edge are offb
 
