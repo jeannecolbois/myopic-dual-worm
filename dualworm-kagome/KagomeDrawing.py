@@ -257,7 +257,7 @@ def plot_kag_nodes(L, a, color='blue', s=20, **kargs):
 
 def plot_kag_edges(L, a, color='lightblue', **kargs):
     sv_ijl, ijl_sv, e_2sv, pos = graphkag(L, a)
-    gdw.draw_edges(pos, e_2sv, **kargs)
+    gdw.draw_edges(pos, e_2sv, color = color, **kargs)
     
 def plot_kag_spins(spins, ijl_s, L, a, color = 'red', **kargs):
     """
@@ -335,8 +335,7 @@ def plotstate(temp_id, L, d_ijl, ijl_s, sidlist, didlist, s2_d, states, spinstat
 
 def plot_function_kag(f, L, a, **kargs):
     '''
-        Plots the function f over the kagomé lattice. f has to be defined on the "square" brillouin zone
-        for k1, k2 in range(0, L), which will be the usual output of the FT
+        Plots the function f over the kagomé lattice.
     '''
     #get the shape of the lattice
     (sv_ijl, ijl_sv, e_2sv, pos) = graphkag(L, a) # drawing lattice
