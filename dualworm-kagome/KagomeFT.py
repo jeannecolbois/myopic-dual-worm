@@ -112,7 +112,7 @@ def PBCStrctFact(L, sconf, ijl_sconfig, xy_m1m2 = np.zeros((2,2)), subtractm = T
     # spin site table:
     (s_ijl, ijl_s) = kf.createspinsitetable(L)
     nspins = len(s_ijl)
-    N = np.sqrt((nspins**2)/2) # normalization for the FT
+    N = np.sqrt((nspins**2)) # normalization for the FT
     
     s_pos, ijl_pos = kf.reducedgraphkag(L, s_ijl, ijl_s)
     
