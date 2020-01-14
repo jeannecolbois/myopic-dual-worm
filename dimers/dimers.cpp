@@ -725,11 +725,12 @@ static PyObject* dimers_ssfsevolve(PyObject *self, PyObject *args) {
      PyObject *s2p_obj;
      PyObject *energies_obj;
      PyObject *walker2params_obj;
+     PyObject *walker2ids_obj;
      PyObject *failedupdates_obj; //*saveloops_obj,
      int nthreads;
      int iters;
      // take the arguments as pointers + int
-     if(!PyArg_ParseTuple(args,"dOOOOOOii", &J1, &states_obj, &spinstates_obj, &s2p_obj, &walker2params_obj, &energies_obj, &failedupdates_obj, &nthreads, &iters))
+     if(!PyArg_ParseTuple(args,"dOOOOOOOii", &J1, &states_obj, &spinstates_obj, &s2p_obj, &walker2params_obj, &walker2ids_obj, &energies_obj, &failedupdates_obj, &nthreads, &iters))
 	    return nullptr;
 
     //-------------------------------//
@@ -774,10 +775,9 @@ static PyObject* dimers_ssfsevolve(PyObject *self, PyObject *args) {
     int nd = get<2>(s2ptuple);
 
     //--------------------------------------//
-    /* Interpret the table of temperatures */
+    /* Interpret the table of walkers2params*/
     //--------------------------------------//
 
-    // because we want to be able to update the state as well: NPY_ARRAY_INOUT_ARRAY and not NPY_ARRAY_IN_ARRAY
     PyArrayObject *walker2params_array = (PyArrayObject*) PyArray_FROM_OTF(walker2params_obj, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
     if(walker2params_array == nullptr) {
         Py_XDECREF(walker2params_array);
@@ -798,6 +798,30 @@ static PyObject* dimers_ssfsevolve(PyObject *self, PyObject *args) {
     }
     //get pointer as Ctype
     double *walker2params = (double*)PyArray_DATA(walker2params_array);
+    //--------------------------------------//
+    /* Interpret the table of walker2ids*/
+    //--------------------------------------//
+
+    PyArrayObject *walker2ids_array = (PyArrayObject*) PyArray_FROM_OTF(walker2ids_obj, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+    if(walker2ids_array == nullptr) {
+        Py_XDECREF(walker2ids_array);
+        PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d (NPY array?)", __LINE__);
+        return nullptr;
+    }
+
+    int nbidwalkers = (int)PyArray_DIM(walker2ids_array, 0);
+    //check that state has the dimensions expected
+    if(PyArray_NDIM(walker2ids_array) != 2 || (int)PyArray_DIM(walker2ids_array,1) != 2) {
+        PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d", __LINE__);
+        return nullptr;
+    }
+
+    if(nbidwalkers != nbwalkers) {
+        PyErr_Format(PyExc_ValueError, "DIMERS.cpp : Non-consistent number of temperatures and states, see line %d", __LINE__);
+        return nullptr;
+    }
+    //get pointer as Ctype
+    double *walker2ids = (double*)PyArray_DATA(walker2ids_array);
 
     //---------------------------------//
     /* Interpret the table of energies */
@@ -810,14 +834,15 @@ static PyObject* dimers_ssfsevolve(PyObject *self, PyObject *args) {
         return nullptr;
     }
 
-    int nte = (int)PyArray_DIM(energies_array, 0);
+    int nt = (int)PyArray_DIM(energies_array, 0);
+    int nh = (int)PyArray_DIM(energies_array,1);
     //check that state has the dimensions expected
-    if(PyArray_NDIM(energies_array) != 1) {
+    if(PyArray_NDIM(energies_array) != 2) {
         PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d", __LINE__);
         return nullptr;
     }
 
-    if(nte != nbwalkers) {
+    if(nt*nh != nbwalkers) {
         PyErr_Format(PyExc_ValueError, "DIMERS.cpp : Non-consistent number of energies and states, see line %d", __LINE__);
         return nullptr;
     }
@@ -836,7 +861,7 @@ static PyObject* dimers_ssfsevolve(PyObject *self, PyObject *args) {
         return nullptr;
     }
     //check that state has the dimensions expected
-    if(PyArray_NDIM(failedupdates_array) != 1) {
+    if(PyArray_NDIM(failedupdates_array) != 2) {
         PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d", __LINE__);
         return nullptr;
     }
@@ -849,7 +874,8 @@ static PyObject* dimers_ssfsevolve(PyObject *self, PyObject *args) {
     //------------------------------------//
     PyThreadState* threadState = PyEval_SaveThread(); // release the GIL
     ssfsevolve(J1, states, statesize, spinstates, spinstatesize,
-      s2p, nd, walker2params, energies, failedupdates, nbwalkers, nthreads, iters); //saveloops = 0
+      s2p, nd, walker2params, walker2ids, energies, failedupdates, nbwalkers, nthreads, iters,
+      nt, nh); //saveloops = 0
     PyEval_RestoreThread(threadState); // claim the GIL
 
     // Clean up
@@ -864,6 +890,9 @@ static PyObject* dimers_ssfsevolve(PyObject *self, PyObject *args) {
     }
     if( walker2params_array != nullptr){
       Py_DECREF(walker2params_array); // decrement the reference
+    }
+    if( walker2ids_array != nullptr){
+      Py_DECREF(walker2ids_array); // decrement the reference
     }
     if( energies_array != nullptr){
       Py_DECREF(energies_array); // decrement the reference
