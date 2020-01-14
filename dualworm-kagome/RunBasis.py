@@ -44,7 +44,6 @@ def main(args):
     print('J2 ', J2)
     print('J3 ', J3)
     print('J3st ', J3st)
-    print('h', h)
     backup.params.ssf = ssf = args.ssf
     s2p = dw.spin2plaquette(ijl_s, s_ijl, s2_d,L)
     if ssf:
@@ -55,7 +54,7 @@ def main(args):
     couplings = {'J1': J1, 'J2':J2, 'J3':J3, 'J3st':J3st, 'J4':J4}
     print("Couplings extracted")
     hamiltonian = dw.Hamiltonian(couplings,d_ijl, ijl_d, L)
-    print("hamiltonian computed")
+    print("Hamiltonian expression (without field) computed")
     
     ## Temperatures and magnetic fields to simulate
     t_list = [t for t in args.t_list]
@@ -81,10 +80,18 @@ def main(args):
     backup.params.nh = h;
     print('Number of temperatures: ', nt)
     print('Number of magnetic fields: ', nh)
+    print('Magnetic fields: ', hfields)
     
     [walker2params, walker2ids, ids2walker,
      paramstable] = dw.walkerstable(betas, nt, hfields, nh)
     
+    print("walker2params shape: ", walker2params.shape)
+    print("walker2ids shape: ", walker2ids.shape)
+    print("ids2walker shape: ", ids2walker.shape)
+    
+    print("walker2params = ", walker2params)
+    print("walker2ids = ", walker2ids)
+    print("ids2walker = ", ids2walker)
     ## States
     backup.params.randominit = randominit = args.randominit    
     print('Fully random initialisation = ', randominit)
@@ -100,6 +107,8 @@ def main(args):
                                     ids2walker,d_ijl, d_2s, s_ijl,
                                     hamiltonian, **kwinit)
     
+    print("Energies = ", energies)
+    print("Energies size: ", energies.shape)
     backup.params.ncores = ncores = args.ncores
 
     new_en_states = [[dim.hamiltonian(hamiltonian,
@@ -107,15 +116,18 @@ def main(args):
                      -hfields[hid]*spinstates[ids2walker[bid,hid]].sum()
                      for hid in range(nh)] for bid in range(nt)]
     new_en_states = np.array(new_en_states)
-    
     for t in range(nt):
         for h in range(nh):
             if np.absolute(energies[t,h]-new_en_states[t,h]) > 1.0e-15:
-                print('RunBasis: Issue at temperature index ', t)
-                print("   energies[t] = ", energies[t])
-                print("   H0[t] = ", dim.hamiltonian(hamiltonian, states[t]))
-                print("   magntot[t] ", spinstates[t].sum())
-                print("   new_E[t] = H0[t] - h*magntot[t]", dim.hamiltonian(hamiltonian, states[t]) - h*spinstates[t].sum())
+                print('RunBasis: Issue at temperature index ', t, ' and h index ', h)
+                print("   energies[t,h] = ", energies[t,h])
+                print("   H0[t,h] = ", dim.hamiltonian(hamiltonian,
+                                                       states[ids2walker[t,h]]))
+                print("   magntot[t,h] ", spinstates[ids2walker[t,h]].sum())
+                print("   new_E[t,h] = H0[t,h] - h*magntot[t,h]",
+                      dim.hamiltonian(hamiltonian, states[ids2walker[t,h]])
+                      - hfields[h]*spinstates[ids2walker[t,h]].sum())
+    
     if not dw.statescheck(spinstates, states, d_2s):
         mistakes = [dw.onestatecheck(spinstate, state, d_2s) for spinstate, state in zip(spinstates, states)]
         print('Mistakes: ', mistakes)
@@ -169,7 +181,7 @@ def main(args):
 
     # Temperatures to measure
     if args.stat_temps_lims is None:
-        #by default, we measure the whole temperature range
+        #by default, we measure all the temperatures
         stat_temps = range(nt)
     else: # if args.stat_temps is not none
         vals = []
@@ -182,11 +194,28 @@ def main(args):
         assert(l%2 == 0)
         for i in range(0, l, 2):
             stat_temps += list(range(vals[i], vals[i+1]+1))
-
-    print('List of temperature indices to measure:', stat_temps)
+    
     backup.params.stat_temps = stat_temps
-    assert len(stat_temps) <= nt, 'The number of temperature indices to measure cannot be bigger than the number of temperatures.'
-
+    assert len(stat_temps) <= nt,    'The number of temperature indices to measure cannot be bigger than    the number of temperatures.'
+    
+    # magnetic fields to measure
+    if args.stat_hfields_lims is None:
+        #by default, we measure all the temperatures
+        stat_hfields = range(nh)
+    else: # if args.stat_temps is not none
+        vals = []
+        stat_hfields = []
+        # we need to turn the stat_temps_lims into actual lists of indices
+        for val in args.stat_hfields_lims:
+            vals.append(np.abs(hfields-val).argmin())
+            print(val, vals)
+        l = len(vals)
+        assert(l%2 == 0)
+        for i in range(0, l, 2):
+            stat_hfields += list(range(vals[i], vals[i+1]+1))
+    print('List of field indices to measure:', stat_hfields)
+    backup.params.stat_hfields = stat_hfields
+    assert len(stat_hfields) <= nh,    'The number of field indices to measure cannot be bigger than    the number of fields.'
 
     ## THERMALISATION
     #preparation
@@ -196,13 +225,12 @@ def main(args):
     iterworm = nips = args.nips #number of worm iterations before considering swaps
     nmaxiter = args.nmaxiter
     statsfunctions = [] #don't compute any statistics
-    check = 0 #don't turn to spins to check
+    check = False #don't turn to spins to check
     print('Number of thermalisation steps = ', num_in_bin*nb)
     backup.params.thermsteps = num_in_bin*nb
     backup.params.ncores = ncores = args.ncores
     #launch thermalisation
-    #states = list(states)
-
+    
     kw = {'nb':nb,'num_in_bin':num_in_bin, 'iterworm':iterworm,
           'nitermax':nmaxiter,'check':check,
           'statsfunctions':statsfunctions,
@@ -211,14 +239,16 @@ def main(args):
           'sidlist':sidlist,'didlist':didlist,'s_ijl':s_ijl,'ijl_s':ijl_s,
           'L':L, 'nh':nh, 'hfields':hfields,
           'walker2params':walker2params,'walker2ids':walker2ids,
+          'ids2walker':ids2walker,
           's2p':s2p, 'ssf':ssf}
 
 
     t1 = time()
-    (meanstatth, swapsth, failedupdatesth) =     dw.mcs_swaps(states, spinstates, energies, betas, [], **kw)
+    (meanstatth, swapsth, failedupdatesth) =     dw.mcs_swaps(states, spinstates, energies, betas, [],[], **kw)
     t2 = time()
     
-    #states = np.array(states)
+    print("Energies = ", energies)
+    print("Energies size: ", energies.shape)
     backup.results.swapsth = swapsth
     backup.results.failedupdatesth = failedupdatesth
     print('Time for all thermalisation steps = ', t2-t1)
@@ -230,12 +260,23 @@ def main(args):
     for t in range(nt):
         for h in range(nh):
             if np.absolute(energies[t,h]-new_en_states[t,h]) > 1.0e-15:
-                print('RunBasis: Issue at temperature index ', t)
-                print("   energies[t] = ", energies[t])
-                print("   H0[t] = ", dim.hamiltonian(hamiltonian, states[t]))
-                print("   magntot[t] ", spinstates[t].sum())
-                print("   new_E[t] = H0[t] - h*magntot[t]", dim.hamiltonian(hamiltonian, states[t]) - h*spinstates[t].sum())
+                print('RunBasis: Issue at temperature index ', t, ' and h index ', h)
+                print("   energies[t,h] = ", energies[t,h])
+                print("   H0[t,h] = ", dim.hamiltonian(hamiltonian,
+                                                       states[ids2walker[t,h]]))
+                print("   magntot[t,h] ", spinstates[ids2walker[t,h]].sum())
+                print("   new_E[t,h] = H0[t,h] - h*magntot[t,h]",
+                      dim.hamiltonian(hamiltonian, states[ids2walker[t,h]])
+                      - hfields[h]*spinstates[ids2walker[t,h]].sum())
 
+    
+    #print("walker2params shape: ", walker2params.shape)
+    #print("walker2ids shape: ", walker2ids.shape)
+    #print("ids2walker shape: ", ids2walker.shape)
+    #
+    #print("walker2params = ", walker2params)
+    #print("walker2ids = ", walker2ids)
+    #print("ids2walker = ", ids2walker)
     ## MEASUREMENT PREPARATION 
 
     print("-----------Measurements-----------------")
@@ -247,7 +288,7 @@ def main(args):
     statsfunctions = observables #TODO set functions
     backup.results.namefunctions = observableslist #TODO set functions corresponding to the above
     print(backup.results.namefunctions)
-    check = 1 #turn to spins and check match works
+    check = True #turn to spins and check match works
     backup.params.measperiod = measperiod = args.measperiod
     print('Measurement period:', measperiod)
     backup.params.measupdate = measupdate = args.measupdate
@@ -262,9 +303,7 @@ def main(args):
         else:
             nnspins = []
             p = 0
-    
-    backup.params.magnstats = magnstats = args.magnstats
-            
+                
     kw = {'nb':nb,'num_in_bin':num_in_bin, 'iterworm':iterworm,
           'nitermax':nmaxiter,'check':check,
           'statsfunctions':statsfunctions,
@@ -272,15 +311,20 @@ def main(args):
           'nnlists':nnlists,
           'd_nd':d_nd,'d_vd':d_vd,'d_wn':d_wn, 'd_2s':d_2s, 's2_d':s2_d,
           'sidlist':sidlist,'didlist':didlist,'s_ijl':s_ijl,'ijl_s':ijl_s,'L':L,
-          'ncores':ncores, 'measupdate': measupdate, 'nnspins': nnspins, 's2p':s2p, 
-          'magnstats':magnstats,'magnfuncid':magnfuncid, 'p':p,
+          'ncores':ncores, 'measupdate': measupdate, 'nnspins': nnspins, 's2p':s2p,'magnfuncid':magnfuncid, 'p':p,
           'c2s':c2s, 'csign':csign, 'measperiod':measperiod,
           'nh':nh, 'hfields':hfields, 'walker2params':walker2params,
-          'walker2ids':walker2ids,
-          'ssf':ssf}
+          'walker2ids':walker2ids,'ids2walker':ids2walker,
+          'ssf':ssf, 'randspinupdate': False}
         # Run measurements
     t1 = time()
-    (backup.results.meanstat, backup.results.swaps, backup.results.failedupdates) = (meanstat, swaps, failedupdates) = dw.mcs_swaps(states, spinstates, energies, betas, stat_temps,**kw)
+   
+    (backup.results.meanstat, backup.results.swaps,
+     backup.results.failedupdates) =\
+    (meanstat, swaps, failedupdates) =\
+    dw.mcs_swaps(states, spinstates, energies, betas, stat_temps, stat_hfields,**kw)
+    print("Energies = ", energies)
+    print("Energies size: ", energies.shape)
     t2 = time()
     print('Time for all measurements steps = ', t2-t1)
     new_en_states = [[dim.hamiltonian(hamiltonian,
@@ -291,14 +335,22 @@ def main(args):
     for t in range(nt):
         for h in range(nh):
             if np.absolute(energies[t,h]-new_en_states[t,h]) > 1.0e-15:
-                print('RunBasis: Issue at temperature index ', t)
-                print("   energies[t] = ", energies[t])
-                print("   H0[t] = ", dim.hamiltonian(hamiltonian, states[t]))
-                print("   magntot[t] ", spinstates[t].sum())
-                print("   new_E[t] = H0[t] - h*magntot[t]", dim.hamiltonian(hamiltonian, states[t]) - h*spinstates[t].sum())
+                print('RunBasis: Issue at temperature index ', t, ' and h index ', h)
+                print("   energies[t,h] = ", energies[t,h])
+                print("   H0[t,h] = ", dim.hamiltonian(hamiltonian,
+                                                       states[ids2walker[t,h]]))
+                print("   magntot[t,h] ", spinstates[ids2walker[t,h]].sum())
+                print("   new_E[t,h] = H0[t,h] - h*magntot[t,h]",
+                      dim.hamiltonian(hamiltonian, states[ids2walker[t,h]])
+                      - hfields[h]*spinstates[ids2walker[t,h]].sum())
 
-
-
+    #print("walker2params shape: ", walker2params.shape)
+    #print("walker2ids shape: ", walker2ids.shape)
+    #print("ids2walker shape: ", ids2walker.shape)
+    #
+    #print("walker2params = ", walker2params)
+    #print("walker2ids = ", walker2ids)
+    #print("ids2walker = ", ids2walker)
     ## STATISTICS ##
     t_meanfunc = list() #for each function, for each temperature, mean of the state function
     t_varmeanfunc = list() #for each function, for each temperature, variance of the state function
@@ -403,7 +455,9 @@ if __name__ == "__main__":
                         help = 'list of limiting magnetic field values')
     parser.add_argument('--nh_list', nargs = '+', type = int, 
                         help = 'list of number of magnetic fields in between the given limiting temperatures')
-    
+    parser.add_argument('--stat_hfields_lims', nargs = '+', type = float,
+                    help = '''limiting magnetic fields for the various ranges of
+                    measurements''') 
     #CORRELATIONS PARAMETER
     parser.add_argument('--energy', default = False, action = 'store_true',
                         help = 'activate if you want to save the energy')

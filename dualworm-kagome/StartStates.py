@@ -787,12 +787,9 @@ def statesinit(nt, nh, hfields, id2walker, d_ijl, d_2s, s_ijl, hamiltonian, rand
 
     #initialize the dimers
     states = [np.array([1 for i in range(len(d_ijl))], dtype='int32') for ignored in range(nt*nh)]
-    en_states = [0 for ignored in range(nt*nh)]
     #initialize the spins randomly
     spinstates = [(np.random.randint(0, 2, size=len(s_ijl))*2 - 1) for i in range(nt*nh)]
-    print(random)
     if not random:
-        print("not random")
         inittype = determine_init(hamiltonian, magninit, **kwargs) 
         print("Initialisation type: ", inittype)
         if inittype == "magninit":
@@ -816,9 +813,9 @@ def statesinit(nt, nh, hfields, id2walker, d_ijl, d_2s, s_ijl, hamiltonian, rand
     states = np.array(states, 'int32')
     spinstates = np.array(spinstates, 'int32')
     ##initialise the dimer state according to the spin state
-    for tid in range(nt):
+    for bid in range(nt):
         for hid in range(nh): 
-            i = id2walker[tid, hid]
+            i = id2walker[bid, hid]
             for id_dim in range(len(d_ijl)):
                 [id_s1, id_s2] = d_2s[id_dim]
                 s1 = spinstates[i][id_s1]
@@ -827,11 +824,13 @@ def statesinit(nt, nh, hfields, id2walker, d_ijl, d_2s, s_ijl, hamiltonian, rand
                     states[i][id_dim] = 1
                 else:
                     states[i][id_dim] = -1
-    en_states = [[compute_energy(hamiltonian, states[id2walker[tid, hid]])
+                    
+    # compute the energy of the initialized states (via the function in c++)
+    en_states = [[compute_energy(hamiltonian, states[id2walker[bid, hid]])
                   - hfields[hid]*spinstates[id2walker[bid,hid]].sum()
                   for hid in range(nh)]
-                 for bid in range(nt) ] # energy computed via the function in c++
-    #
+                 for bid in range(nt)]
+    
     en_states = np.array(en_states)
     #
     return states, en_states, spinstates

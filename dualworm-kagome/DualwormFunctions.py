@@ -221,7 +221,6 @@ def Hamiltonian(couplings, d_ijl, ijl_d, L):
         d_J4d = lattice.d_J4d(d_ijl, ijl_d, L)
         hamiltonian.append((J4,d_J4d))
         
-    print("dw.Hamiltonian done")
     return hamiltonian
 
 
@@ -611,7 +610,6 @@ def create_log_temperatures(nt_list, t_list):
         temp_states[nt_start: nt_start + nte] = np.logspace(
             np.log10(t_list[id_nt]), np.log10(t_list[id_nt +1 ]), 
             nte, endpoint=True)
-        print(nt_start, nt_start+nte)
         nt_start +=nte
         
     return np.unique(temp_states)
@@ -819,16 +817,18 @@ def tempering(nt, statesen, betas, states, spinstates, swaps):
 # In[ ]:
 
 
-def replicas(nt, nh, statesen, betas, hfields, states, spinstates, swapst, swapsh):
+def replicas(nt, nh, statesen, betas, hfields, states, spinstates,
+             swapst, swapsh,ids2walker, walker2ids, walker2params):
     # temperature
     print('Problem replica method not implemented')
+    
 
 
 # In[ ]:
 
 
 def mcs_swaps(states, spinstates, statesen, 
-              betas, stat_temps, **kwargs):
+              betas, stat_temps, stat_fields, **kwargs):
     '''
         < keyword arguments:
                 'nb' : number of bins
@@ -857,6 +857,7 @@ def mcs_swaps(states, spinstates, statesen,
                 'ncores':ncores
                 'hfields':hfields
                 'walker2params': walker2params
+                'walker2ids': walker index -> parameters indices
         < states, spins states = tables that will be updated as the new 
         states and spinstates get computed
         < statesen : energy of the states
@@ -907,25 +908,29 @@ def mcs_swaps(states, spinstates, statesen,
     nnspins = kwargs.get('nnspins',None)
     s2p = kwargs.get('s2p', None)
     nt = kwargs.get('nt',None)
+    randspinupdate = kwargs.get('randspinupdate', True)
     
     #structure for replica:
     hfields = kwargs.get('hfields', None)
     nh = kwargs.get('nh',None)
     walker2params = kwargs.get('walker2params',[])
     walker2ids = kwargs.get('walker2ids', [])
+    ids2walker = kwargs.get('ids2walker', [])
     ssf = kwargs.get('ssf', False)
-    
     ################################
     # actual code
     ################################
 
     ## Define the table for statistics
     if len(statsfunctions) != 0:
-            statstables = [(np.zeros((len(stat_temps)*nh, nb)).tolist(),
-                            np.zeros((len(stat_temps)*nh, nb)).tolist()) 
-                       for i in range(len(statsfunctions))]
+            statstables = [(np.zeros((len(stat_temps), len(stat_fields), nb)).tolist(),
+                           np.zeros((len(stat_temps), len(stat_fields), nb)).tolist())
+                           for i in range(len(statsfunctions))]
     else:
         statstables =  []
+        
+    stat_paramsid = np.array(list(itertools.product(stat_temps, stat_fields)))
+    
     ## Iterate
     itermcs = nb*num_in_bin*measperiod
     print("itermcs = ", itermcs)
@@ -946,7 +951,7 @@ def mcs_swaps(states, spinstates, statesen,
         #### EVOLVE using the mcsevolve function of the dimer
         #### module (C)
         # Note that states, betas, statesen get updated
-        if nh == 1 and hfields[0] == 0.0:
+        if nh == 1 and hfields[0] == 0.0 and not ssf:
             t1 = time()
             dim.mcsevolve(hamiltonian, states, betas, statesen,
                           failedupdates, d_nd, d_vd, d_wn,
@@ -954,7 +959,7 @@ def mcs_swaps(states, spinstates, statesen,
             t2 = time()
             t_join += (t2-t1)/itermcs
         else:
-            if not ssf and nh == 1:
+            if nh == 1 and not ssf:
                 t1 = time()
                 dim.magneticmcsevolve(hamiltonian, hfields[0],
                                       states, spinstates,
@@ -982,18 +987,25 @@ def mcs_swaps(states, spinstates, statesen,
                       swapst)
         else: # replicas in both
             replicas(nt, nh, statesen, betas, hfields, states, 
-                     spinstates, swapst, swapsh)
-
+                     spinstates, swapst, swapsh, ids2walker,
+                     walker2ids, walker2params)
+    
         t3 = time()
         t_tempering +=(t3-t2)/itermcs
-
-        #### STATS update the statistics
-        if (len(statsfunctions) != 0 or check) and hfields[0] == 0:
+        
+        #### STATS update the spin states
+        if (len(statsfunctions) != 0 or check) and nh == 1 and hfields[0] == 0:
+            # update the mapids2walker function
+            def mapids2walker(x):
+                return ids2walker[x[0],x[1]]
+            
+            stat_walkers = np.array(list(map(f, stat_paramsid)))
+            
             dim.updatespinstates(states, spinstates,
-                                 np.array(stat_temps, dtype='int32'), 
+                                 np.array(stat_walkers, dtype='int32'), 
                                  np.array(sidlist, dtype='int32'),
                                  np.array(didlist, dtype='int32'), 
-                                 ncores)
+                                 ncores, randspinupdate)
         # if h !=0 the spinstates have been updated already
 
         if measperiod == 1 or it%measperiod == 0:

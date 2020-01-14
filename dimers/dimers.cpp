@@ -918,14 +918,15 @@ static PyObject* dimers_updatespinstates(PyObject *self, PyObject *args) {
      * >> A numpy table of dimers indices
      * >> A number of statistics
      * >> A number of threads
-
+     * >> A boolean for random or not spin state start
      */
 
      //------------------------------------------------------INPUT INTERPRETATION---------------------------------------------------------------------//
-     PyObject  *states_obj, *spinstates_obj, *stat_temps_obj, *sidlist_obj, *didlist_obj; //*saveloops_obj,
+     PyObject  *states_obj, *spinstates_obj, *stat_walkers_obj, *sidlist_obj, *didlist_obj; //*saveloops_obj,
      int nthreads;
+     int randspinstate; // to catch a python boolean
      // take the arguments as pointers + int
-     if(!PyArg_ParseTuple(args,"OOOOOi", &states_obj, &spinstates_obj, &stat_temps_obj, &sidlist_obj, &didlist_obj, &nthreads))
+     if(!PyArg_ParseTuple(args,"OOOOOii", &states_obj, &spinstates_obj, &stat_walkers_obj, &sidlist_obj, &didlist_obj, &nthreads, &randspinstate))
 	   return nullptr;
 
     //-------------------------------//
@@ -958,15 +959,15 @@ static PyObject* dimers_updatespinstates(PyObject *self, PyObject *args) {
     //--------------------------------------//
     /* Interpret the table of temperatures */
     //--------------------------------------//
-    PyArrayObject* stat_temps_array = nullptr;
-    tuple<int*, int> stat_tempstuple = parseInteger1DArray(stat_temps_array, stat_temps_obj);
-    int* stat_temps = get<0>(stat_tempstuple);
-    if(stat_temps == nullptr) {
-        Py_XDECREF(stat_temps_array);
+    PyArrayObject* stat_walkers_array = nullptr;
+    tuple<int*, int> stat_walkerstuple = parseInteger1DArray(stat_walkers_array, stat_walkers_obj);
+    int* stat_walkers = get<0>(stat_walkerstuple);
+    if(stat_walkers == nullptr) {
+        Py_XDECREF(stat_walkers_array);
         PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d (NPY array?)", __LINE__);
         return nullptr;
     }
-    int nbstat = get<1>(stat_tempstuple);
+    int nbstat = get<1>(stat_walkerstuple);
 
     //--------------------------------------//
     /* Interpret the table of sidlist */
@@ -997,7 +998,7 @@ static PyObject* dimers_updatespinstates(PyObject *self, PyObject *args) {
     /* Call the updatespinstates C function */
     //------------------------------------//
     PyThreadState* threadState = PyEval_SaveThread(); // release the GIL
-    updatespinstates(states, spinstates, stat_temps, sidlist, didlist, nbstat, statesize, spinstatesize, nthreads, nbit);
+    updatespinstates(states, spinstates, stat_walkers, sidlist, didlist, nbstat, statesize, spinstatesize, nthreads, nbit, randspinstate);
     PyEval_RestoreThread(threadState); // claim the GIL
 
     // Clean up
@@ -1015,8 +1016,8 @@ static PyObject* dimers_updatespinstates(PyObject *self, PyObject *args) {
     if( didlist_array != nullptr){
       Py_DECREF(didlist_array); // decrement the reference
     }
-    if( stat_temps_array != nullptr){
-      Py_DECREF(stat_temps_array); // decrement the reference
+    if( stat_walkers_array != nullptr){
+      Py_DECREF(stat_walkers_array); // decrement the reference
     }
       //build output
 
