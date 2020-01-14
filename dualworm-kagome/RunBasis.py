@@ -29,8 +29,8 @@ def main(args):
     ### SIMULATIONS INITIATLISATION
     backup.params.L = L = args.L
     print('Lattice side size: ', L)
-    [d_ijl, ijl_d, s_ijl, ijl_s, d_2s, s2_d, 
-     d_nd, d_vd, d_wn, sidlist, didlist, c_ijl, ijl_c, c2s, csign] = dw.latticeinit(L)
+    [d_ijl, ijl_d, s_ijl, ijl_s, d_2s, s2_d, d_nd, d_vd, d_wn,
+     sidlist, didlist, c_ijl, ijl_c, c2s, csign] = dw.latticeinit(L)
     
 
     ## Energy
@@ -50,7 +50,7 @@ def main(args):
     if ssf:
         nnspins, s2p = dw.spin2plaquette(ijl_s, s_ijl, s2_d,L)
     
-    assert (not (ssf and (J2 != 0 or J3 !=0 or J3st != 0 or J4!=0))), "The ssf is only available with J1"
+    assert (not (ssf and (J2 != 0 or J3 !=0 or J3st != 0 or J4!=0))),    "The ssf is only available with J1"
     
     couplings = {'J1': J1, 'J2':J2, 'J3':J3, 'J3st':J3st, 'J4':J4}
     print("Couplings extracted")
@@ -67,7 +67,8 @@ def main(args):
         temperatures = dw.create_temperatures(nt_list, t_list)
     betas = 1/temperatures
     backup.params.temperatures = temperatures
-    backup.params.nt = nt = len(temperatures) # total number of different temperatures
+    # total number of different temperatures
+    backup.params.nt = nt = len(temperatures)
     if args.h_list:
         h_list = [h for h in args.h_list]
         nh_list = args.nh_list
@@ -81,7 +82,8 @@ def main(args):
     print('Number of temperatures: ', nt)
     print('Number of magnetic fields: ', nh)
     
-    walker2params, id2walker = dw.walkerstable(temperatures, nt, hfields, nh)
+    [walker2params, walker2ids, ids2walker,
+     paramstable] = dw.walkerstable(betas, nt, hfields, nh)
     
     ## States
     backup.params.randominit = randominit = args.randominit    
@@ -91,21 +93,29 @@ def main(args):
     backup.params.magninit = magninit = args.magninit
     print('Magnetisation initialisation = ', magninit)
         
-    kwinit = {'random': randominit, 'same': same, 'magninit': magninit, 'h':h}
+    kwinit = {'random': randominit, 'same': same, 
+              'magninit': magninit, 'h':h}
 
-    (states, energies, spinstates) = strst.statesinit(nt, nh, hfields, id2walker, d_ijl, d_2s, s_ijl, hamiltonian, **kwinit)
+    (states, energies,spinstates) = strst.statesinit(nt, nh, hfields,
+                                    ids2walker,d_ijl, d_2s, s_ijl,
+                                    hamiltonian, **kwinit)
     
     backup.params.ncores = ncores = args.ncores
-    new_en_states = [dim.hamiltonian(hamiltonian, states[id2walker[t,hid]])-hfields[hid]*spinstates[id2walker[t,hid]].sum() for t in range(nt) for hid in range(nh)]
-    
 
+    new_en_states = [[dim.hamiltonian(hamiltonian,
+                                     states[ids2walker[bid,hid]])
+                     -hfields[hid]*spinstates[ids2walker[bid,hid]].sum()
+                     for hid in range(nh)] for bid in range(nt)]
+    new_en_states = np.array(new_en_states)
+    
     for t in range(nt):
-        if np.absolute(energies[t]-new_en_states[t]) > 1.0e-5:
-            print('RunBasis: Issue at temperature index ', t)
-            print("   energies[t] = ", energies[t])
-            print("   H0[t] = ", dim.hamiltonian(hamiltonian, states[t]))
-            print("   magntot[t] ", spinstates[t].sum())
-            print("   new_E[t] = H0[t] - h*magntot[t]", dim.hamiltonian(hamiltonian, states[t]) - h*spinstates[t].sum())
+        for h in range(nh):
+            if np.absolute(energies[t,h]-new_en_states[t,h]) > 1.0e-15:
+                print('RunBasis: Issue at temperature index ', t)
+                print("   energies[t] = ", energies[t])
+                print("   H0[t] = ", dim.hamiltonian(hamiltonian, states[t]))
+                print("   magntot[t] ", spinstates[t].sum())
+                print("   new_E[t] = H0[t] - h*magntot[t]", dim.hamiltonian(hamiltonian, states[t]) - h*spinstates[t].sum())
     if not dw.statescheck(spinstates, states, d_2s):
         mistakes = [dw.onestatecheck(spinstate, state, d_2s) for spinstate, state in zip(spinstates, states)]
         print('Mistakes: ', mistakes)
@@ -199,25 +209,32 @@ def main(args):
           'nt':nt, 'hamiltonian':hamiltonian,'ncores':ncores,
           'd_nd':d_nd,'d_vd':d_vd,'d_wn':d_wn, 'd_2s':d_2s, 's2_d':s2_d,
           'sidlist':sidlist,'didlist':didlist,'s_ijl':s_ijl,'ijl_s':ijl_s,
-          'L':L, 'nh':nh, 'hfields':hfields, 'walker2params':walker2params,'s2p':s2p, 'ssf':ssf}
+          'L':L, 'nh':nh, 'hfields':hfields,
+          'walker2params':walker2params,'walker2ids':walker2ids,
+          's2p':s2p, 'ssf':ssf}
 
 
     t1 = time()
-    (meanstatth, swapsth, failedupdatesth) = dw.mcs_swaps(states, spinstates, energies, betas, [], **kw)
+    (meanstatth, swapsth, failedupdatesth) =     dw.mcs_swaps(states, spinstates, energies, betas, [], **kw)
     t2 = time()
     
     #states = np.array(states)
     backup.results.swapsth = swapsth
     backup.results.failedupdatesth = failedupdatesth
     print('Time for all thermalisation steps = ', t2-t1)
-    new_en_states = [dim.hamiltonian(hamiltonian, states[t])-h*spinstates[t].sum() for t in range(nt)]
+    new_en_states = [[dim.hamiltonian(hamiltonian,
+                                     states[ids2walker[bid,hid]])
+                     -hfields[hid]*spinstates[ids2walker[bid,hid]].sum()
+                     for hid in range(nh)] for bid in range(nt)]
+    new_en_states = np.array(new_en_states)
     for t in range(nt):
-        if np.absolute(energies[t]-new_en_states[t]) > 1.0e-5:
-            print('RunBasis: Issue at temperature index ', t)
-            print("   energies[t] = ", energies[t])
-            print("   H0[t] = ", dim.hamiltonian(hamiltonian, states[t]))
-            print("   magntot[t] ", spinstates[t].sum())
-            print("   new_E[t] = H0[t] - h*magntot[t]", dim.hamiltonian(hamiltonian, states[t]) - h*spinstates[t].sum())
+        for h in range(nh):
+            if np.absolute(energies[t,h]-new_en_states[t,h]) > 1.0e-15:
+                print('RunBasis: Issue at temperature index ', t)
+                print("   energies[t] = ", energies[t])
+                print("   H0[t] = ", dim.hamiltonian(hamiltonian, states[t]))
+                print("   magntot[t] ", spinstates[t].sum())
+                print("   new_E[t] = H0[t] - h*magntot[t]", dim.hamiltonian(hamiltonian, states[t]) - h*spinstates[t].sum())
 
     ## MEASUREMENT PREPARATION 
 
@@ -259,21 +276,26 @@ def main(args):
           'magnstats':magnstats,'magnfuncid':magnfuncid, 'p':p,
           'c2s':c2s, 'csign':csign, 'measperiod':measperiod,
           'nh':nh, 'hfields':hfields, 'walker2params':walker2params,
+          'walker2ids':walker2ids,
           'ssf':ssf}
         # Run measurements
     t1 = time()
     (backup.results.meanstat, backup.results.swaps, backup.results.failedupdates) = (meanstat, swaps, failedupdates) = dw.mcs_swaps(states, spinstates, energies, betas, stat_temps,**kw)
     t2 = time()
     print('Time for all measurements steps = ', t2-t1)
-
-    new_en_states = [dim.hamiltonian(hamiltonian, states[t])-h*spinstates[t].sum() for t in range(nt)]
+    new_en_states = [[dim.hamiltonian(hamiltonian,
+                                     states[ids2walker[bid,hid]])
+                     -hfields[hid]*spinstates[ids2walker[bid,hid]].sum()
+                     for hid in range(nh)] for bid in range(nt)]
+    new_en_states = np.array(new_en_states)
     for t in range(nt):
-        if np.absolute(energies[t]-new_en_states[t]) > 1.0e-5:
-            print('RunBasis: Issue at temperature index ', t)
-            print("   energies[t] = ", energies[t])
-            print("   H0[t] = ", dim.hamiltonian(hamiltonian, states[t]))
-            print("   magntot[t] ", spinstates[t].sum())
-            print("   new_E[t] = H0[t] - h*magntot[t]", dim.hamiltonian(hamiltonian, states[t]) - h*spinstates[t].sum())
+        for h in range(nh):
+            if np.absolute(energies[t,h]-new_en_states[t,h]) > 1.0e-15:
+                print('RunBasis: Issue at temperature index ', t)
+                print("   energies[t] = ", energies[t])
+                print("   H0[t] = ", dim.hamiltonian(hamiltonian, states[t]))
+                print("   magntot[t] ", spinstates[t].sum())
+                print("   new_E[t] = H0[t] - h*magntot[t]", dim.hamiltonian(hamiltonian, states[t]) - h*spinstates[t].sum())
 
 
 
@@ -377,9 +399,9 @@ if __name__ == "__main__":
                         measurements''') 
                         #default will be set to none, and then we can decide what to do later on.
     # MAGNETIC FIELD PARAMETERS
-    parser.add_argument('--h_list', nargs = '+', type = float, default = [0.5, 15.0],
+    parser.add_argument('--h_list', nargs = '+', type = float,
                         help = 'list of limiting magnetic field values')
-    parser.add_argument('--nh_list', nargs = '+', type = int, default = [28],
+    parser.add_argument('--nh_list', nargs = '+', type = int, 
                         help = 'list of number of magnetic fields in between the given limiting temperatures')
     
     #CORRELATIONS PARAMETER

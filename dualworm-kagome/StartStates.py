@@ -827,8 +827,10 @@ def statesinit(nt, nh, hfields, id2walker, d_ijl, d_2s, s_ijl, hamiltonian, rand
                     states[i][id_dim] = 1
                 else:
                     states[i][id_dim] = -1
-    en_states = [compute_energy(hamiltonian, states[i]) for i in range(nt*nh)] # energy computed via the function in c++
-    en_states = [compute_energy(hamiltonian, states[id2walker[tid, hid]]) - hfields[hid]*spinstates[id2walker[tid,hid]].sum() for tid in range(nt) for hid in range(nh)] # energy computed via the function in c++
+    en_states = [[compute_energy(hamiltonian, states[id2walker[tid, hid]])
+                  - hfields[hid]*spinstates[id2walker[bid,hid]].sum()
+                  for hid in range(nh)]
+                 for bid in range(nt) ] # energy computed via the function in c++
     #
     en_states = np.array(en_states)
     #
