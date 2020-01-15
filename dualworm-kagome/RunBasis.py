@@ -3,7 +3,6 @@
 
 # In[ ]:
 
-
 import numpy as np
 import dimers as dim
 import DualwormFunctions as dw
@@ -19,7 +18,6 @@ import argparse
 
 
 # In[ ]:
-
 
 def main(args):
     ### PREPARE SAVING
@@ -82,8 +80,7 @@ def main(args):
     print('Number of magnetic fields: ', nh)
     print('Magnetic fields: ', hfields)
     
-    [walker2params, walker2ids, ids2walker,
-     paramstable] = dw.walkerstable(betas, nt, hfields, nh)
+    [walker2params, walker2ids, ids2walker] = dw.walkerstable(betas, nt, hfields, nh)
     
     print("walker2params shape: ", walker2params.shape)
     print("walker2ids shape: ", walker2ids.shape)
@@ -384,7 +381,6 @@ def main(args):
 
 # In[ ]:
 
-
 if __name__ == "__main__":
 
     ### PARSING
@@ -482,7 +478,6 @@ if __name__ == "__main__":
 
 
 # In[ ]:
-
 
 #    t_meanfunc = list() #for each function, for each temperature, mean of the state function
 #    t_varmeanfunc = list() #for each function, for each temperature, variance of the state function
