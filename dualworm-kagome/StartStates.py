@@ -11,13 +11,14 @@ import numpy as np
 # In[2]:
 
 
-def magnetisedInit(spinstates, nt, s_ijl, h, same):
+def magnetisedInit(spinstates, nt, nh, s_ijl, hfields, same):
    
     if same:
-        if h == 0:
+        
+        if hfields[0] == 0:
             sign = np.random.randint(0,2)*2-1
         else:
-            sign = np.sign(h)
+            sign = np.sign(hfields[0])
         
         version = np.random.randint(0,3)
         
@@ -27,22 +28,22 @@ def magnetisedInit(spinstates, nt, s_ijl, h, same):
             if l == version:
                 spinstate[s] = -sign
                 
-        for t in range(nt):
-            spinstates[t] = np.copy(spinstate) # to make sure that it is DIFFERENT states
+        for w in range(nt*nh):
+            spinstates[w] = np.copy(spinstate) # to make sure that it is DIFFERENT states
         
     else:
-        versions = [np.random.randint(0,3) for t in range(nt)]
-        if h == 0:
-            signs = [np.random.randint(0,2)*2-1 for t in range(nt)]
-        else:
-            signs = [np.sign(h) for t in range(nt)]
+        versions = [np.random.randint(0,3) for w in range(nt*nh)]
         
-        for t in range(nt):
+        signs = [np.sign(h) for t in range(nt) for h in hfields]
+        
+        for w in range(nt*nh):
+            if signs[w] == 0:
+                signs[w] = np.random.randint(0,2)*2-1
             for s, (i,j,l) in enumerate(s_ijl):
-                if l == versions[t]:
-                    spinstates[t][s] = -signs[t]
+                if l == versions[w]:
+                    spinstates[w][s] = -signs[w]
                 else:
-                    spinstates[t][s] = signs[t]
+                    spinstates[w][s] = signs[w]
             
 
 
@@ -793,7 +794,7 @@ def statesinit(nt, nh, hfields, id2walker, d_ijl, d_2s, s_ijl, hamiltonian, rand
         inittype = determine_init(hamiltonian, magninit, **kwargs) 
         print("Initialisation type: ", inittype)
         if inittype == "magninit":
-            magnetisedInit(spinstates, nt*nh, s_ijl, h, same)
+            magnetisedInit(spinstates, nt, nh, s_ijl, hfields, same)
         elif inittype == "J1":
             print('J1Init')
             J1Init(spinstates, nt*nh, s_ijl, same)

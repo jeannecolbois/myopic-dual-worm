@@ -3,16 +3,17 @@
 
 # In[ ]:
 
+
 import numpy as np
 import dimers as dim
 import KagomeFunctions as lattice
 from scipy.special import erfc
 from time import time
 import itertools
-from random import randint
 
 
 # In[ ]:
+
 
 def NearestNeighboursList(L,distmax):
     '''
@@ -22,6 +23,7 @@ def NearestNeighboursList(L,distmax):
 
 
 # In[ ]:
+
 
 def createdualtable(L):
     '''
@@ -39,6 +41,7 @@ def createdualtable(L):
 
 # In[ ]:
 
+
 def createspinsitetable(L):
     '''
         Creates the table of spin sites corresponding to a real space 
@@ -55,6 +58,7 @@ def createspinsitetable(L):
 
 # In[ ]:
 
+
 def dualbondspinsitelinks(d_ijl, ijl_s, L):
     '''
         For a lattice with side size L, this function  returns two tables:
@@ -67,6 +71,7 @@ def dualbondspinsitelinks(d_ijl, ijl_s, L):
 
 # In[ ]:
 
+
 def spin2plaquette(ijl_s, s_ijl, s2_d,L):
     '''
         For a lattice with side size L, this function  returns a table giving the
@@ -77,6 +82,7 @@ def spin2plaquette(ijl_s, s_ijl, s2_d,L):
 
 
 # In[ ]:
+
 
 def createchargesitestable(L):
     '''
@@ -93,6 +99,7 @@ def createchargesitestable(L):
 
 # In[ ]:
 
+
 def charge2spins(c_ijl, ijl_s, L):
     '''
         Returns the three spin sites associated with each charge site,
@@ -102,6 +109,7 @@ def charge2spins(c_ijl, ijl_s, L):
 
 
 # In[ ]:
+
 
 def spins_dimers_for_update(s_ijl, ijl_s, s2_d, L):
     '''
@@ -117,6 +125,7 @@ def spins_dimers_for_update(s_ijl, ijl_s, s2_d, L):
 
 # In[ ]:
 
+
 def nsitesconnections(d_ijl, ijl_d, L):
     '''
         For each dual bond, which are the other dual bonds which are 
@@ -128,6 +137,7 @@ def nsitesconnections(d_ijl, ijl_d, L):
 
 
 # In[ ]:
+
 
 def vsitesconnections(d_ijl, ijl_d, L):
     '''
@@ -141,6 +151,7 @@ def vsitesconnections(d_ijl, ijl_d, L):
 
 # In[ ]:
 
+
 def windingtable(d_ijl, L):
     '''
         For each dual bond, is it on one of the two lines which are used 
@@ -151,6 +162,7 @@ def windingtable(d_ijl, L):
 
 
 # In[ ]:
+
 
 def latticeinit(L):
     #dual bond table and dictionary:
@@ -176,6 +188,7 @@ def latticeinit(L):
 
 
 # In[ ]:
+
 
 def Hamiltonian(couplings, d_ijl, ijl_d, L):
     '''
@@ -213,6 +226,7 @@ def Hamiltonian(couplings, d_ijl, ijl_d, L):
 
 # In[ ]:
 
+
 def compute_energy(hamiltonian, state, latsize = 1):
     '''
         Computes the energy of the state state given the hamiltonian 
@@ -223,6 +237,7 @@ def compute_energy(hamiltonian, state, latsize = 1):
 
 
 # In[ ]:
+
 
 def GivenNeiNrj(state, power, D, J1supp, nei, distances, distances_spins):
     nrj = 0
@@ -237,6 +252,7 @@ def GivenNeiNrj(state, power, D, J1supp, nei, distances, distances_spins):
 
 # In[ ]:
 
+
 def NeiFromNeiToNrj(state, power, D, J1supp, neimin, neimax, distances, 
                     distances_spins):
     nrj = 0
@@ -246,6 +262,7 @@ def NeiFromNeiToNrj(state, power, D, J1supp, neimin, neimax, distances,
 
 
 # In[ ]:
+
 
 def FiniteDistNrj(state, power, D, J1supp, neimax, distances, distances_spins):
     '''
@@ -260,6 +277,7 @@ def FiniteDistNrj(state, power, D, J1supp, neimax, distances, distances_spins):
 
 
 # In[ ]:
+
 
 def TruncatedNrj(state, n1, n2, Leff, power, s_pos, D, J1supp):
     '''
@@ -281,6 +299,7 @@ def TruncatedNrj(state, n1, n2, Leff, power, s_pos, D, J1supp):
 
 
 # In[ ]:
+
 
 def EwaldSum(state, pairslist, s_pos, klat, D, alpha, S, J1supp):
     '''
@@ -334,10 +353,12 @@ def EwaldSum(state, pairslist, s_pos, klat, D, alpha, S, J1supp):
 
 # In[ ]:
 
+
 ############### Neighbour pairs #####################
 
 
 # In[ ]:
+
 
 def NNpairs(ijl_s, s_ijl, L):
     return lattice.NNpairs(ijl_s, s_ijl, L)
@@ -345,11 +366,13 @@ def NNpairs(ijl_s, s_ijl, L):
 
 # In[ ]:
 
+
 def NN2pairs(ijl_s, s_ijl, L):
     return lattice.NN2pairs(ijl_s, s_ijl, L)
 
 
 # In[ ]:
+
 
 def NN3pairs(ijl_s, s_ijl, L):
     return lattice.NN3pairs(ijl_s, s_ijl, L)
@@ -357,11 +380,13 @@ def NN3pairs(ijl_s, s_ijl, L):
 
 # In[ ]:
 
+
 def NN4pairs(ijl_s, s_ijl, L):
     return lattice.NN4pairs(ijl_s, s_ijl, L)
 
 
 # In[ ]:
+
 
 def reducedgraph(L, s_ijl, ijl_s):
     '''
@@ -371,6 +396,7 @@ def reducedgraph(L, s_ijl, ijl_s):
 
 
 # In[ ]:
+
 
 def sitepairslist(srefs, s_pos, n1, n2, Leff, distmax):
     '''
@@ -416,6 +442,7 @@ def sitepairslist(srefs, s_pos, n1, n2, Leff, distmax):
 
 # In[ ]:
 
+
 def dist_sitepairs(s_pos,  n1, n2, Leff):
     '''
         Using sitepairslist, this function returns a list of (sorted) distances and 
@@ -439,6 +466,7 @@ def dist_sitepairs(s_pos,  n1, n2, Leff):
 
 
 # In[ ]:
+
 
 def NeighboursList(L, distmax):
     '''
@@ -492,10 +520,12 @@ def NeighboursList(L, distmax):
 
 # In[ ]:
 
+
 ############## STATES INIT ##############################3
 
 
 # In[ ]:
+
 
 def create_temperatures(nt_list, t_list):
     assert(len(t_list) == len(nt_list) + 1)
@@ -515,6 +545,7 @@ def create_temperatures(nt_list, t_list):
 
 # In[ ]:
 
+
 def create_hfields(nh_list, h_list):
     assert(len(h_list) == len(nh_list) + 1)
     nh = 0
@@ -532,6 +563,7 @@ def create_hfields(nh_list, h_list):
 
 
 # In[ ]:
+
 
 def walkerstable(betas, nt, hfields, nh):
     #walker2params = np.array(list(itertools.product(temperatures, hfields)))
@@ -561,6 +593,7 @@ def walkerstable(betas, nt, hfields, nh):
 
 # In[ ]:
 
+
 def create_log_temperatures(nt_list, t_list):
     assert(len(t_list) == len(nt_list) + 1)
     nt = 0
@@ -583,6 +616,7 @@ def create_log_temperatures(nt_list, t_list):
 
 
 # In[ ]:
+
 
 def statesinit(nt, d_ijl, d_2s, s_ijl, hamiltonian, same = False):
     '''
@@ -615,6 +649,7 @@ def statesinit(nt, d_ijl, d_2s, s_ijl, hamiltonian, same = False):
 
 # In[ ]:
 
+
 def onestatecheck(spinstate, state, d_2s):
     '''
         This function checks whether the dimer state and the spin 
@@ -634,6 +669,7 @@ def onestatecheck(spinstate, state, d_2s):
 
 # In[ ]:
 
+
 def statescheck(spinstates, states, d_2s):
     '''
         This function checks whether the dimer stateS and the spin 
@@ -646,6 +682,7 @@ def statescheck(spinstates, states, d_2s):
 
 
 # In[ ]:
+
 
 def onestate_dimers2spins(sidlist, didlist, states,
                           spinstates, tid, ncores):
@@ -666,6 +703,7 @@ def onestate_dimers2spins(sidlist, didlist, states,
 
 # In[ ]:
 
+
 def states_dimers2spins(sidlist, didlist, states, spinstates,
                         nt,ncores):
     stat_temps = list(range(nt))
@@ -680,10 +718,12 @@ def states_dimers2spins(sidlist, didlist, states, spinstates,
 
 # In[ ]:
 
+
 ############ EVOLUTION ############
 
 
 # In[ ]:
+
 
 def measupdatespin(tid, sidlist, states, spinstates,nnspins, s2p, p):
     spinstate = spinstates[tid]
@@ -706,6 +746,7 @@ def measupdatespin(tid, sidlist, states, spinstates,nnspins, s2p, p):
 
 
 # In[ ]:
+
 
 def statistics(tid, resid, hid, reshid, bid, states, statesen, statstables,
                spinstates,statsfunctions, sidlist, didlist, L, s_ijl, ijl_s,
@@ -749,6 +790,7 @@ def statistics(tid, resid, hid, reshid, bid, states, statesen, statstables,
 
 # In[ ]:
 
+
 def tempering(nt, statesen, betas, states, spinstates, swaps):
     '''
         This function proposes as a trial exchanging pairs of
@@ -781,76 +823,121 @@ def tempering(nt, statesen, betas, states, spinstates, swaps):
 
 # In[ ]:
 
-def replicas(nt, nh, statesen, betas, hfields, states, spinstates,
+
+def replicas(it, nt, nh, statesen, betas, hfields, states, spinstates,
              swapst, swapsh,ids2walker, walker2ids, walker2params):
-    # temperature
-    print('Replica (implementing ...)')
+    '''
+        Given the number of temperatures and magnetic fields, 
+        the states, and the mapping from walker to parameter ids,
+        this function proposes a selection of swaps which are accepted
+        or rejected based on detailed balance.
+        As the single spin flip update is almost useless in some cases,
+        this sometimes happens to be the core of the algorithm.
+    '''
     
-    for _ in range(nt*nh):
-        # t or h
-        tid = randint(0,nt-2)
-        hid = randint(0,nh-2)
-        swapt = randint(0,1)
-        
-        if swapt:
-            swaptemps(tid, hid, statesen, betas, hfields, ids2walker,
-                     walker2ids, walker2params)
-        else:
-            swapfields(tid, hid, statesen, betas, hfields, spinstates,
-                       ids2walker, walker2ids, walker2params)
+    if it%4 == 0:
+        # even t swap
+        for hid in range(nh):
+            for tid in range(0,nt-1,2):
+                swaptemps(tid, hid, statesen, betas, hfields, ids2walker,
+                          walker2ids, walker2params, swapst)
+            
+    elif it%4 == 1:
+        # even h swap:
+        for tid in range(0, nt):
+            for hid in range(0, nh-1, 2):
+                swapfields(tid, hid, statesen, betas, hfields, spinstates,
+                           ids2walker, walker2ids, walker2params, swapsh)
+                
+    elif it%4 == 2:
+        #odd t swap
+        for hid in range(nh):
+            for tid in range(1,nt-1,2):
+                swaptemps(tid, hid, statesen, betas, hfields, ids2walker,
+                          walker2ids, walker2params, swapst)
+                
+    elif it%4 == 3:
+        # odd h swap:
+        for tid in range(0, nt):
+            for hid in range(1, nh-1, 2):
+                swapfields(tid, hid, statesen, betas, hfields, spinstates,
+                           ids2walker, walker2ids, walker2params, swapsh)
+                
 
 
 # In[ ]:
 
-def swaptemps(tid, hid, statesen, betas, hfields, ids2walker, walker2ids, walker2params):
+
+def swaptemps(tid, hid, statesen, betas, hfields,
+              ids2walker, walker2ids, walker2params, swapst):
     '''
-        Offers to swap temperatures and accepts or reject based on detailed balance
+        Offers to swap temperatures and accepts or reject based on
+        detailed balance
     '''
     wid = ids2walker[tid, hid]
     wid2 = ids2walker[tid+1, hid]
     
     swap = False
-    if (statesen[tid, hid] - statesen[tid + 1, hid]) * (betas[tid] - betas[tid+1]) > 0:
+    if ((statesen[tid+1, hid] - statesen[tid, hid])*
+        (betas[tid+1] - betas[tid]))> 0:
         swap = True
-    elif np.random.uniform() < np.exp((statesen[tid, hid] - statesen[tid+1,hid]) 
-                                          * (betas[tid] - betas[tid+1])):
+    elif (np.random.uniform() <           np.exp((statesen[tid+1, hid] - statesen[tid,hid])
+                 * (betas[tid+1] - betas[tid]))):
         swap = True
         
     if swap:
-        # walkers:
-        ids2walker[tid, hid], ids2walker[tid+1, hid] = ids2walker[tid+1, hid], ids2walker[tid, hid]
-        walker2ids[wid, :], walker2ids[wid2,:] = walker2ids[wid2, :], walker2ids[wid,:] 
-        walker2params[wid, :], walker2params[wid2,:] = walker2params[wid2, :], walker2params[wid,:]
+        swapst[tid]+=1
+        
+        ids2walker[tid, hid], ids2walker[tid+1, hid] =        ids2walker[tid+1, hid], ids2walker[tid, hid]
+        
+        walker2ids[wid, 0], walker2ids[wid2, 0] =        walker2ids[wid2, 0], walker2ids[wid,0] # 0, cause we are swapping the temperatures
+        
+        
+        walker2params[wid, 0], walker2params[wid2,0] =        walker2params[wid2, 0], walker2params[wid,0]
+        
         # update the energy
-        statesen[tid, hid],  statesen[tid+1, hid] = statesen[tid+1, hid],  statesen[tid, hid]
+        statesen[tid, hid],  statesen[tid+1, hid] =        statesen[tid+1, hid],  statesen[tid, hid]
+        
+    
 
 
 # In[ ]:
 
-def swapfields(tid, hid, statesen, betas, hfields, spinstates, ids2walker, walker2ids, walker2params):
+
+def swapfields(tid, hid, statesen, betas, hfields, spinstates,
+               ids2walker, walker2ids, walker2params, swapsh):
     '''
-        Offers to swap magnetic fields and accepts or reject based on detailed balance
+        Offers to swap magnetic fields and accepts or reject
+        based on detailed balance
     '''
     wid = ids2walker[tid, hid]
     wid2 = ids2walker[tid, hid+1]
     
     swap = False
-    if betas[tid]*(spinstates[wid].sum() - spinstates[wid2].sum()) * (hfields[hid] - hfields[hid+1]) > 0:
+    if (betas[tid]*(hfields[hid+1] - hfields[hid])
+        *(spinstates[wid].sum() - spinstates[wid2].sum()))  > 0:
         swap = True
-    elif np.random.uniform() < np.exp(betas[tid]*(spinstates[wid].sum() -
-                                                  spinstates[wid2].sum()) * (hfields[hid] - hfields[hid+1])):
+    elif (np.random.uniform() <          np.exp(betas[tid]*(hfields[hid+1] - hfields[hid])
+                 *(spinstates[wid].sum() - spinstates[wid2].sum()))):
         swap = True
         
     if swap:
-        # walkers:
-        ids2walker[tid, hid], ids2walker[tid, hid+1] = ids2walker[tid, hid+1], ids2walker[tid, hid]
-        walker2ids[wid, :], walker2ids[wid2,:] = walker2ids[wid2, :], walker2ids[wid,:] 
-        walker2params[wid, :], walker2params[wid2,:] = walker2params[wid2, :], walker2params[wid,:]
+        swapsh[hid] += 1
+        ids2walker[tid, hid], ids2walker[tid, hid+1] =        ids2walker[tid, hid+1], ids2walker[tid, hid]
+        
+        walker2ids[wid, 1], walker2ids[wid2,1] =        walker2ids[wid2, 1], walker2ids[wid,1] 
+        
+        walker2params[wid, 1], walker2params[wid2,1] =        walker2params[wid2, 1], walker2params[wid,1]
+        
         # update the energy
-        statesen[tid, hid],  statesen[tid, hid+1] = statesen[tid, hid+1],  statesen[tid, hid]
+        deltaE = statesen[tid, hid+1] - statesen[tid, hid]
+        
+        statesen[tid, hid] += deltaE +        (hfields[hid+1] - hfields[hid])*spinstates[wid2].sum()
+        statesen[tid, hid+1] += -deltaE +        (hfields[hid] - hfields[hid+1])*spinstates[wid].sum()
 
 
 # In[ ]:
+
 
 def mcs_swaps(states, spinstates, statesen, 
               betas, stat_temps, stat_fields, **kwargs):
@@ -895,6 +982,7 @@ def mcs_swaps(states, spinstates, statesen,
     
     #iteration and simulations parameters
     iterworm = kwargs.get('iterworm',None)
+    nrps = kwargs.get('nrps')
     nitermax = kwargs.get('nitermax',None)
     ncores = kwargs.get('ncores',4)
     measperiod = kwargs.get('measperiod', 1)
@@ -959,8 +1047,9 @@ def mcs_swaps(states, spinstates, statesen,
     ## Iterate
     itermcs = nb*num_in_bin*measperiod
     print("itermcs = ", itermcs)
-    swapst = [0 for bid in range(nt)]
-    swapsh = [0 for hid in range(nh)]
+    print("iterreplicas = ", nrps)
+    swapst = np.array([0 for tid in range(nt)], dtype='int32')
+    swapsh = np.array([0 for hid in range(nh)], dtype='int32')
     
     failedupdates = np.array([[0 for hid in range(nh)] for bid in range(nt)],dtype ='int32')
     
@@ -1008,12 +1097,14 @@ def mcs_swaps(states, spinstates, statesen,
 
         #### TEMPERING perform "parallel" tempering
         if nh == 1:
+            print("tempering??")
             tempering(nt, statesen, betas, states, spinstates,
                       swapst)
         else: # replicas in both
-            replicas(nt, nh, statesen, betas, hfields, states, 
-                     spinstates, swapst, swapsh, ids2walker,
-                     walker2ids, walker2params)
+            for riter in range(nrps):
+                replicas(it, nt, nh, statesen, betas, hfields, states, 
+                         spinstates, swapst, swapsh, ids2walker,
+                         walker2ids, walker2params)
     
         t3 = time()
         t_tempering +=(t3-t2)/itermcs
@@ -1076,7 +1167,7 @@ def mcs_swaps(states, spinstates, statesen,
     print('Time for mapping to spins + computing statistics= {0}'.format(t_spins))
     if ssf:
         failedupdates = failedupdates/len(s_ijl)
-    return statstables, swapst, failedupdates
+    return statstables, swapst, swapsh, failedupdates
     
     
 

@@ -3,6 +3,7 @@
 
 # In[ ]:
 
+
 import numpy as np
 import dimers as dim
 import DualwormFunctions as dw
@@ -18,6 +19,7 @@ import argparse
 
 
 # In[ ]:
+
 
 def main(args):
     ### PREPARE SAVING
@@ -77,18 +79,19 @@ def main(args):
     backup.params.hfields = hfields;
     backup.params.nh = h;
     print('Number of temperatures: ', nt)
+    print('Temperatures:', temperatures)
     print('Number of magnetic fields: ', nh)
     print('Magnetic fields: ', hfields)
     
     [walker2params, walker2ids, ids2walker] = dw.walkerstable(betas, nt, hfields, nh)
     
-    print("walker2params shape: ", walker2params.shape)
-    print("walker2ids shape: ", walker2ids.shape)
-    print("ids2walker shape: ", ids2walker.shape)
-    
-    print("walker2params = ", walker2params)
-    print("walker2ids = ", walker2ids)
-    print("ids2walker = ", ids2walker)
+    #print("walker2params shape: ", walker2params.shape)
+    #print("walker2ids shape: ", walker2ids.shape)
+    #print("ids2walker shape: ", ids2walker.shape)
+    #
+    #print("walker2params = ", walker2params)
+    #print("walker2ids = ", walker2ids)
+    #print("ids2walker = ", ids2walker)
     ## States
     backup.params.randominit = randominit = args.randominit    
     print('Fully random initialisation = ', randominit)
@@ -220,6 +223,7 @@ def main(args):
     nb = 1 # only one bin, no statistics
     num_in_bin = args.nst# mcs iterations per bins
     iterworm = nips = args.nips #number of worm iterations before considering swaps
+    nrps = args.nrps # number of replica loop iterations in a MC step
     nmaxiter = args.nmaxiter
     statsfunctions = [] #don't compute any statistics
     check = False #don't turn to spins to check
@@ -229,6 +233,7 @@ def main(args):
     #launch thermalisation
     
     kw = {'nb':nb,'num_in_bin':num_in_bin, 'iterworm':iterworm,
+          'nrps': nrps,
           'nitermax':nmaxiter,'check':check,
           'statsfunctions':statsfunctions,
           'nt':nt, 'hamiltonian':hamiltonian,'ncores':ncores,
@@ -241,12 +246,13 @@ def main(args):
 
 
     t1 = time()
-    (meanstatth, swapsth, failedupdatesth) =     dw.mcs_swaps(states, spinstates, energies, betas, [],[], **kw)
+    (meanstatth, swapst_th, swapsh_th, failedupdatesth) =     dw.mcs_swaps(states, spinstates, energies, betas, [],[], **kw)
     t2 = time()
     
     print("Energies = ", energies)
     print("Energies size: ", energies.shape)
-    backup.results.swapsth = swapsth
+    backup.results.swapst_th = swapst_th
+    backup.results.swapsh_th = swapsh_th
     backup.results.failedupdatesth = failedupdatesth
     print('Time for all thermalisation steps = ', t2-t1)
     new_en_states = [[dim.hamiltonian(hamiltonian,
@@ -256,7 +262,7 @@ def main(args):
     new_en_states = np.array(new_en_states)
     for t in range(nt):
         for h in range(nh):
-            if np.absolute(energies[t,h]-new_en_states[t,h]) > 1.0e-15:
+            if np.absolute(energies[t,h]-new_en_states[t,h]) > 1.0e-9:
                 print('RunBasis: Issue at temperature index ', t, ' and h index ', h)
                 print("   energies[t,h] = ", energies[t,h])
                 print("   H0[t,h] = ", dim.hamiltonian(hamiltonian,
@@ -302,6 +308,7 @@ def main(args):
             p = 0
                 
     kw = {'nb':nb,'num_in_bin':num_in_bin, 'iterworm':iterworm,
+          'nrps': nrps,
           'nitermax':nmaxiter,'check':check,
           'statsfunctions':statsfunctions,
           'nt':nt, 'hamiltonian':hamiltonian,
@@ -316,9 +323,9 @@ def main(args):
         # Run measurements
     t1 = time()
    
-    (backup.results.meanstat, backup.results.swaps,
+    (backup.results.meanstat, backup.results.swapst, backup.results.swapsh,
      backup.results.failedupdates) =\
-    (meanstat, swaps, failedupdates) =\
+    (meanstat, swapst, swapsh, failedupdates) =\
     dw.mcs_swaps(states, spinstates, energies, betas, stat_temps, stat_hfields,**kw)
     print("Energies = ", energies)
     print("Energies size: ", energies.shape)
@@ -331,7 +338,7 @@ def main(args):
     new_en_states = np.array(new_en_states)
     for t in range(nt):
         for h in range(nh):
-            if np.absolute(energies[t,h]-new_en_states[t,h]) > 1.0e-15:
+            if np.absolute(energies[t,h]-new_en_states[t,h]) > 1.0e-9:
                 print('RunBasis: Issue at temperature index ', t, ' and h index ', h)
                 print("   energies[t,h] = ", energies[t,h])
                 print("   H0[t,h] = ", dim.hamiltonian(hamiltonian,
@@ -376,10 +383,11 @@ def main(args):
     #Save the backup object in a file
     pickle.dump(backup, open(args.output + '.pkl','wb'))
     print("Job done")
-    return meanstat, failedupdatesth, failedupdates
+    return meanstat, swapst, swapsh, failedupdatesth, failedupdates
 
 
 # In[ ]:
+
 
 if __name__ == "__main__":
 
@@ -407,6 +415,8 @@ if __name__ == "__main__":
                         help = 'number of measurements steps') # number of measurement steps
     parser.add_argument('--nips', type = int, default = 10,
                         help = 'number of worm constructions per MC step')
+    parser.add_argument('--nrps', type = int, default = 1,
+                        help = 'number of replica loops per MC step')
     parser.add_argument('--measperiod', type = int, default = 1,
                         help = 'number of nips worm building + swaps between measurements')
     parser.add_argument('--ssf', default = False, action = 'store_true',
@@ -478,6 +488,7 @@ if __name__ == "__main__":
 
 
 # In[ ]:
+
 
 #    t_meanfunc = list() #for each function, for each temperature, mean of the state function
 #    t_varmeanfunc = list() #for each function, for each temperature, variance of the state function
