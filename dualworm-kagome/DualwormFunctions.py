@@ -834,35 +834,47 @@ def replicas(it, nt, nh, statesen, betas, hfields, states, spinstates,
         As the single spin flip update is almost useless in some cases,
         this sometimes happens to be the core of the algorithm.
     '''
-    
-    if it%4 == 0:
-        # even t swap
-        for hid in range(nh):
-            for tid in range(0,nt-1,2):
-                swaptemps(tid, hid, statesen, betas, hfields, ids2walker,
-                          walker2ids, walker2params, swapst)
-            
-    elif it%4 == 1:
-        # even h swap:
-        for tid in range(0, nt):
-            for hid in range(0, nh-1, 2):
-                swapfields(tid, hid, statesen, betas, hfields, spinstates,
-                           ids2walker, walker2ids, walker2params, swapsh)
-                
-    elif it%4 == 2:
-        #odd t swap
-        for hid in range(nh):
-            for tid in range(1,nt-1,2):
-                swaptemps(tid, hid, statesen, betas, hfields, ids2walker,
-                          walker2ids, walker2params, swapst)
-                
-    elif it%4 == 3:
-        # odd h swap:
-        for tid in range(0, nt):
-            for hid in range(1, nh-1, 2):
-                swapfields(tid, hid, statesen, betas, hfields, spinstates,
-                           ids2walker, walker2ids, walker2params, swapsh)
-                
+    if nh > 1:
+        if it%4 == 0:
+            # even t swap
+            for hid in range(nh):
+                for tid in range(0,nt-1,2):
+                    swaptemps(tid, hid, statesen, betas, hfields, ids2walker,
+                              walker2ids, walker2params, swapst)
+
+        elif it%4 == 1:
+            # even h swap:
+            for tid in range(0, nt):
+                for hid in range(0, nh-1, 2):
+                    swapfields(tid, hid, statesen, betas, hfields, spinstates,
+                               ids2walker, walker2ids, walker2params, swapsh)
+
+        elif it%4 == 2:
+            #odd t swap
+            for hid in range(nh):
+                for tid in range(1,nt-1,2):
+                    swaptemps(tid, hid, statesen, betas, hfields, ids2walker,
+                              walker2ids, walker2params, swapst)
+
+        elif it%4 == 3:
+            # odd h swap:
+            for tid in range(0, nt):
+                for hid in range(1, nh-1, 2):
+                    swapfields(tid, hid, statesen, betas, hfields, spinstates,
+                               ids2walker, walker2ids, walker2params, swapsh)
+    else:
+        if it%2 == 0:
+            # even t swap
+            for hid in range(nh):
+                for tid in range(0,nt-1,2):
+                    swaptemps(tid, hid, statesen, betas, hfields, ids2walker,
+                              walker2ids, walker2params, swapst)
+        elif it%2 == 1:
+            #odd t swap
+            for hid in range(nh):
+                for tid in range(1,nt-1,2):
+                    swaptemps(tid, hid, statesen, betas, hfields, ids2walker,
+                              walker2ids, walker2params, swapst)
 
 
 # In[ ]:
@@ -1096,15 +1108,15 @@ def mcs_swaps(states, spinstates, statesen,
 
 
         #### TEMPERING perform "parallel" tempering
-        if nh == 1:
-            print("tempering??")
-            tempering(nt, statesen, betas, states, spinstates,
-                      swapst)
-        else: # replicas in both
-            for riter in range(nrps):
-                replicas(it, nt, nh, statesen, betas, hfields, states, 
-                         spinstates, swapst, swapsh, ids2walker,
-                         walker2ids, walker2params)
+        #if nh == 1 :
+        #    print("tempering??")
+        #    tempering(nt, statesen, betas, states, spinstates,
+        #              swapst)
+        #else: # replicas in both
+        for riter in range(nrps):
+            replicas(it, nt, nh, statesen, betas, hfields, states, 
+                     spinstates, swapst, swapsh, ids2walker,
+                     walker2ids, walker2params)
     
         t3 = time()
         t_tempering +=(t3-t2)/itermcs
@@ -1115,7 +1127,7 @@ def mcs_swaps(states, spinstates, statesen,
             def mapids2walker(x):
                 return ids2walker[x[0],x[1]]
             
-            stat_walkers = np.array(list(map(f, stat_paramsid)))
+            stat_walkers = np.array(list(map(mapids2walker, stat_paramsid)))
             
             dim.updatespinstates(states, spinstates,
                                  np.array(stat_walkers, dtype='int32'), 

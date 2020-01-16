@@ -63,6 +63,12 @@ def LoadParameters(foldername, filenamelist):
     stat_temps = [[] for _ in range(n)]
     temperatures_plots = [[] for _ in range(n)]
     
+    
+    hfields = [[] for _ in range(n)]
+    nh = [0 for _ in range(n)]
+    stat_hfields = [[] for _ in range(n)]
+    hfields_plots = [[] for _ in range(n)]
+    
     listfunctions = [[] for _ in range(n)]
     
     sref = [[] for _ in range(n)]
@@ -70,9 +76,10 @@ def LoadParameters(foldername, filenamelist):
     for nf, filename in enumerate(filenamelist):
         [L[nf], numsites[nf], J1[nf], J2[nf], J3[nf], J3st[nf], J4[nf], nb[nf], 
          num_in_bin[nf], temperatures[nf], nt[nf], stat_temps[nf], temperatures_plots[nf],
+         hfields[nf], nh[nf], stat_hfields[nf], hfields_plots[nf],
          listfunctions[nf], sref[nf]] = LoadParametersFromFile(foldername, filename)
     
-    return L, numsites, J1, J2, J3, J3st, J4, nb, num_in_bin, temperatures, nt,             stat_temps, temperatures_plots, listfunctions, sref
+    return L, numsites, J1, J2, J3, J3st, J4, nb, num_in_bin, temperatures, nt,             stat_temps, temperatures_plots, hfields, nh,             stat_hfields, hfields_plots, listfunctions, sref
 
 
 # In[ ]:
@@ -102,9 +109,13 @@ def LoadParametersFromFile(foldername, filename):
     stat_temps = backup.params.stat_temps
     temperatures_plots = [temperatures[t] for t in stat_temps]
     
+    hfields = backup.params.hfields.tolist()
+    nh = backup.params.nh
+    stat_hfields = backup.params.stat_hfields
+    hfields_plots = [hfields[h] for h in stat_hfields]
+    
     listfunctions = backup.results.namefunctions
     
-        
     #reference spins
     s0 = ijl_s[L, L, 0]
     s1 = ijl_s[L, L, 1]
@@ -113,13 +124,13 @@ def LoadParametersFromFile(foldername, filename):
     sref = [s0, s1, s2]
     f.close()
     
-    return L, numsites, J1, J2, J3, J3st, J4, nb, num_in_bin, temperatures, nt,             stat_temps, temperatures_plots, listfunctions, sref
+    return L, numsites, J1, J2, J3, J3st, J4, nb, num_in_bin, temperatures, nt,             stat_temps, temperatures_plots, hfields, nh,             stat_hfields, hfields_plots, listfunctions, sref
 
 
 # In[ ]:
 
 
-def ExtractStatistics(idfunc, meanstat, nb, stat_temps, sq = 0, **kwargs):
+def ExtractStatistics(idfunc, statstable, nb, stat_temps, stat_hfields, sq = 0, **kwargs):
     '''
         This function gets the statistics from a file and
         computes the expectation values and variances of 
@@ -128,27 +139,28 @@ def ExtractStatistics(idfunc, meanstat, nb, stat_temps, sq = 0, **kwargs):
         sq = 0 -> not square stats
         sq = 1 -> square stats
     '''
-    stattuple = meanstat[idfunc];
-    t_meanfunc = np.array(stattuple[sq]).sum(1)/nb
+    stattuple = statstable[idfunc];
+    t_h_meanfunc = np.array(stattuple[sq]).sum(2)/nb
     
     binning = kwargs.get('binning', False)
 
-    t_varmeanfunc = [0 for t in stat_temps]
+    t_h_varmeanfunc = [[0 for h in stat_hfields] for t in stat_temps]
     for resid, t in enumerate(stat_temps):
-        for b in range(nb):
-            t_varmeanfunc[resid] += ((stattuple[sq][resid][b] - t_meanfunc[resid]) ** 2)/(nb * (nb - 1))
+        for reshid, h in enumerate(stat_hfields):
+            for b in range(nb):
+                t_h_varmeanfunc[resid][reshid] += ((stattuple[sq][resid][reshid][b] - t_h_meanfunc[resid][reshid]) ** 2)/(nb * (nb - 1))
     if binning:
         print('binning!')
-        Binning(t_meanfunc,t_varmeanfunc, stattuple[sq], nb,
-                                stat_temps, **kwargs)
+        Binning(t_h_meanfunc,t_h_varmeanfunc, stattuple[sq], nb,
+                                stat_temps, stat_hfields, **kwargs)
         
-    return t_meanfunc, t_varmeanfunc
+    return t_h_meanfunc, t_h_varmeanfunc
 
 
 # In[ ]:
 
 
-def Binning(t_mean, t_varmean, stattuple, nb, stat_temps, **kwargs):
+def Binning(t_h_mean, t_h_varmean, stattuple, nb, stat_temps,stat_hfields, **kwargs):
     '''
         This function implements a binning analysis
     '''
@@ -159,73 +171,91 @@ def Binning(t_mean, t_varmean, stattuple, nb, stat_temps, **kwargs):
         nblist.append(nbb)
         nbb = nbb//2
         
+    print(" bins list for binning: ", nblist)
         
-    t_vars = [[] for resid in range(len(stat_temps))]
+    t_h_vars = [[[] for reshid in range(len(stat_hfields))] for resid in range(len(stat_temps))]
     for resid, t in enumerate(stat_temps):
-        var = []
-        for l,nbb in enumerate(nblist):
-            avg = np.array(stattuple[resid][0:(2**l)]).sum(0)/(2**l)
-            varl=((avg - t_mean[resid])**2)/(nbb*(nbb-1))
-            for b in range(1,nbb):
-                avg = np.array(stattuple[resid][(2**l)*b:(2**l)*(b+1)]).sum(0)/(2**l)
-                varl+=((avg - t_mean[resid])**2)/(nbb*(nbb-1))
-            if len(varl.shape) == 0:
-                var.append(varl)
-            else:
-                var.append(np.max(varl))
-            if resid == 0:
-                print(nbb, " --- ", var[l])
-           
-        t_vars[resid] = var
+        for reshid, h in enumerate(stat_hfields):
+            var = []
+            for l,nbb in enumerate(nblist):
+                avg = np.array(stattuple[resid][0:(2**l)]).sum(0)/(2**l)
+                varl=((avg - t_h_mean[resid])**2)/(nbb*(nbb-1))
+                for b in range(1,nbb):
+                    avg = np.array(stattuple[resid][(2**l)*b:(2**l)*(b+1)]).sum(0)/(2**l)
+                    varl+=((avg - t_h_mean[resid])**2)/(nbb*(nbb-1))
+                if len(varl.shape) == 0:
+                    var.append(varl)
+                else:
+                    var.append(np.max(varl))
+                if resid == 0:
+                    print(nbb, " --- ", var[l])
+            
+            t_h_vars[resid][reshid] = var
             
     plzplot = kwargs.get('plzplot', False)
     plotmin = kwargs.get('plotmin', 0)
     plotmax = kwargs.get('plotmax', 10)
+    plothmin = kwargs.get('plothmin', 0)
+    plothmax = kwargs.get('plothmax', 10)
     if plzplot:
         print('plotting!')
         plt.figure(figsize=(12, 8),dpi=300)
         minplt = max(0, plotmin)
         maxplt = min(plotmax, len(stat_temps))
-        for resid, t in enumerate(stat_temps[minplt:maxplt]):
-            plt.plot(range(len(t_vars[resid])), t_vars[resid], '.-', label = 't = {0}'.format(t))
-        plt.legend()
-        plt.show()
-    t_varmean = [max(var) for var in t_vars] 
+        minhplt = max(0, plothmin)
+        maxhplt = min(plothmax, len(stat_hfields))
+        for reshid, h in enumerate(stat_hfields[minhplt:maxhplt]):
+            for resid, t in enumerate(stat_temps[minplt:maxplt]):
+                plt.plot(range(len(t_h_vars[resid][reshid])), t_h_vars[resid][reshid], '.-', label = 't = {0}'.format(t))
+            plt.title('h = {0}'.format(h))
+            plt.legend()
+            plt.show()
+    t_h_varmean = [[max(var) for var in h_vars] for h_vars in t_h_vars]
 
 
 # In[ ]:
 
 
-def LoadSwaps(foldername, filenamelist, nb, num_in_bin):
+def LoadSwaps(foldername, filenamelist, nb, num_in_bin, nh, nt):
     n = len(filenamelist)
-    swapsth = [[] for _ in range(n)]
-    swaps = [[] for _ in range(n)]
-
-    for nf, filename in enumerate(filenamelist):
-        [swapsth[nf], swaps[nf]] = LoadSwapsFromFile(foldername, filename, nb[nf], num_in_bin[nf])
+    swapst_th = [[] for _ in range(n)]
+    swapsh_th = [[] for _ in range(n)]
+    swapst = [[] for _ in range(n)]
+    swapsh = [[] for _ in range(n)]
     
-    return swapsth, swaps
+    for nf, filename in enumerate(filenamelist):
+        [swapst_th[nf], swapsh_th[nf],
+        swapst[nf], swapsh[nf]] =\
+        LoadSwapsFromFile(foldername, filename, nb[nf],
+                          num_in_bin[nf], nh[nf], nt[nf])
+    
+    return swapst_th, swapsh_th, swapst, swapsh
 
 
 # In[ ]:
 
 
-def LoadSwapsFromFile(foldername, filename, nb, num_in_bin):
+def LoadSwapsFromFile(foldername, filename, nb, num_in_bin, nh, nt):
     f = open('./' + foldername + filename +'.pkl', 'rb')
     backup = pickle.load(f)
     
+    nrps = backup.params.nrps
     nsms = nb*num_in_bin
-    swapsth = backup.results.swapsth
-    swaps = np.array(backup.results.swaps)/(2*nsms)
+    measperiod = backup.params.measperiod
     
+    swapst_th = backup.results.swapst_th
+    swapsh_th = backup.results.swapsh_th
+    
+    swapst = 4*np.array(backup.results.swapst)/(nsms*nrps*measperiod*nh)
+    swapsh = 4*np.array(backup.results.swapsh)/(nsms*nrps*measperiod*nt)
     f.close()
-    return swapsth, swaps
+    return swapst_th, swapsh_th, swapst, swapsh
 
 
 # In[ ]:
 
 
-def LoadEnergy(foldername, filenamelist, numsites, nb, stat_temps, temperatures, listfunctions, **kwargs):
+def LoadEnergy(foldername, filenamelist, numsites, nb, stat_temps, temperatures, stat_hfields, listfunctions, **kwargs):
     n = len(filenamelist)
     
     t_MeanE = [[] for _ in range(n)]
@@ -238,7 +268,8 @@ def LoadEnergy(foldername, filenamelist, numsites, nb, stat_temps, temperatures,
     for nf, filename in enumerate(filenamelist):
         if 'Energy' in listfunctions[nf]:
             idfunc = listfunctions[nf].index('Energy')
-            [t_MeanE[nf], t_MeanEsq[nf], t_varMeanE[nf], t_varMeanEsq[nf], C[nf], ErrC[nf]] =                 LoadEnergyFromFile(foldername, filename, numsites[nf], nb[nf], stat_temps[nf], temperatures[nf], idfunc, **kwargs)
+            [t_MeanE[nf], t_MeanEsq[nf], t_varMeanE[nf], t_varMeanEsq[nf], C[nf], ErrC[nf]] =                 LoadEnergyFromFile(foldername, filename, numsites[nf], nb[nf], stat_temps[nf],
+                                   temperatures[nf], stat_hfields[nf], idfunc, **kwargs)
         else:
             [t_MeanE[nf], t_MeanEsq[nf], t_varMeanE[nf], t_varMeanEsq[nf], C[nf], ErrC[nf]] = [[],[],[],[],[],[]]
         
@@ -248,206 +279,234 @@ def LoadEnergy(foldername, filenamelist, numsites, nb, stat_temps, temperatures,
 # In[ ]:
 
 
-def LoadEnergyFromFile(foldername, filename, numsites, nb, stat_temps, temperatures, idfunc, **kwargs):
+def LoadEnergyFromFile(foldername, filename, numsites, nb, stat_temps,
+                       temperatures, stat_hfields, idfunc, **kwargs):
     f = open('./' + foldername + filename +'.pkl', 'rb')
     backup = pickle.load(f) 
     
-    meanstat = backup.results.meanstat
-    #t_meanfunc = backup.results.t_meanfunc
-    #t_varmeanfunc = backup.results.t_varmeanfunc
+    statstable = backup.results.statstable
     
-    t_MeanE, t_varMeanE = ExtractStatistics(idfunc, meanstat, nb, stat_temps, **kwargs)
-    t_MeanEsq, t_varMeanEsq = ExtractStatistics(idfunc, meanstat, nb, stat_temps, sq = 1, **kwargs)
-    #t_MeanE = t_meanfunc[idfunc][0].tolist()
-    #t_MeanEsq = t_meanfunc[idfunc][1].tolist()
-    #t_varMeanE = t_varmeanfunc[idfunc][0]
-    #t_varMeanEsq = t_varmeanfunc[idfunc][1]
+    t_h_MeanE, t_h_varMeanE =    ExtractStatistics(idfunc, statstable, nb, 
+                      stat_temps,stat_hfields, **kwargs)
+    t_h_MeanEsq, t_h_varMeanEsq =    ExtractStatistics(idfunc, statstable, nb,
+                      stat_temps, stat_hfields, sq = 1, **kwargs)
     
     C = []
+    for resid, t in enumerate(stat_temps):
+        Ch = []
+        T = temperatures[t]
+        for reshid, h in enumerate(stat_hfields):
+            Ch.append(numsites * (t_h_MeanEsq[resid][reshid] -
+                                  t_h_MeanE[resid][reshid] ** 2) / T ** 2)
+        C.append(Ch)
+    # to compute the error on C, we need to compute sqrt(<C^2> - <C>^2)
+    # where "<>" stands for the average over all the bins
+    # i.e. <C> = 1/nb * sum_b C_b where C_b is the value of C over the bin b
+    # Note that C_b = N/T^2 * (<E^2>_b - <E>_b ^2)
+    # where <>_b stands for the average over bin b
+
+    tb_E = statstable[idfunc][0]
+    tb_Esq = statstable[idfunc][1]
+
     ErrC = []
     for resid, t in enumerate(stat_temps):
-        T = temperatures[t]
-        C.append(numsites * (t_MeanEsq[resid] - t_MeanE[resid] ** 2) / T ** 2)
-
-    # to compute the error on C, we need to compute sqrt(<C^2> - <C>^2) where "<>" stands for the average over all the bins
-    # i.e. <C> = 1/nb * sum_b C_b where C_b is the value of C over the bin b
-    # Note that C_b = N/T^2 * (<E^2>_b - <E>_b ^2) where <>_b stands for the average over bin b
-
-    tb_E = meanstat[idfunc][0]
-    tb_Esq = meanstat[idfunc][1]
-
-    for resid, t in enumerate(stat_temps):
-        T = temperatures[t]
-        Mean_VarE = 0
-        Mean_VarE_Sq = 0
-        for b in range(nb):
-                Mean_VarE += (tb_Esq[resid][b] - tb_E[resid][b] ** 2)/nb
-                Mean_VarE_Sq += ((tb_Esq[resid][b] - tb_E[resid][b] ** 2) ** 2)/nb
-        if (Mean_VarE_Sq - Mean_VarE ** 2 >= 0) :
-            ErrC.append(numsites / (T ** 2) * np.sqrt(Mean_VarE_Sq - Mean_VarE ** 2))
-        else:
-            assert(Mean_VarE_Sq - Mean_VarE ** 2 >= -1e-15)
-            ErrC.append(0)
+        ErrCh = []
+        for reshid, h in enumerate(stat_hfields):
+            T = temperatures[t]
+            Mean_VarE = 0
+            Mean_VarE_Sq = 0
+            for b in range(nb):
+                    Mean_VarE += (tb_Esq[resid][reshid][b] - 
+                                  tb_E[resid][reshid][b] ** 2)/nb
+                    Mean_VarE_Sq += ((tb_Esq[resid][reshid][b] -
+                                      tb_E[resid][reshid][b] ** 2) ** 2)/nb
+            if (Mean_VarE_Sq - Mean_VarE ** 2 >= 0) :
+                ErrCh.append(numsites / (T ** 2) * np.sqrt(Mean_VarE_Sq 
+                                                           - Mean_VarE ** 2))
+            else:
+                assert(Mean_VarE_Sq - Mean_VarE ** 2 >= -1e-15)
+                ErrCh.append(0)
+        ErrC.append(ErrCh)
             
     f.close()
     
-    return t_MeanE, t_MeanEsq, t_varMeanE, t_varMeanEsq, C, ErrC
+    return t_h_MeanE, t_h_MeanEsq, t_h_varMeanE, t_h_varMeanEsq, C, ErrC
 
 
 # In[ ]:
 
 
-def LoadMagnetisation(foldername, filenamelist, numsites, nb, stat_temps, temperatures, listfunctions, **kwargs):
+def LoadMagnetisation(foldername, filenamelist, numsites, nb, stat_temps,
+                      temperatures, stat_hfields, listfunctions, **kwargs):
     n = len(filenamelist)
     
-    t_MeanM = [[] for _ in range(n)]
-    t_MeanMsq = [[] for _ in range(n)]
-    t_varMeanM = [[] for _ in range(n)]
-    t_varMeanMsq = [[] for _ in range(n)]
+    t_h_MeanM = [[] for _ in range(n)]
+    t_h_MeanMsq = [[] for _ in range(n)]
+    t_h_varMeanM = [[] for _ in range(n)]
+    t_h_varMeanMsq = [[] for _ in range(n)]
     Chi = [[] for _ in range(n)]
     ErrChi = [[] for _ in range(n)]
 
     for nf, filename in enumerate(filenamelist):
         if 'Magnetisation' in listfunctions[nf]:
             idfunc = listfunctions[nf].index('Magnetisation')
-            [t_MeanM[nf], t_MeanMsq[nf], t_varMeanM[nf], t_varMeanMsq[nf], Chi[nf], ErrChi[nf]] =                 LoadMagnetisationFromFile(foldername, filename, numsites[nf], nb[nf], stat_temps[nf], temperatures[nf], idfunc, **kwargs)
+            [t_h_MeanM[nf], t_h_MeanMsq[nf], t_h_varMeanM[nf],
+             t_h_varMeanMsq[nf], Chi[nf], ErrChi[nf]] = \
+                LoadMagnetisationFromFile(foldername, filename, numsites[nf],
+                                          nb[nf], stat_temps[nf], temperatures[nf],
+                                          stat_hfields[nf], idfunc, **kwargs)
         else:
-            [t_MeanM[nf], t_MeanMsq[nf], t_varMeanM[nf], t_varMeanMsq[nf], Chi[nf], ErrChi[nf]] = [[],[],[],[],[],[]]
+            [t_h_MeanM[nf], t_h_MeanMsq[nf], t_h_varMeanM[nf],
+             t_h_varMeanMsq[nf], Chi[nf], ErrChi[nf]] = [[],[],[],[],[],[]]
         
-    return t_MeanM, t_MeanMsq, t_varMeanM, t_varMeanMsq, Chi, ErrChi
+    return t_h_MeanM, t_h_MeanMsq, t_h_varMeanM, t_h_varMeanMsq, Chi, ErrChi
 
 
 # In[ ]:
 
 
-def LoadMagnetisationFromFile(foldername, filename, numsites, nb, stat_temps, temperatures, idfunc,  **kwargs):
+def LoadMagnetisationFromFile(foldername, filename, numsites, nb, stat_temps,
+                              temperatures, stat_hfields, idfunc,  **kwargs):
     f = open('./' + foldername + filename +'.pkl', 'rb')
     backup = pickle.load(f) 
     
-    meanstat = backup.results.meanstat
+    statstable = backup.results.statstable
     
-    t_MeanM, t_varMeanM = ExtractStatistics(idfunc, meanstat, nb, stat_temps, **kwargs)
-    t_MeanMsq, t_varMeanMsq = ExtractStatistics(idfunc, meanstat, nb, stat_temps, sq = 1, **kwargs)
+    t_h_MeanM, t_h_varMeanM =    ExtractStatistics(idfunc, statstable, nb, stat_temps,
+                      stat_hfields, **kwargs)
+    t_h_MeanMsq, t_h_varMeanMsq =    ExtractStatistics(idfunc, statstable, nb, stat_temps,
+                      stat_hfields, sq = 1, **kwargs)
     Chi = []
+    for resid, t in enumerate(stat_temps):
+        T = temperatures[t]
+        Chih = []
+        for reshid, h in enumerate(stat_hfields):
+            Chih.append(numsites * ( t_h_MeanMsq[resid][reshid] -  t_h_MeanM[resid][reshid] ** 2) / T)
+        Chi.append(Chih)
+        
+    tb_M = statstable[idfunc][0]
+    tb_Msq = statstable[idfunc][1]
+
+    
     ErrChi = []
     for resid, t in enumerate(stat_temps):
         T = temperatures[t]
-        Chi.append(numsites * (t_MeanMsq[resid] - t_MeanM[resid] ** 2) / T)
-
-    tb_M = meanstat[idfunc][0]
-    tb_Msq = meanstat[idfunc][1]
-
-    for resid, t in enumerate(stat_temps):
-        T = temperatures[t]
-        Mean_VarM = 0
-        Mean_VarM_Sq = 0
-        for b in range(nb):
-                Mean_VarM += (tb_Msq[resid][b] - tb_M[resid][b] ** 2)/nb
-                Mean_VarM_Sq += ((tb_Msq[resid][b] - tb_M[resid][b] ** 2) ** 2)/nb
-        if Mean_VarM_Sq - Mean_VarM ** 2 >= 0 :
-            ErrChi.append(numsites / T * np.sqrt(Mean_VarM_Sq - Mean_VarM ** 2))  
-        else:
-            assert(Mean_VarM_Sq - Mean_VarM ** 2 >= -1e-15)
-            ErrChi.append(0)
+        ErrChih = []
+        for reshid, h in enumerate(stat_hfields):
+            Mean_VarM = 0
+            Mean_VarM_Sq = 0
+            for b in range(nb):
+                    Mean_VarM += (tb_Msq[resid][reshid][b] - tb_M[resid][reshid][b] ** 2)/nb
+                    Mean_VarM_Sq += ((tb_Msq[resid][reshid][b] - tb_M[resid][reshid][b] ** 2) ** 2)/nb
+            if Mean_VarM_Sq - Mean_VarM ** 2 >= 0 :
+                ErrChih.append(numsites / T * np.sqrt(Mean_VarM_Sq - Mean_VarM ** 2))  
+            else:
+                assert(Mean_VarM_Sq - Mean_VarM ** 2 >= -1e-15)
+                ErrChih.append(0)
+        ErrChi.append(ErrChih)
             
     f.close()
     
-    return t_MeanM, t_MeanMsq, t_varMeanM, t_varMeanMsq, Chi, ErrChi
+    return  t_h_MeanM,  t_h_MeanMsq, t_h_varMeanM, t_h_varMeanMsq, Chi, ErrChi
 
 
 # In[ ]:
 
 
-def LoadCentralCorrelations(foldername, filenamelist, listfunctions, sref, stat_temps, nb, **kwargs):
+def LoadCentralCorrelations(foldername, filenamelist, listfunctions, sref, stat_temps, stat_hfields, nb, **kwargs):
     n = len(filenamelist)
     
     ## "Correlations" <sisj>
-    t_MeanSs = [[] for _ in range(n)]
-    t_varMeanSs = [[] for _ in range(n)]
+    t_h_MeanSs = [[] for _ in range(n)]
+    t_h_varMeanSs = [[] for _ in range(n)]
     
     ## Local spin average
-    t_MeanSi = [[] for _ in range(n)]
-    t_varMeanSi = [[] for _ in range(n)]
+    t_h_MeanSi = [[] for _ in range(n)]
+    t_h_varMeanSi = [[] for _ in range(n)]
     
     ## Correlations
-    t_MeanCorr = [[] for _ in range(n)]
-    t_errCorrEstim = [[] for _ in range(n)]
+    t_h_MeanCorr = [[] for _ in range(n)]
+    t_h_errCorrEstim = [[] for _ in range(n)]
     for nf, filename in enumerate(filenamelist):
-        if ('Central_Correlations' in listfunctions[nf] and 'Si' in listfunctions[nf]): # This will be improved when we will work with a more general way of handling the correlations
+        if ('Central_Correlations' in listfunctions[nf] 
+            and 'Si' in listfunctions[nf]):
+            # This will be improved when we will work with a more
+            # general way of handling the correlations
             idfunc = listfunctions[nf].index('Central_Correlations')
             idfuncsi = listfunctions[nf].index('Si')
 
-            [t_MeanSs[nf], t_varMeanSs[nf], t_MeanSi[nf], t_varMeanSi[nf], t_MeanCorr[nf], 
-             t_errCorrEstim[nf]] = LoadCorrelationsFromFile(foldername, filename, idfunc, idfuncsi, sref[nf], stat_temps[nf], nb[nf], **kwargs)
+            [t_h_MeanSs[nf], t_h_varMeanSs[nf], t_h_MeanSi[nf],
+             t_h_varMeanSi[nf], t_h_MeanCorr[nf],t_h_errCorrEstim[nf]] =\
+            LoadCorrelationsFromFile(foldername, filename, idfunc,
+                                     idfuncsi, sref[nf], stat_temps[nf],
+                                     stat_hfields[nf], nb[nf], **kwargs)
         else:
-            [t_MeanSs[nf], t_varMeanSs[nf], t_MeanSi[nf], t_varMeanSi[nf], t_MeanCorr[nf], 
-             t_errCorrEstim[nf]] = [[],[],[],[],[]]
-    return t_MeanSs, t_varMeanSs, t_MeanSi, t_varMeanSi, t_MeanCorr, t_errCorrEstim
+            [t_h_MeanSs[nf], t_h_varMeanSs[nf], t_h_MeanSi[nf], t_h_varMeanSi[nf], t_h_MeanCorr[nf], 
+             t_h_errCorrEstim[nf]] = [[],[],[],[],[]]
+    return t_h_MeanSs, t_h_varMeanSs, t_h_MeanSi, t_h_varMeanSi, t_h_MeanCorr, t_h_errCorrEstim
 
 
 # In[ ]:
 
 
-def LoadCorrelationsFromFile(foldername, filename, idfunc, idfuncsi, sref, stat_temps, nb, **kwargs):
+def LoadCorrelationsFromFile(foldername, filename, idfunc, idfuncsi, sref, stat_temps, stat_hfields, nb, **kwargs):
     f = open('./' + foldername + filename +'.pkl', 'rb')
     backup = pickle.load(f) 
     
-    meanstat = backup.results.meanstat
-    #t_meanfunc = backup.results.t_meanfunc
-    #t_varmeanfunc = backup.results.t_varmeanfunc
+    statstable = backup.results.statstable
+    
     
     # Averages and corresponding variances
-    #t_MeanSi = t_meanfunc[idfuncsi][0] # <si>
-    #t_varMeanSi = t_varmeanfunc[idfuncsi][0] # var(<si>)
-    t_MeanSi, t_varMeanSi = ExtractStatistics(idfuncsi, meanstat, nb, stat_temps, **kwargs)
+    t_h_MeanSi, t_h_varMeanSi =    ExtractStatistics(idfuncsi, statstable, nb, stat_temps,
+                      stat_hfields, **kwargs)
     
-    #t_MeanSs = t_meanfunc[idfunc][0]
-    #t_varMeanSs = t_varmeanfunc[idfunc][0]
-    t_MeanSs, t_varMeanSs = ExtractStatistics(idfunc, meanstat, nb, stat_temps, **kwargs)
+    t_h_MeanSs, t_h_varMeanSs =    ExtractStatistics(idfunc, statstable, nb, stat_temps,
+                      stat_hfields, **kwargs)
     
     
-    t_MeanCorr = []
+    t_h_MeanCorr = []
     for i in range(len(sref)):
-        column = t_MeanSi[:, sref[i]]
-        column = column[:,np.newaxis]
-        t_MeanCorr.append(t_MeanSs[:,i,:] - t_MeanSi*column) #<si sj> - <si> <sj> for j in lattice. /!\ this is ELEMENTWISE
+        column = t_h_MeanSi[:, :, sref[i]]
+        column = column[:,:,np.newaxis]
+        t_h_MeanCorr.append(t_h_MeanSs[:,:,i,:] - t_h_MeanSi*column) #<si sj> - <si> <sj> for j in lattice. /!\ this is ELEMENTWISE
         
     # Estimating the error on <si sj> - <si><sj>
-    t_errCorrEstim = CorrelErrorEstimator(meanstat, idfunc, idfuncsi, sref, stat_temps, nb)   
+    t_h_errCorrEstim = CorrelErrorEstimator(statstable, idfunc, idfuncsi, sref, nb)   
  
     f.close()
-    return t_MeanSs, t_varMeanSs, t_MeanSi, t_varMeanSi, t_MeanCorr, t_errCorrEstim
+    return t_h_MeanSs, t_h_varMeanSs, t_h_MeanSi, t_h_varMeanSi, t_h_MeanCorr, t_h_errCorrEstim
 
 
 # In[ ]:
 
 
-def CorrelErrorEstimator(meanstat, idfunc, idfuncsi, sref, stat_temps, nb):
-    t_b_sisj = np.array(meanstat[idfunc][0]) # <s0sj>_b (t)
-    (ntm, nb, nrefs, nsites) = t_b_sisj.shape #getting the system size
+def CorrelErrorEstimator(statstable, idfunc, idfuncsi, sref, nb):
     
-    t_b_sj = np.array(meanstat[idfuncsi][0]) # <si>_b (t)
-    t_b_s0 = t_b_sj[:,:,sref]
+    t_h_b_sisj = np.array(statstable[idfunc][0]) # <s0sj>_b (t)
+    (ntm, nhm, nb, nrefs, nsites) = t_h_b_sisj.shape #getting the system size
     
-    t_b_gamma = [[] for _  in range(nrefs)]
-    t_gamma = [np.zeros((ntm, nsites)) for _ in range(nrefs)]
+    t_h_b_sj = np.array(statstable[idfuncsi][0]) # <si>_b (t)
+    t_h_b_s0 = t_h_b_sj[:,:,:,sref]
+    
+    t_h_b_gamma = [[] for _  in range(nrefs)]
+    t_h_gamma = [np.zeros((ntm, nhm, nsites)) for _ in range(nrefs)]
     for i in range(nrefs):
-        t_b_s0i = t_b_s0[:,:,i]
-        t_b_s0i = t_b_s0i[:,:,np.newaxis]
+        t_h_b_s0i = t_h_b_s0[:,:,:,i]
+        t_h_b_s0i = t_h_b_s0i[:,:,:,np.newaxis]
         
         for b in range(nb):
-            t_b_gamma[i].append(t_b_sisj[:,b,i,:] - t_b_s0i[:,b]*t_b_sj[:,b,:])
-            t_gamma[i] += t_b_gamma[i][b]
-        t_gamma[i] = t_gamma[i]/nb
+            t_h_b_gamma[i].append(t_h_b_sisj[:,:,b,i,:] - t_h_b_s0i[:,:,b]*t_h_b_sj[:,:,b,:])
+            t_h_gamma[i] += t_h_b_gamma[i][b]
+        t_h_gamma[i] = t_h_gamma[i]/nb
     
     
-    t_vargamma = [np.zeros((ntm, nsites)) for _ in range(nrefs)]
+    t_h_vargamma = [np.zeros((ntm, nhm, nsites)) for _ in range(nrefs)]
     for i in range(nrefs):
         for b in range(nb):
-            t_vargamma[i] += np.power((t_b_gamma[i][b] - t_gamma[i]),2)
-        t_vargamma[i] = t_vargamma[i]/(nb*(nb-1))
+            t_h_vargamma[i] += np.power((t_h_b_gamma[i][b] - t_h_gamma[i]),2)
+        t_h_vargamma[i] = t_h_vargamma[i]/(nb*(nb-1))
 
-    return t_vargamma
+    return t_h_vargamma
 
 
 # In[ ]:
@@ -476,9 +535,9 @@ def LoadSiFromFile(foldername, filename, idfunc, stat_temps, **kwargs):
     f = open('./' + foldername + filename +'.pkl', 'rb')
     backup = pickle.load(f) 
     
-    meanstat = backup.results.meanstat
+    statstable = backup.results.statstable
     
-    t_MeanSi, t_varMeanSi = ExtractStatistics(idfuncsi, meanstat, nb, stat_temps, **kwargs)
+    t_MeanSi, t_varMeanSi = ExtractStatistics(idfuncsi, statstable, nb, stat_temps, **kwargs)
     
     f.close()
     
@@ -489,174 +548,253 @@ def LoadSiFromFile(foldername, filename, idfunc, stat_temps, **kwargs):
 # In[ ]:
 
 
-def SwapsAnalysis(L, n, tidmin, tidmax, temperatures, foldername, results_foldername, swaps):
+def SwapsAnalysis(L, n, tidmin, tidmax, temperatures, hfields, foldername, results_foldername, swapst, swapsh):
     for i in range(n):
         plt.figure()
-        plt.loglog(temperatures[i][tidmin:tidmax[i]], swaps[i][tidmin:tidmax[i]], '.-', color = 'green')
+        plt.loglog(temperatures[i][tidmin:tidmax[i]-1], swapst[i][tidmin:tidmax[i]-1], '.-', color = 'green')
         plt.xlabel('Temperature')
-        plt.ylabel('Number of swaps')
-        plt.title('Number of swaps as a function of the temperature')
-        plt.savefig('./' + foldername + 'Plots' + results_foldername+ '/NumberSwaps_L={0}_various-nsms.png'.format(L[i]))
+        plt.ylabel('Ratio of swaps')
+        plt.title('Ratio of swaps as a function of the temperature')
+        plt.savefig('./' + foldername + 'Plots' + results_foldername+ '/NumberSwapsTemperature_L={0}_various-nsms.png'.format(L[i]))
+        
+        nh = len(hfields[i])
+        plt.figure()
+        plt.semilogy(hfields[i][0:nh-1], swapsh[i][0:nh-1], '.-', color = 'orange')
+        plt.xlabel('Magnetic field')
+        plt.ylabel('Ratio of swaps')
+        plt.title('Ratio of swaps as a function of the magnetic field')
+        plt.savefig('./' + foldername + 'Plots' + results_foldername+ '/NumberSwapsField_L={0}_various-nsms.png'.format(L[i]))
 
 
 # In[ ]:
 
 
-def BasicPlotsE(L, n, tidmin, tidmax, temperatures_plots, foldername, results_foldername, filenamelist, t_MeanE, t_MeanEsq, t_varMeanE, t_varMeanEsq, C, ErrC, J1, J2, J3, J4, S0 = np.log(2)):
-    t_MeanE = np.array(t_MeanE)
-    t_MeanEsq =  np.array(t_MeanEsq)
-    t_varMeanE =  np.array(t_varMeanE)
-    t_varMeanEsq =  np.array(t_varMeanEsq)
+def BasicPlotsE(L, n, tidmin, tidmax, temperatures_plots, hfields_plots, foldername,
+                results_foldername, filenamelist, t_h_MeanE, t_h_MeanEsq, t_h_varMeanE,
+                t_h_varMeanEsq, C, ErrC, J1, J2, J3, J4, S0 = np.log(2), **kwargs):
+    t_h_MeanE = np.array(t_h_MeanE)
+    t_h_MeanEsq =  np.array(t_h_MeanEsq)
+    t_h_varMeanE =  np.array(t_h_varMeanE)
+    t_h_varMeanEsq =  np.array(t_h_varMeanEsq)
     C = np.array(C)
     ErrC = np.array(ErrC)
     
+    
     # Mean E
     margin = [0.18, 0.2, 0.02, 0.02]
-    plt.figure(figsize=(12, 8),dpi=300)
-    plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
     for i in range(n):
-        col = [0 + i/n, (1 - i/n)**2, 1 - i/n]
-        if J2[i] != 0:
-            ratio = J3[i]/J2[i]
-            plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]]  , t_MeanE[i][tidmin:tidmax[i]], '.-', label = r'$J_3 / J_2$ = {:f}'.format(ratio), color = col)
-        else:
-            plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]]  , t_MeanE[i][tidmin:tidmax[i]], '.-', label = r'$J_3 / J_2$ = $\infty$', color = col)
-        plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]], (t_MeanE[i][tidmin:tidmax[i]] - np.sqrt(t_varMeanE[i][tidmin:tidmax[i]])), (t_MeanE[i][tidmin:tidmax[i]] + np.sqrt(t_varMeanE[i][tidmin:tidmax[i]])), alpha=0.4, color = col)
-    plt.xlabel(r'Temperature $T$')
-    plt.ylabel(r'$E$')
-    plt.legend(loc= 'best', framealpha=0.5)
-    plt.savefig('./' + foldername + 'Plots' + results_foldername+ '/Mean energy per site_various-nsms.png')
-    plt.savefig('./' + foldername + 'Plots' + results_foldername+ '/Mean energy per site_various-nsms.png')
-    
-    #Heat capacity
-    margin = [0.18, 0.2, 0.02, 0.02]
-    plt.figure(figsize=(12, 8), dpi=300)
-    plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
-    for i in range(n):
-        col = [0 + i/n, (1-i/n) **2, 1 -  i/n]
-        if J2[i] != 0:
-            ratio = J3[i]/J2[i]
-            plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]]  , C[i][tidmin:tidmax[i]], '.-', label = r'$J_3 / J_2$ = {:f}'.format(ratio), color = col)
-        else:
-            plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]]  , C[i][tidmin:tidmax[i]], '.-', label = r'$J_3 / J_2$ = $\infty$', color = col)
-        plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]], C[i][tidmin:tidmax[i]] - ErrC[i][tidmin:tidmax[i]], C[i][tidmin:tidmax[i]] + ErrC[i][tidmin:tidmax[i]], alpha = 0.5, color = col)
-        #print('Error on the heat capacity for file ', filenamelist[i])
-        #print(ErrC[i])
-    plt.xlabel(r'Temperature $T$ ')
-    plt.ylabel(r'Heat capacity $C$ ')
-    plt.legend(loc= 'best', framealpha=0.5)
-    plt.savefig('./' + foldername + 'Plots' + results_foldername+ '/HeatCapacityErrors_various-nsms.png')
-    plt.savefig('./' + foldername + 'Plots' + results_foldername+ '/HeatCapacityErrors.pgf')
+        mh = len(hfields_plots[i])
+        plt.figure(figsize=(12, 8),dpi=300)
+        plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
+        for hid, h in enumerate(hfields_plots[i]):
+            col = [0 + hid/mh, (1 - hid/mh)**2, 1 - hid/mh]
+            plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]],
+                             t_h_MeanE[i][tidmin:tidmax[i]][:,hid],'.-',\
+                              label = r'$h$ = {0}'.format(h), color = col)
+            plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]],
+                             (t_h_MeanE[i][tidmin:tidmax[i]][:,hid]
+                              - np.sqrt(t_h_varMeanE[i][tidmin:tidmax[i]][:,hid])),
+                             (t_h_MeanE[i][tidmin:tidmax[i]][:,hid]
+                              + np.sqrt(t_h_varMeanE[i][tidmin:tidmax[i]][:,hid])),\
+                             alpha=0.4, color = col)
+        plt.xlabel(r'Temperature $T$')
+        plt.ylabel(r'$E$')
+        plt.legend(loc= 'best', framealpha=0.5)
+        plt.title('Filename: '+filenamelist[i])
+        plt.savefig('./' + foldername + 'Plots' + results_foldername
+                    + '/Mean energy per site_various-nsms.png')
+        plt.savefig('./' + foldername + 'Plots' + results_foldername
+                    + '/Mean energy per site_various-nsms.png')
 
     #Heat capacity
     margin = [0.18, 0.2, 0.02, 0.02]
-    plt.figure(figsize=(12, 8), dpi=300)
-    plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
-    for i in range(n):
-        col = [0 + i/n, (1- i/n)**2, 1 -  i/n]
-        if J2[i] != 0:
-            ratio = J3[i]/J2[i]    
-            plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]]  , C[i][tidmin:tidmax[i]] / temperatures_plots[i][tidmin:tidmax[i]], '.-', label = r'$J_3 / J_2$ = {:f}'.format(ratio), color = col)
-        else:
-            plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]]  , C[i][tidmin:tidmax[i]] / temperatures_plots[i][tidmin:tidmax[i]], '.-', label = r'$J_3 / J_2$ = $\infty$', color = col)
-        plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]], (C[i][tidmin:tidmax[i]] - ErrC[i][tidmin:tidmax[i]])/temperatures_plots[i][tidmin:tidmax[i]], (C[i][tidmin:tidmax[i]] + ErrC[i][tidmin:tidmax[i]])/temperatures_plots[i][tidmin:tidmax[i]], alpha = 0.5, color = col)
-    plt.xlabel(r'Temperature $T$ ')
-    plt.ylabel(r'$\frac{c}{k_B T}$')
-    plt.legend(loc= 'best', framealpha=0.5)
-    plt.savefig('./' + foldername + 'Plots' + results_foldername+ '/HeatCapacityT_various-nsms.png')
-    plt.savefig('./' + foldername + 'Plots' + results_foldername+ '/HeatCapacityT.pgf')
-    
-    # Residual entropy
-    S = [[] for i in range(n)]
-    DeltaS = [[0 for tid in range(tidmax[i]-tidmin)] for i in range(n)]
-    CoverT = [C[i][tidmin:tidmax[i]] / temperatures_plots[i][tidmin:tidmax[i]] for i in range(n)]
     
     for i in range(n):
-        for tid in range(tidmax[i]-tidmin-2, -1, -1): #going through the temperatures in decreasing order
-            DeltaS[i][tid] = DeltaS[i][tid+1] + np.trapz(CoverT[i][tid:tid+2], temperatures_plots[i][tid+tidmin:tid+2+tidmin])
-        for tid in range(0, tidmax[i]-tidmin):    
-            S[i].append(S0 - DeltaS[i][tid])
-    plt.figure(figsize = (12,8), dpi = 300)       
-    for i in range(n):
-        col = [0 + i/n, (1- i/n)**2, 1 -  i/n]
-        plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]]  , S[i], '.-', label = r'$L$ = {0}'.format(L[i]), color = col)
+        mh = len(hfields_plots[i])
+        plt.figure(figsize=(12, 8), dpi=300)
+        plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
+        for hid, h in enumerate(hfields_plots[i]):
+            col = [0 + hid/mh, (1 - hid/mh)**2, 1 - hid/mh]
+            plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]],
+                         C[i][tidmin:tidmax[i]][:,hid], '.-',\
+                         label = r'$h$ = {0}'.format(h), color = col)
+            plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]],
+                             C[i][tidmin:tidmax[i]][:,hid]
+                             - ErrC[i][tidmin:tidmax[i]][:,hid],
+                             C[i][tidmin:tidmax[i]][:,hid]
+                             + ErrC[i][tidmin:tidmax[i]][:,hid],\
+                             alpha = 0.5, color = col)
+            #print('Error on the heat capacity for file ', filenamelist[i])
+            #print(ErrC[i])
         plt.xlabel(r'Temperature $T$ ')
-    plt.ylabel(r'$S$')
-    plt.legend(loc= 'best', framealpha=0.5)
-    plt.savefig('./' + foldername + 'Plots' + results_foldername+ '/EntropyT.png')
-    plt.savefig('./' + foldername + 'Plots' + results_foldername+ '/EntropyT.pgf')
-       
-    # Ground-state energy
-    r1 = [0, 0.5]
-    E1 = [-2/3, -1/6]
-    r2 = [0.5, 1]
-    E2 = [-1/6, -1/3]
-    r3 = [1, 4]
-    E3 = [-1/3, -4+2/3]
+        plt.ylabel(r'Heat capacity $C$ ')
+        plt.legend(loc= 'best', framealpha=0.5)
+        plt.title('Filename: '+filenamelist[i])
+        plt.savefig('./' + foldername + 'Plots' + results_foldername+ '/HeatCapacityErrors_various-nsms.png')
+        plt.savefig('./' + foldername + 'Plots' + results_foldername+ '/HeatCapacityErrors.pgf')
+
+    ##Heat capacity / T
     margin = [0.18, 0.2, 0.02, 0.02]
-    plt.figure(figsize=(9, 5))
-    plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
-    plt.plot(r1, E1, color = 'orange', label = r'$E - E_{NN}$ = $-\frac{2}{3}$ $J_2$ + $J_3$')
-    plt.plot(r3, E3, color = 'red', label = r'$E - E_{NN} = \frac{2}{3}$ $J_2$ - $J_3$')
-    plt.plot(r2, E2, '--', color = 'purple', label = r'$E- E_{NN} = -\frac{1}{3}J_3$')
-    ratios = list()
-    E = list()
-    correction = list()
+
     for i in range(n):
-        print('Verifying that the low temperatures of file ', filenamelist[i], 'correspond to the ground state.')
-        if J2[i] != 0:
-            ratios.append(J3[i]/J2[i])
-            E.append((t_MeanE[i][0] + 2/3 * J1[i])/J2[i])
-            correction.append(t_varMeanE[i][0]/J2[i])
-            #print(t_MeanE[i][0] + 2/3 * J1[i]+J3[i])
-        else:
-            print(t_MeanE[i][0] + 2/3 * J1[i]+J3[i])
+        mh = len(hfields_plots[i])
+        plt.figure(figsize=(12, 8), dpi=300)
+        plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
+        for hid, h in enumerate(hfields_plots[i]):
+            col = [0 + hid/mh, (1 - hid/mh)**2, 1 - hid/mh]
+            plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]],
+                         C[i][tidmin:tidmax[i]][:,hid] / temperatures_plots[i][tidmin:tidmax[i]],
+                         '.-', label = r'$h$ = {0}'.format(h), color = col)
+            plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]],
+                             (C[i][tidmin:tidmax[i]][:,hid]
+                              - ErrC[i][tidmin:tidmax[i]][:,hid]
+                             )/temperatures_plots[i][tidmin:tidmax[i]],
+                             (C[i][tidmin:tidmax[i]][:,hid]
+                              + ErrC[i][tidmin:tidmax[i]][:,hid]
+                             )/temperatures_plots[i][tidmin:tidmax[i]],\
+                             alpha = 0.5, color = col)
+        plt.xlabel(r'Temperature $T$ ')
+        plt.ylabel(r'$\frac{c}{k_B T}$')
+        plt.legend(loc= 'best', framealpha=0.5)
+        plt.title('Filename: '+filenamelist[i])
+        plt.savefig('./' + foldername + 'Plots' + results_foldername+ '/HeatCapacityT_various-nsms.png')
+        plt.savefig('./' + foldername + 'Plots' + results_foldername+ '/HeatCapacityT.pgf')
+
+    # Residual entropy
+    RS = kwargs.get('RS', False)
+    if RS:
+        S = [[] for i in range(n)]
+        DeltaS = [[[0 for hid in range(len(hfields_plots[i]))]
+                   for tid in range(tidmax[i]-tidmin)] for i in range(n)]
         
-    ratios = np.array(ratios)
-    E = np.array(E)
-    correction = np.array(correction)
-    plt.plot(ratios, E, '.-', label = r'Energy at $T = 0.05$ (N)')
-    plt.fill_between(ratios , E - correction, E + correction, alpha = 0.5, color = 'lightblue')
-    #plt.plot(ratios, [0 for r in ratios], '.')
-    plt.xlabel(r'$\frac{J_3}{J_2}$', size = 22)
-    plt.ylabel(r'$\frac{E - E_{NN}}{J_2}$', size = 22)
-    #plt.legend()
-    plt.savefig('./' + foldername + 'Plots' + results_foldername + '/E(ratio)_various-nsms.png')
-    plt.savefig('./' + foldername + 'Plots' + results_foldername + '/E(ratio).pgf')
+        for i in range(n):
+            Carray = np.array(C[i][tidmin:tidmax[i]])
+            CoverT = np.copy(Carray)
+            for tid in range(tidmin, tidmax[i]):
+                CoverT[tid,:]= Carray[tid,:]/temperatures_plots[i][tid]
+                        
+            #going through the temperatures in decreasing order
+            for tid in range(tidmax[i]-tidmin-2, -1, -1):
+                for hid, h in enumerate(hfields_plots[i]):
+                    DeltaS[i][tid][hid] =                    DeltaS[i][tid+1][hid] + np.trapz(CoverT[tid:tid+2, hid],
+                               temperatures_plots[i][tid+tidmin:tid+2+tidmin])
+
+            DeltaS[i] = np.array(DeltaS[i])
+            for tid in range(0, tidmax[i]-tidmin):    
+                S[i].append(S0 - DeltaS[i][tid])
+            
+            S[i] = np.array(S[i])
+            
+        for i in range(n):
+            plt.figure(figsize=(12, 8), dpi=300)
+            plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
+            for hid, h in enumerate(hfields_plots[i]):
+                col = [0 + hid/mh, (1 - hid/mh)**2, 1 - hid/mh] 
+                plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]]  , S[i][:,hid],
+                             '.-', label = r'$h$ = {0}'.format(h), color = col)
+                plt.xlabel(r'Temperature $T$ ')
+            plt.ylabel(r'$S$')
+            plt.legend(loc= 'best', framealpha=0.5)
+            plt.title('Filename: '+filenamelist[i])
+            plt.savefig('./' + foldername + 'Plots' + results_foldername+ '/EntropyT.png')
+            plt.savefig('./' + foldername + 'Plots' + results_foldername+ '/EntropyT.pgf')
+
+    # Ground-state energy
+    gs = kwargs.get('gs', False)
+    if gs: 
+        r1 = [0, 0.5]
+        E1 = [-2/3, -1/6]
+        r2 = [0.5, 1]
+        E2 = [-1/6, -1/3]
+        r3 = [1, 4]
+        E3 = [-1/3, -4+2/3]
+        margin = [0.18, 0.2, 0.02, 0.02]
+        plt.figure(figsize=(9, 5))
+        plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
+        plt.plot(r1, E1, color = 'orange', label = r'$E - E_{NN}$ = $-\frac{2}{3}$ $J_2$ + $J_3$')
+        plt.plot(r3, E3, color = 'red', label = r'$E - E_{NN} = \frac{2}{3}$ $J_2$ - $J_3$')
+        plt.plot(r2, E2, '--', color = 'purple', label = r'$E- E_{NN} = -\frac{1}{3}J_3$')
+        ratios = list()
+        E = list()
+        correction = list()
+        for i in range(n):
+            print('Verifying that the low temperatures of file ', filenamelist[i], 'correspond to the ground state.')
+            if J2[i] != 0:
+                ratios.append(J3[i]/J2[i])
+                E.append((t_h_MeanE[i][0] + 2/3 * J1[i])/J2[i])
+                correction.append(t_h_varMeanE[i][0]/J2[i])
+                #print(t_h_MeanE[i][0] + 2/3 * J1[i]+J3[i])
+            else:
+                print(t_h_MeanE[i][0] + 2/3 * J1[i]+J3[i])
+
+        ratios = np.array(ratios)
+        E = np.array(E)
+        correction = np.array(correction)
+        plt.plot(ratios, E, '.-', label = r'Energy at $T = 0.05$ (N)')
+        plt.fill_between(ratios , E - correction, E + correction, alpha = 0.5, color = 'lightblue')
+        #plt.plot(ratios, [0 for r in ratios], '.')
+        plt.xlabel(r'$\frac{J_3}{J_2}$', size = 22)
+        plt.ylabel(r'$\frac{E - E_{NN}}{J_2}$', size = 22)
+        #plt.legend()
+        plt.savefig('./' + foldername + 'Plots' + results_foldername + '/E(ratio)_various-nsms.png')
+        plt.savefig('./' + foldername + 'Plots' + results_foldername + '/E(ratio).pgf')
 
 
 # In[ ]:
 
 
-def BasicPlotsM(L, n, tidmin, tidmax, temperatures_plots, foldername, results_foldername, filenamelist, t_MeanM, t_MeanMsq, t_varMeanM, t_varMeanMsq, Chi, ErrChi, J1, J2, J3, J4):
+def BasicPlotsM(L, n, tidmin, tidmax, temperatures_plots, hfields_plots, foldername,
+                results_foldername, filenamelist, t_h_MeanM, t_h_MeanMsq, 
+                t_h_varMeanM, t_h_varMeanMsq, Chi, ErrChi, J1, J2, J3, J4):
     ## Magnetisation
-    t_MeanM = np.array(t_MeanM)
-    t_MeanMsq =  np.array(t_MeanMsq)
-    t_varMeanM =  np.array(t_varMeanM)
-    t_varMeanMsq =  np.array(t_varMeanMsq)
+    t_h_MeanM = np.array(t_h_MeanM)
+    t_h_MeanMsq =  np.array(t_h_MeanMsq)
+    t_h_varMeanM =  np.array(t_h_varMeanM)
+    t_h_varMeanMsq =  np.array(t_h_varMeanMsq)
     Chi = np.array(Chi)
     ErrChi = np.array(ErrChi)
     #Magnetisation:
     margin = [0.18, 0.2, 0.02, 0.02]
-    plt.figure(figsize=(12, 8), dpi=300)
-    plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
     for i in range(n):
-        plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]], t_MeanM[i][tidmin:tidmax[i]], '.-')
-        plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]],(t_MeanM[i][tidmin:tidmax[i]] - np.sqrt(t_varMeanM[i][tidmin:tidmax[i]])), (t_MeanM[i][tidmin:tidmax[i]] + np.sqrt(t_varMeanM[i][tidmin:tidmax[i]])), alpha=0.4)
-    plt.xlabel(r'Temperature $T$ ')
-    plt.ylabel('Magnetisation per site')
-    plt.savefig('./' + foldername + 'Plots' + results_foldername+ '/M_various-nsms.png')
-    plt.savefig('./' + foldername + 'Plots' + results_foldername+ '/M.pgf')
-    
+        mh = len(hfields_plots[i])
+        plt.figure(figsize=(12, 8), dpi=300)
+        plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
+        for hid, h in enumerate(hfields_plots[i]):
+            col = [0 + hid/mh, (1 - hid/mh)**2, 1 - hid/mh]
+            plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]], t_h_MeanM[i][tidmin:tidmax[i]][:,hid], 
+                         '.-',label = r'$h$ = {0}'.format(h), color = col)
+            plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]],
+                             (t_h_MeanM[i][tidmin:tidmax[i]][:,hid]
+                              - np.sqrt(t_h_varMeanM[i][tidmin:tidmax[i]][:,hid])),
+                             (t_h_MeanM[i][tidmin:tidmax[i]][:,hid]
+                              + np.sqrt(t_h_varMeanM[i][tidmin:tidmax[i]][:,hid])),\
+                             alpha = 0.5, color = col)
+        plt.xlabel(r'Temperature $T$ ')
+        plt.ylabel('Magnetisation per site')
+        plt.title('Filename: '+filenamelist[i])
+        plt.legend(loc= 'best', framealpha=0.5)
+        plt.savefig('./' + foldername + 'Plots' + results_foldername+ '/M_various-nsms.png')
+        plt.savefig('./' + foldername + 'Plots' + results_foldername+ '/M.pgf')
+
     #Susceptibility
-    margin = [0.18, 0.2, 0.02, 0.02]
-    plt.figure(figsize=(12, 8), dpi=300)
-    plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
     for i in range(n):
-        plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]]  , Chi[i][tidmin:tidmax[i]], '.-')
-        plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]], Chi[i][tidmin:tidmax[i]] - ErrChi[i][tidmin:tidmax[i]], Chi[i][tidmin:tidmax[i]] + ErrChi[i][tidmin:tidmax[i]], alpha = 0.5)
-    plt.xlabel(r'Temperature $T$ ')
-    plt.ylabel('Susceptibility')
-    plt.savefig('./' + foldername + 'Plots' + results_foldername+ '/Susceptibility_various-nsms.png')
-    plt.savefig('./' + foldername + 'Plots' + results_foldername+ '/Susceptibility.pgf')
+        mh = len(hfields_plots[i])
+        plt.figure(figsize=(12, 8), dpi=300)
+        plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
+        for hid, h in enumerate(hfields_plots[i]):
+            col = [0 + hid/mh, (1 - hid/mh)**2, 1 - hid/mh]
+            plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]],
+                         Chi[i][tidmin:tidmax[i]][:,hid], '.-',\
+                         label = r'$h$ = {0}'.format(h), color = col)
+            plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]],
+                             Chi[i][tidmin:tidmax[i]][:,hid]
+                             - ErrChi[i][tidmin:tidmax[i]][:,hid], 
+                             Chi[i][tidmin:tidmax[i]][:,hid]
+                             + ErrChi[i][tidmin:tidmax[i]][:,hid],
+                             alpha = 0.5, color = col)
+        plt.xlabel(r'Temperature $T$ ')
+        plt.ylabel('Susceptibility')
+        plt.title('Filename: '+filenamelist[i])
+        plt.savefig('./' + foldername + 'Plots' + results_foldername+ '/Susceptibility_various-nsms.png')
+        plt.savefig('./' + foldername + 'Plots' + results_foldername+ '/Susceptibility.pgf')
 

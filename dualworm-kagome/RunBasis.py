@@ -77,7 +77,8 @@ def main(args):
         hfields = np.array([h])
         nh = 1
     backup.params.hfields = hfields;
-    backup.params.nh = h;
+    backup.params.nh = nh;
+    
     print('Number of temperatures: ', nt)
     print('Temperatures:', temperatures)
     print('Number of magnetic fields: ', nh)
@@ -85,13 +86,7 @@ def main(args):
     
     [walker2params, walker2ids, ids2walker] = dw.walkerstable(betas, nt, hfields, nh)
     
-    #print("walker2params shape: ", walker2params.shape)
-    #print("walker2ids shape: ", walker2ids.shape)
-    #print("ids2walker shape: ", ids2walker.shape)
-    #
-    #print("walker2params = ", walker2params)
-    #print("walker2ids = ", walker2ids)
-    #print("ids2walker = ", ids2walker)
+
     ## States
     backup.params.randominit = randominit = args.randominit    
     print('Fully random initialisation = ', randominit)
@@ -165,7 +160,7 @@ def main(args):
         else:
             if firstcorrelations:
                 print("Check: length of s_ijl", len(s_ijl))
-                print("Check: lengthon NN pairslist:", len(dw.NNpairs(ijl_s, s_ijl, L)))
+                print("Check: length of NN pairslist:", len(dw.NNpairs(ijl_s, s_ijl, L)))
                 print("Check: length of 2ndNN pairs list: ", len(dw.NN2pairs(ijl_s, s_ijl, L)))
                 print("Check: length of 3rdNN pairs list: ", len(dw.NN3pairs(ijl_s, s_ijl, L)))
                 print("Check: length of 4thNN pairs list: ", len(dw.NN4pairs(ijl_s, s_ijl, L)))
@@ -223,7 +218,7 @@ def main(args):
     nb = 1 # only one bin, no statistics
     num_in_bin = args.nst# mcs iterations per bins
     iterworm = nips = args.nips #number of worm iterations before considering swaps
-    nrps = args.nrps # number of replica loop iterations in a MC step
+    backup.params.nrps = nrps = args.nrps # number of replica loop iterations in a MC step
     nmaxiter = args.nmaxiter
     statsfunctions = [] #don't compute any statistics
     check = False #don't turn to spins to check
@@ -246,7 +241,7 @@ def main(args):
 
 
     t1 = time()
-    (meanstatth, swapst_th, swapsh_th, failedupdatesth) =     dw.mcs_swaps(states, spinstates, energies, betas, [],[], **kw)
+    (statstableth, swapst_th, swapsh_th, failedupdatesth) =     dw.mcs_swaps(states, spinstates, energies, betas, [],[], **kw)
     t2 = time()
     
     print("Energies = ", energies)
@@ -323,9 +318,9 @@ def main(args):
         # Run measurements
     t1 = time()
    
-    (backup.results.meanstat, backup.results.swapst, backup.results.swapsh,
+    (backup.results.statstable, backup.results.swapst, backup.results.swapsh,
      backup.results.failedupdates) =\
-    (meanstat, swapst, swapsh, failedupdates) =\
+    (statstable, swapst, swapsh, failedupdates) =\
     dw.mcs_swaps(states, spinstates, energies, betas, stat_temps, stat_hfields,**kw)
     print("Energies = ", energies)
     print("Energies size: ", energies.shape)
@@ -348,42 +343,39 @@ def main(args):
                       dim.hamiltonian(hamiltonian, states[ids2walker[t,h]])
                       - hfields[h]*spinstates[ids2walker[t,h]].sum())
 
-    #print("walker2params shape: ", walker2params.shape)
-    #print("walker2ids shape: ", walker2ids.shape)
-    #print("ids2walker shape: ", ids2walker.shape)
-    #
-    #print("walker2params = ", walker2params)
-    #print("walker2ids = ", walker2ids)
-    #print("ids2walker = ", ids2walker)
-    ## STATISTICS ##
-    t_meanfunc = list() #for each function, for each temperature, mean of the state function
-    t_varmeanfunc = list() #for each function, for each temperature, variance of the state function
-    numsites = len(s_ijl)
+    #print("-----------Computing statistics----------------")
+    ### STATISTICS ##
+    #t_h_meanfunc = list() #for each function, for each temperature,for each field, mean of the state function
+    #t_h_varmeanfunc = list() #for each function, for each temperature,for each field, variance of the state function
+    #numsites = len(s_ijl)
 
-    for idtuple, stattuple in enumerate(meanstat):
-        # means:
-        t_meanfunc.append((np.array(stattuple[0]).sum(1)/nb, np.array(stattuple[1]).sum(1)/nb))
+    #for idtuple, stattuple in enumerate(statstable):
+    #    # means per magnetic field and temperature
+    #    # note: stattuple[tupleindex][resid][reshid][bid] where bid is the bin index
+    #    t_h_meanfunc.append((np.array(stattuple[0]).sum(2)/nb, np.array(stattuple[1]).sum(2)/nb))
 
-        #variances:
-        tuplevar1 = [0 for t in stat_temps]
-        tuplevar2 = [0 for t in stat_temps]
-        for resid, t in enumerate(stat_temps):
-            for b in range(nb):
-                tuplevar1[resid] += ((stattuple[0][resid][b] - t_meanfunc[idtuple][0][resid]) ** 2)/(nb * (nb - 1))
-                tuplevar2[resid] += ((stattuple[1][resid][b] - t_meanfunc[idtuple][1][resid]) ** 2)/(nb * (nb - 1))
-        t_varmeanfunc.append((tuplevar1, tuplevar2))
+    #    #variances:
+    #    tuplevar1 = [[0 for h in stat_hfields] for t in stat_temps]
+    #    tuplevar2 = [[0 for h in stat_hfields] for t in stat_temps]
+    #    for resid, t in enumerate(stat_temps):
+    #        for reshid, h in enumerate(stat_hfields):
+    #            for b in range(nb):
+    #                tuplevar1[resid][reshid] += ((stattuple[0][resid][reshid][b] - t_h_meanfunc[idtuple][0][resid][reshid]) ** 2)/(nb * (nb - 1))
+    #                tuplevar2[resid][reshid] += ((stattuple[1][resid][reshid][b] - t_h_meanfunc[idtuple][1][resid][reshid]) ** 2)/(nb * (nb - 1))
+    #    t_h_varmeanfunc.append((tuplevar1, tuplevar2))
 
     # Additional results for the correlations are handled directly in AnalysisBasis_3dot1dot5
 
+    #backup.results.t_h_meanfunc = t_h_meanfunc
+    #backup.results.t_h_varmeanfunc = t_h_varmeanfunc
+    
     #Save the final results
-    backup.results.t_meanfunc = t_meanfunc
-    backup.results.t_varmeanfunc = t_varmeanfunc
     backup.results.states = states
     backup.results.spinstates = spinstates
     #Save the backup object in a file
     pickle.dump(backup, open(args.output + '.pkl','wb'))
     print("Job done")
-    return meanstat, swapst, swapsh, failedupdatesth, failedupdates
+    return statstable, swapst, swapsh, failedupdatesth, failedupdates
 
 
 # In[ ]:
