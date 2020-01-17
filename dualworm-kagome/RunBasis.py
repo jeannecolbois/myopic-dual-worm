@@ -94,9 +94,9 @@ def main(args):
     print('Identical initialisation = ', same)
     backup.params.magninit = magninit = args.magninit
     print('Magnetisation initialisation = ', magninit)
-        
+    backup.params.maxflip = maxflip = args.maxflip
     kwinit = {'random': randominit, 'same': same, 
-              'magninit': magninit, 'h':h}
+              'magninit': magninit, 'h':h, 'maxflip':maxflip}
 
     (states, energies,spinstates) = strst.statesinit(nt, nh, hfields,
                                     ids2walker,d_ijl, d_2s, s_ijl,
@@ -244,7 +244,7 @@ def main(args):
     (statstableth, swapst_th, swapsh_th, failedupdatesth) =     dw.mcs_swaps(states, spinstates, energies, betas, [],[], **kw)
     t2 = time()
     
-    print("Energies = ", energies)
+    #print("Energies = ", energies)
     print("Energies size: ", energies.shape)
     backup.results.swapst_th = swapst_th
     backup.results.swapsh_th = swapsh_th
@@ -322,7 +322,7 @@ def main(args):
      backup.results.failedupdates) =\
     (statstable, swapst, swapsh, failedupdates) =\
     dw.mcs_swaps(states, spinstates, energies, betas, stat_temps, stat_hfields,**kw)
-    print("Energies = ", energies)
+    #print("Energies = ", energies)
     print("Energies size: ", energies.shape)
     t2 = time()
     print('Time for all measurements steps = ', t2-t1)
@@ -432,6 +432,9 @@ if __name__ == "__main__":
                         state (debug purposes)''')
     parser.add_argument('--magninit', default = False, action = 'store_true',
                         help = '''initialise all the temperature with the maximally magnetised GS''')
+    parser.add_argument('--maxflip', default = False, action = 'store_true',
+                       help = '''initialise all the temperature with
+                       maximally flippable plateau''')
     parser.add_argument('--measupdate', default = False, action = 'store_true',
                        help = '''activate to mimic the action of the measuring tip''')
     parser.add_argument('--p', type = float, default = 0.1, 

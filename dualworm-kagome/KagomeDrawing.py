@@ -3,6 +3,7 @@
 
 # In[ ]:
 
+
 from functools import lru_cache
 import GraphDrawing as gdw
 import numpy as np
@@ -10,6 +11,7 @@ import matplotlib.pyplot as plt
 
 
 # In[ ]:
+
 
 def fixbc(i, j, l, L):
     '''
@@ -39,25 +41,6 @@ def fixbc(i, j, l, L):
 
 # In[ ]:
 
-def createspinsitetable(L):
-    '''
-        Creates the table of spin sites corresponding to a dice lattice 
-        of side size L.
-        Returns a table identifing an int with the three coordinates of 
-        the spin site and a dictionnary identifying the
-        three coordinates with the spin site's int index. This allows 
-        to handle other relations between spin sites in an
-        easier way.
-    '''
-    s_ijl = [(i, j, l) for i in range(2*L) for j in range(2*L) for l in range(3) if (i+j > L-2) and (i+j < 3*L-1)]
-    # dictionary
-    ijl_s = {}
-    for s, triplet in enumerate(s_ijl):
-        ijl_s[triplet] = s
-    return s_ijl, ijl_s
-
-
-# In[ ]:
 
 def createspinsitetable(L):
     '''
@@ -118,6 +101,7 @@ def graphdice(L, a):
 
 # In[ ]:
 
+
 def reducedgraphdice(L, a, d_ijl, v_ijl, ijl_v):
     #table of where to look at 
     nv = [(0, -1, 2), (0, 0, 1), (0, 0, 2), (-1, 1, 1), (-1, 0, 2), (-1, 0, 1)]
@@ -134,6 +118,7 @@ def reducedgraphdice(L, a, d_ijl, v_ijl, ijl_v):
 
 
 # In[ ]:
+
 
 @lru_cache(maxsize = None)
 def graphkag(L, a):
@@ -174,6 +159,7 @@ def graphkag(L, a):
 
 # In[ ]:
 
+
 @lru_cache(maxsize = None)
 def graphhoneycomb(L, a):
     '''
@@ -205,6 +191,7 @@ def graphhoneycomb(L, a):
 
 # In[ ]:
 
+
 # FUCTION LINKING THE EDGE OF THE GRAPH TO THE CORRESPONDING DIMER STATE
 def edge2dimer(L, a, d_ijl, v_ijl, ijl_v, e_2v):
     (d_2v, v2_d) = reducedgraphdice(L,a, d_ijl, v_ijl, ijl_v) #for the two vertices in the reduced bc
@@ -220,6 +207,7 @@ def edge2dimer(L, a, d_ijl, v_ijl, ijl_v, e_2v):
 
 
 # In[ ]:
+
 
 def plot_dice_nodes(L, a, color='black', s=1, **kargs):
     (v_ijl, ijl_v, e_2v, pos) = graphdice(L, a)
@@ -246,6 +234,7 @@ def plot_dice_dimerstate(state, d_ijl, L, a, node_color = 'black', dim_color = '
 
 # In[ ]:
 
+
 def spinvertex2spin(L,a, ijl_s, sv_ijl):
     '''
         Given a list of spin vertices, associates to each one the corresponding spin
@@ -261,13 +250,14 @@ def spinvertex2spin(L,a, ijl_s, sv_ijl):
 
 # In[ ]:
 
+
 def plot_kag_nodes(L, a, color='blue', s=20, **kargs):
     (sv_ijl, ijl_sv, e_2sv, poskag) = graphkag(L,a)
     gdw.draw_nodes(poskag, list(poskag.keys()), c = color, s = s, **kargs)
 
 def plot_kag_edges(L, a, color='lightblue', **kargs):
     sv_ijl, ijl_sv, e_2sv, pos = graphkag(L, a)
-    gdw.draw_edges(pos, e_2sv, **kargs)
+    gdw.draw_edges(pos, e_2sv, color = color, **kargs)
     
 def plot_kag_spins(spins, ijl_s, L, a, color = 'red', **kargs):
     """
@@ -297,32 +287,55 @@ def plot_kag_spinstate(spinstate, ijl_s, L, a, edge_color = 'lightblue', up_colo
 
 # In[ ]:
 
-#FUNCTION ALLOWING TO PLOT THE FULL STATE
 
-def plotstate(temp_id, L, d_ijl, ijl_s, sidlist, didlist, s2_d, states, dim_node_color = 'black', dim_color ='black', no_dim_color = 'lightgrey', spin_edge_color = 'lightblue', spin_up_color = 'blue', spin_down_color = 'red', dimerlinewidth = 5, spinlinewidth = 1, **kargs):    
-
-    a = 2 #lattice parameter
-    spinstate = onestate_dimers2spins(sidlist, didlist, L, states[temp_id])
-    plt.figure(figsize = (2*L,2*L))
-    plt.axis('equal')
-    plot_dice_dimerstate(states[temp_id], d_ijl, L, a, dim_node_color, dim_color, no_dim_color, linewidth = dimerlinewidth, **kargs)
-    plot_kag_spinstate(spinstate, ijl_s, L, a, spin_edge_color, spin_up_color, spin_down_color, linewidth = spinlinewidth, **kargs)
-    plt.tick_params(  
-        which = 'both',      # both major and minor ticks are affected
-        bottom = 'off',      # ticks along the bottom edge are off
-        top = 'off',         # ticks along the top edge are off
-        labelbottom = 'off',
-        left = 'off',
-        right = 'off',
-        labelleft = 'off') # labels along the bottom edge are off
+#def plot_honeycomb_nodes(L, a, color = 'blue', s = 20, **kargs):
+#    (cv_ijl, ijl_cv, posh) = graphhoneycomb(L,a)
+#    gdw.draw_nodes(posh, list(posh.keys()), c = color, s = s, **kargs)
+#    
+#def plot_honeycomb_chargestate(chargestate, ijl_c, L, a, edge_color = 'lightblue', **kargs):
+#    """
+#        :param spins: list of spins indices (for instance [3, 5, 2, ...])
+#    """
+#    plot_honeycomb_nodes(L, a, **kargs)
+#    c1 = [c for c, cstate in enumerate(chargestate) if cstate == 3]
+#    c2 = [c for c, cstate in enumerate(chargestate) if cstate == 1]
+#    c3 = [c for c, cstate in enumerate(chargestate) if cstate == -1]
+#    c4 = [c for c, cstate in enumerate(chargestate) if cstate == -3]
+#    if len(c1) != 0:
+#        plot_honeycomb_nodes(c1, ijl_c, L, a, color = up_color, label = 'spin up')
+#    if len(spinsdown) != 0:
+#        plot_kag_spins(spinsdown, ijl_s, L, a, color = down_color, label = 'spin down')
 
 
 # In[ ]:
 
+
+#FUNCTION ALLOWING TO PLOT THE FULL STATE
+
+def plotstate(temp_id, L, d_ijl, ijl_s, sidlist, didlist, s2_d, states, spinstates, dim_node_color = 'black', dim_color ='black', no_dim_color = 'lightgrey', spin_edge_color = 'lightblue', spin_up_color = 'blue', spin_down_color = 'red', dimerlinewidth = 5, spinlinewidth = 1, **kargs):    
+
+    a = 2 #lattice parameter
+    
+    plt.figure(figsize = (2*L,2*L))
+    plt.axis('equal')
+    plot_dice_dimerstate(states[temp_id], d_ijl, L, a, dim_node_color, dim_color, no_dim_color, linewidth = dimerlinewidth, **kargs)
+    plot_kag_spinstate(spinstates[temp_id], ijl_s, L, a, spin_edge_color, spin_up_color, spin_down_color, linewidth = spinlinewidth, **kargs)
+    plt.tick_params(  
+        which = 'both',      # both major and minor ticks are affected
+        bottom = False,      # ticks along the bottom edge are off
+        top = False,         # ticks along the top edge are off
+        labelbottom = False,
+        left = False,
+        right = False,
+        labelleft = False) # labels along the bottom edge are off
+
+
+# In[ ]:
+
+
 def plot_function_kag(f, L, a, **kargs):
     '''
-        Plots the function f over the kagomé lattice. f has to be defined on the "square" brillouin zone
-        for k1, k2 in range(0, L), which will be the usual output of the FT
+        Plots the function f over the kagomé lattice.
     '''
     #get the shape of the lattice
     (sv_ijl, ijl_sv, e_2sv, pos) = graphkag(L, a) # drawing lattice
@@ -342,15 +355,16 @@ def plot_function_kag(f, L, a, **kargs):
     #plt.axis([0, 1, 0, 3*n])
     plt.tick_params(  
         which = 'both',      # both major and minor ticks are affected
-        bottom = 'off',      # ticks along the bottom edge are off
-        top = 'off',         # ticks along the top edge are off
-        labelbottom = 'off',
-        left = 'off',
-        right = 'off',
-        labelleft = 'off') # labels along the bottom edge are off
+        bottom = False,      # ticks along the bottom edge are off
+        top = False,         # ticks along the top edge are off
+        labelbottom = False,
+        left = False,
+        right = False,
+        labelleft = False) # labels along the bottom edge are off
 
 
 # In[ ]:
+
 
 def KagomeSimpleReciprocal(L):
     '''
@@ -399,6 +413,7 @@ def reciprocalgraph(L, a):
 
 # In[ ]:
 
+
 def plot_reciprocal(L, a, n, color = 'blue', **kargs):
     #get the shape of the lattice
     (qv_k1k2, k1k2_qv, pos, factor) = reciprocalgraph(L, a)
@@ -414,35 +429,35 @@ def plot_reciprocal(L, a, n, color = 'blue', **kargs):
     plt.axis([0, 1, -3*n, 3*n])
     plt.tick_params(  
         which = 'both',      # both major and minor ticks are affected
-        bottom = 'off',      # ticks along the bottom edge are off
-        top = 'off',         # ticks along the top edge are off
-        labelbottom = 'off',
-        left = 'off',
-        right = 'off',
-        labelleft = 'off') # labels along the bottom edge are off  
+        bottom = False,      # ticks along the bottom edge are off
+        top = False,         # ticks along the top edge are off
+        labelbottom = False,
+        left = False,
+        right = False,
+        labelleft = False) # labels along the bottom edge are off  
 
 
 # In[ ]:
 
-def plot_function_reciprocal(f, L, a, **kargs):
+
+def plot_function_reciprocal(f, L, a, s = 400, **kargs):
     '''
         Plots the function f over the reciprocal lattice. f has to be defined on the "square" brillouin zone
         for k1, k2 in range(0, L), which will be the usual output of the FT
     '''
     #get the shape of the lattice
     (qv_k1k2, k1k2_qv, pos, factor) = reciprocalgraph(L, a) # drawing lattice
-    
-    s =(110/L)**2
+
     gdw.draw_function(pos, f, list(pos.keys()), s = s, **kargs)
     
     plt.axis('equal')
-   # plt.axis([0, 1, -10, 10])
+    #plt.axis([0, 1, -10, 10])
     plt.tick_params(  
         which = 'both',      # both major and minor ticks are affected
-        bottom = 'off',      # ticks along the bottom edge are off
-        top = 'off',         # ticks along the top edge are off
-        labelbottom = 'off',
-        left = 'off',
-        right = 'off',
-        labelleft = 'off') # labels along the bottom edge are offb
+        bottom = False,      # ticks along the bottom edge are off
+        top = False,         # ticks along the top edge are off
+        labelbottom = False,
+        left = False,
+        right = False,
+        labelleft = False) # labels along the bottom edge are offb
 

@@ -32,9 +32,10 @@ def magnetisedInit(spinstates, nt, nh, s_ijl, hfields, same):
             spinstates[w] = np.copy(spinstate) # to make sure that it is DIFFERENT states
         
     else:
+        print("Magnetised init")
         versions = [np.random.randint(0,3) for w in range(nt*nh)]
         
-        signs = [np.sign(h) for t in range(nt) for h in hfields]
+        signs = [np.sign(h) for h in hfields for t in range(nt) ]
         
         for w in range(nt*nh):
             if signs[w] == 0:
@@ -44,7 +45,65 @@ def magnetisedInit(spinstates, nt, nh, s_ijl, hfields, same):
                     spinstates[w][s] = -signs[w]
                 else:
                     spinstates[w][s] = signs[w]
+
+
+# In[ ]:
+
+
+def magnetisedInitMaxFlip(spinstates, nt, nh,
+                          s_ijl, hfields, same):
+    if same:
+        if hfields[0] == 0:
+            sign = np.random.randint(0,2)*2-1
+        else:
+            sign = np.sign(hfields[0])
             
+        version = np.random.randint(0,3)
+        
+        spinstate = sign*np.ones(len(s_ijl))
+        
+        for s, (i,j,l) in enumerate(s_ijl):
+            loc = (i - j + version)%3
+            if loc == 0:
+                if l == 1:
+                    spinstate[s] = -sign
+                else:
+                    spinstate[s] = sign
+            elif loc == 1:
+                spinstate[s] = sign
+            elif loc == 2:
+                if l == 1:
+                    spinstate[s] = sign
+                else:
+                    spinstate[s] = - sign
+        for w in range(nt*nh):
+            spinstates[w] = np.copy(spinstate)
+            
+    else:
+        print("Maxflip init")
+        versions = [np.random.randint(0,3) for w in range(nt*nh)]
+        
+        signs = [np.sign(h) for h in hfields for t in range(nt)]
+        
+        for w in range(nt*nh):
+            if signs[w] == 0:
+                signs[w] = np.random.randint(0,2)*2-1
+            for s, (i,j,l) in enumerate(s_ijl):
+                loc = (i - j + versions[w])%3
+                if loc == 0:
+                    if l == 1:
+                        spinstates[w][s] = -signs[w]
+                    else:
+                        spinstates[w][s] = signs[w]
+                elif loc == 1:
+                    spinstates[w][s] = signs[w]
+                elif loc == 2:
+                    if l == 1:
+                        spinstates[w][s] = signs[w]
+                    else:
+                        spinstates[w][s] = - signs[w]
+                    
+                        
 
 
 # In[3]:
@@ -768,8 +827,11 @@ def determine_init(hamiltonian, magninit, **kwargs):
             inittype += "LJ3"
     
     if magninit:
-        inittype = "magninit"
-        
+        maxflip = kwargs.get('maxflip', False)
+        if not maxflip:
+            inittype = "magninit"
+        else:
+            inittype = "maxflip"
     return inittype
     
 
@@ -777,10 +839,12 @@ def determine_init(hamiltonian, magninit, **kwargs):
 # In[13]:
 
 
-def statesinit(nt, nh, hfields, id2walker, d_ijl, d_2s, s_ijl, hamiltonian, random = True, same = False, magninit = False, **kwargs):
+def statesinit(nt, nh, hfields, id2walker, d_ijl, d_2s, s_ijl,
+               hamiltonian, random = True, same = False,\
+               magninit = False, **kwargs):
     '''
        This function associates a dimer state to each dual bond. By default, this is done by first associating randomly a spin to
-       each spin site and then map this ont*nho a dimer state. If the initial state isn't random, it is what is believed to be the ground state
+       each spin site and then map this onto a dimer state. If the initial state isn't random, it is what is believed to be the ground state
        of the problem.
        It returns the list of the states for each temperature and the energies.
     '''
@@ -795,6 +859,8 @@ def statesinit(nt, nh, hfields, id2walker, d_ijl, d_2s, s_ijl, hamiltonian, rand
         print("Initialisation type: ", inittype)
         if inittype == "magninit":
             magnetisedInit(spinstates, nt, nh, s_ijl, hfields, same)
+        elif inittype == "maxflip":
+            magnetisedInitMaxFlip(spinstates, nt, nh, s_ijl, hfields, same)
         elif inittype == "J1":
             print('J1Init')
             J1Init(spinstates, nt*nh, s_ijl, same)
