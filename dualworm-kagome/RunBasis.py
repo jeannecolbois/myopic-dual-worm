@@ -111,9 +111,12 @@ def main(args):
                      -hfields[hid]*spinstates[ids2walker[bid,hid]].sum()
                      for hid in range(nh)] for bid in range(nt)]
     new_en_states = np.array(new_en_states)
+    
+
+    
     for t in range(nt):
         for h in range(nh):
-            if np.absolute(energies[t,h]-new_en_states[t,h]) > 1.0e-15:
+            if np.absolute(energies[t,h]-new_en_states[t,h]) > 1.0e-12:
                 print('RunBasis: Issue at temperature index ', t, ' and h index ', h)
                 print("   energies[t,h] = ", energies[t,h])
                 print("   H0[t,h] = ", dim.hamiltonian(hamiltonian,
@@ -122,7 +125,18 @@ def main(args):
                 print("   new_E[t,h] = H0[t,h] - h*magntot[t,h]",
                       dim.hamiltonian(hamiltonian, states[ids2walker[t,h]])
                       - hfields[h]*spinstates[ids2walker[t,h]].sum())
-    
+    if args.checkssf:
+        ref_en_states = [9*L**2*(-2/3 * J1 - 1/3 * abs(h)) for h in hfields]
+        ref_en_states = np.array(ref_en_states)
+        print(ref_en_states)
+        for t in range(nt):
+            for h in range(nh):
+                if np.absolute(ref_en_states[h]-new_en_states[t,h]) > 1.0e-12:
+                    print('RunBasis: Away from gs at t index ', t, ' and h index ', h)
+                    print("   new_en_states[t,h] = ", new_en_states[t,h])
+                    print("   ref_en_states[h] = ", ref_en_states[h])
+
+
     if not dw.statescheck(spinstates, states, d_2s):
         mistakes = [dw.onestatecheck(spinstate, state, d_2s) for spinstate, state in zip(spinstates, states)]
         print('Mistakes: ', mistakes)
@@ -267,7 +281,17 @@ def main(args):
                       dim.hamiltonian(hamiltonian, states[ids2walker[t,h]])
                       - hfields[h]*spinstates[ids2walker[t,h]].sum())
 
-    
+    if args.checkssf:
+        ref_en_states = [9*L**2*(-2/3 * J1 - 1/3 * abs(h)) for h in hfields]
+        ref_en_states = np.array(ref_en_states)
+        print(ref_en_states)
+        for t in range(nt):
+            for h in range(nh):
+                if np.absolute(ref_en_states[h]-new_en_states[t,h]) > 1.0e-12:
+                    print('RunBasis: Away from gs at t index ', t, ' and h index ', h)
+                    print("   new_en_states[t,h] = ", new_en_states[t,h])
+                    print("   ref_en_states[h] = ", ref_en_states[h])
+
     #print("walker2params shape: ", walker2params.shape)
     #print("walker2ids shape: ", walker2ids.shape)
     #print("ids2walker shape: ", ids2walker.shape)
@@ -342,6 +366,16 @@ def main(args):
                 print("   new_E[t,h] = H0[t,h] - h*magntot[t,h]",
                       dim.hamiltonian(hamiltonian, states[ids2walker[t,h]])
                       - hfields[h]*spinstates[ids2walker[t,h]].sum())
+    if args.checkssf:
+        ref_en_states = [9*L**2*(-2/3 * J1 - 1/3 * abs(h)) for h in hfields]
+        ref_en_states = np.array(ref_en_states)
+        print(ref_en_states)
+        for t in range(nt):
+            for h in range(nh):
+                if np.absolute(ref_en_states[h]-new_en_states[t,h]) > 1.0e-12:
+                    print('RunBasis: Away from gs at t index ', t, ' and h index ', h)
+                    print("   new_en_states[t,h] = ", new_en_states[t,h])
+                    print("   ref_en_states[h] = ", ref_en_states[h])
 
     #print("-----------Computing statistics----------------")
     ### STATISTICS ##
@@ -413,6 +447,8 @@ if __name__ == "__main__":
                         help = 'number of nips worm building + swaps between measurements')
     parser.add_argument('--ssf', default = False, action = 'store_true',
                         help = 'activate for single spin flip update')
+    parser.add_argument('--checkssf', default = False, action = 'store_true',
+                        help = 'activate to debug ssf')
     parser.add_argument('--nb', type = int, default = 20,
                         help = 'number of bins')
 

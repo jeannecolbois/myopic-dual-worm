@@ -35,7 +35,7 @@ def magnetisedInit(spinstates, nt, nh, s_ijl, hfields, same):
         print("Magnetised init")
         versions = [np.random.randint(0,3) for w in range(nt*nh)]
         
-        signs = [np.sign(h) for h in hfields for t in range(nt) ]
+        signs = [np.sign(h) for t in range(nt) for h in hfields]
         
         for w in range(nt*nh):
             if signs[w] == 0:
