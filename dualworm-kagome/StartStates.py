@@ -15,6 +15,36 @@ def magnetisedInit(spinstates, nt, nh, s_ijl, hfields, same):
    
     if same:
         
+        version = np.random.randint(0,2)
+        
+        if version:
+            magnetisedInitStripes(spinstates, nt, nh, s_ijl, hfields, same)
+        else:
+            magnetisedInitMaxFlip(spinstates, nt, nh, s_ijl, hfields, same)
+            
+    else:
+        print("Magnetised init")
+        versions = [np.random.randint(0,2) for w in range(nt*nh)]
+        
+        for t in range(nt):
+            for h in range(nh):
+                w = t*nh+h
+                newspinstates = [(np.random.randint(0, 2, size=len(s_ijl))*2 - 1)]
+                if versions[w]:
+                    magnetisedInitStripes(newspinstates, 1, 1, s_ijl, [hfields[h]], True)
+                else:
+                    magnetisedInitMaxFlip(newspinstates, 1, 1, s_ijl, [hfields[h]], True)
+                
+                spinstates[w] = newspinstates[0]
+
+
+# In[ ]:
+
+
+def magnetisedInitStripes(spinstates, nt, nh, s_ijl, hfields, same):
+   
+    if same:
+        
         if hfields[0] == 0:
             sign = np.random.randint(0,2)*2-1
         else:
@@ -32,7 +62,7 @@ def magnetisedInit(spinstates, nt, nh, s_ijl, hfields, same):
             spinstates[w] = np.copy(spinstate) # to make sure that it is DIFFERENT states
         
     else:
-        print("Magnetised init")
+        print("Magnetised init - stripes")
         versions = [np.random.randint(0,3) for w in range(nt*nh)]
         
         signs = [np.sign(h) for t in range(nt) for h in hfields]
@@ -80,10 +110,10 @@ def magnetisedInitMaxFlip(spinstates, nt, nh,
             spinstates[w] = np.copy(spinstate)
             
     else:
-        print("Maxflip init")
+        print("Magnetised init - max flip")
         versions = [np.random.randint(0,3) for w in range(nt*nh)]
         
-        signs = [np.sign(h) for h in hfields for t in range(nt)]
+        signs = [np.sign(h) for t in range(nt) for h in hfields]
         
         for w in range(nt*nh):
             if signs[w] == 0:
@@ -828,10 +858,14 @@ def determine_init(hamiltonian, magninit, **kwargs):
     
     if magninit:
         maxflip = kwargs.get('maxflip', False)
-        if not maxflip:
+        magnstripes = kwargs.get('magnstripes', False)
+        
+        if not maxflip and not magnstripes:
             inittype = "magninit"
-        else:
+        elif maxflip:
             inittype = "maxflip"
+        elif magnstripes:
+            inittype = "magnstripes"
     return inittype
     
 
@@ -861,6 +895,8 @@ def statesinit(nt, nh, hfields, id2walker, d_ijl, d_2s, s_ijl,
             magnetisedInit(spinstates, nt, nh, s_ijl, hfields, same)
         elif inittype == "maxflip":
             magnetisedInitMaxFlip(spinstates, nt, nh, s_ijl, hfields, same)
+        elif inittype == "magnstripes":
+            magnetisedInitStripes(spinstates, nt, nh, s_ijl, hfields, same)
         elif inittype == "J1":
             print('J1Init')
             J1Init(spinstates, nt*nh, s_ijl, same)

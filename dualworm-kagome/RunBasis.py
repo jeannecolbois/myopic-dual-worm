@@ -44,17 +44,26 @@ def main(args):
     print('J2 ', J2)
     print('J3 ', J3)
     print('J3st ', J3st)
-    backup.params.ssf = ssf = args.ssf
-    s2p = dw.spin2plaquette(ijl_s, s_ijl, s2_d,L)
-    if ssf:
-        nnspins, s2p = dw.spin2plaquette(ijl_s, s_ijl, s2_d,L)
-    
-    assert (not (ssf and (J2 != 0 or J3 !=0 or J3st != 0 or J4!=0))),    "The ssf is only available with J1"
-    
     couplings = {'J1': J1, 'J2':J2, 'J3':J3, 'J3st':J3st, 'J4':J4}
     print("Couplings extracted")
     hamiltonian = dw.Hamiltonian(couplings,d_ijl, ijl_d, L)
     print("Hamiltonian expression (without field) computed")
+    
+    
+    backup.params.ssf = ssf = args.ssf
+    backup.params.alternate = alternate = args.alternate
+    
+    s2p = dw.spin2plaquette(ijl_s, s_ijl, s2_d,L)
+    if ssf:
+        print("single spin flip update")
+    if alternate:
+        print("alternating ssf and dw update")
+    if ssf or alternate:
+        nnspins, s2p = dw.spin2plaquette(ijl_s, s_ijl, s2_d,L)
+    
+    assert (not ((ssf or alternate) and (J2 != 0 or J3 !=0 or J3st != 0 or J4!=0))),    "The ssf is only available with J1"
+    
+
     
     ## Temperatures and magnetic fields to simulate
     t_list = [t for t in args.t_list]
@@ -95,14 +104,16 @@ def main(args):
     backup.params.magninit = magninit = args.magninit
     print('Magnetisation initialisation = ', magninit)
     backup.params.maxflip = maxflip = args.maxflip
+    backup.params.magnstripes = magnstripes = args.magnstripes
     kwinit = {'random': randominit, 'same': same, 
-              'magninit': magninit, 'h':h, 'maxflip':maxflip}
+              'magninit': magninit, 'h':h, 'maxflip':maxflip,
+             'magnstripes': magnstripes}
 
     (states, energies,spinstates) = strst.statesinit(nt, nh, hfields,
                                     ids2walker,d_ijl, d_2s, s_ijl,
                                     hamiltonian, **kwinit)
     
-    print("Energies = ", energies)
+    #print("Energies = ", energies)
     print("Energies size: ", energies.shape)
     backup.params.ncores = ncores = args.ncores
 
@@ -125,16 +136,31 @@ def main(args):
                 print("   new_E[t,h] = H0[t,h] - h*magntot[t,h]",
                       dim.hamiltonian(hamiltonian, states[ids2walker[t,h]])
                       - hfields[h]*spinstates[ids2walker[t,h]].sum())
-    if args.checkssf:
-        ref_en_states = [9*L**2*(-2/3 * J1 - 1/3 * abs(h)) for h in hfields]
-        ref_en_states = np.array(ref_en_states)
+    ref_en_states = np.zeros(len(hfields))
+    
+    if args.checkgs:
+        for hid, h in enumerate(hfields):
+            if h == 0:
+                if J2 == 0:
+                    ref_en_states[hid] = 9*L**2*(-2/3 * J1 - J3)
+                elif J3/J2 < 0.5:
+                    ref_en_states[hid] = 9*L**2*(-2/3 * J1 - 2/3 * J2)
+                elif J3/J2 >= 0.5 and J3/J2 < 1:
+                    ref_en_states[hid] = 9*L**2*(-2/3 * J1 - 1/3 * J3)
+                elif J3/J2 >= 1:
+                    ref_en_states[hid] = 9*L**2*(-2/3 * J1 + 2/3 * J2 - J3)
+            elif abs(h/J1) < 6:
+                ref_en_states[hid] = 9*L**2*(-2/3 * J1 - 1/3 * abs(h))
+            elif abs(h/J1) > 6:
+                ref_en_states[hid] = 9*L**2*(2*J1 - abs(h))
+                
         print(ref_en_states)
-        for t in range(nt):
-            for h in range(nh):
-                if np.absolute(ref_en_states[h]-new_en_states[t,h]) > 1.0e-12:
-                    print('RunBasis: Away from gs at t index ', t, ' and h index ', h)
-                    print("   new_en_states[t,h] = ", new_en_states[t,h])
-                    print("   ref_en_states[h] = ", ref_en_states[h])
+        t = 0
+        for h in range(nh):
+            if np.absolute(ref_en_states[h]-new_en_states[t,h]) > 1.0e-12:
+                print('RunBasis: Away from gs at t index ', t, ' and h index ', h)
+                print("   new_en_states[t,h] = ", new_en_states[t,h])
+                print("   ref_en_states[h] = ", ref_en_states[h])
 
 
     if not dw.statescheck(spinstates, states, d_2s):
@@ -231,7 +257,8 @@ def main(args):
     print("-----------Thermalisation------------------")
     nb = 1 # only one bin, no statistics
     num_in_bin = args.nst# mcs iterations per bins
-    iterworm = nips = args.nips #number of worm iterations before considering swaps
+    iterworm = nips = args.nips # maximal number of MCS iterations
+    # before considering swaps (one iteration = one system size update)
     backup.params.nrps = nrps = args.nrps # number of replica loop iterations in a MC step
     nmaxiter = args.nmaxiter
     statsfunctions = [] #don't compute any statistics
@@ -251,7 +278,7 @@ def main(args):
           'L':L, 'nh':nh, 'hfields':hfields,
           'walker2params':walker2params,'walker2ids':walker2ids,
           'ids2walker':ids2walker,
-          's2p':s2p, 'ssf':ssf}
+          's2p':s2p, 'ssf':ssf, 'alternate':alternate}
 
 
     t1 = time()
@@ -281,16 +308,13 @@ def main(args):
                       dim.hamiltonian(hamiltonian, states[ids2walker[t,h]])
                       - hfields[h]*spinstates[ids2walker[t,h]].sum())
 
-    if args.checkssf:
-        ref_en_states = [9*L**2*(-2/3 * J1 - 1/3 * abs(h)) for h in hfields]
-        ref_en_states = np.array(ref_en_states)
-        print(ref_en_states)
-        for t in range(nt):
-            for h in range(nh):
-                if np.absolute(ref_en_states[h]-new_en_states[t,h]) > 1.0e-12:
-                    print('RunBasis: Away from gs at t index ', t, ' and h index ', h)
-                    print("   new_en_states[t,h] = ", new_en_states[t,h])
-                    print("   ref_en_states[h] = ", ref_en_states[h])
+    if args.checkgs:
+        t = 0
+        for h in range(nh):
+            if np.absolute(ref_en_states[h]-new_en_states[t,h]) > 1.0e-12:
+                print('RunBasis: Away from gs at t index ', t, ' and h index ', h)
+                print("   new_en_states[t,h] = ", new_en_states[t,h])
+                print("   ref_en_states[h] = ", ref_en_states[h])
 
     #print("walker2params shape: ", walker2params.shape)
     #print("walker2ids shape: ", walker2ids.shape)
@@ -338,7 +362,7 @@ def main(args):
           'c2s':c2s, 'csign':csign, 'measperiod':measperiod,
           'nh':nh, 'hfields':hfields, 'walker2params':walker2params,
           'walker2ids':walker2ids,'ids2walker':ids2walker,
-          'ssf':ssf, 'randspinupdate': False}
+          'ssf':ssf, 'alternate':alternate, 'randspinupdate': False}
         # Run measurements
     t1 = time()
    
@@ -366,16 +390,14 @@ def main(args):
                 print("   new_E[t,h] = H0[t,h] - h*magntot[t,h]",
                       dim.hamiltonian(hamiltonian, states[ids2walker[t,h]])
                       - hfields[h]*spinstates[ids2walker[t,h]].sum())
-    if args.checkssf:
-        ref_en_states = [9*L**2*(-2/3 * J1 - 1/3 * abs(h)) for h in hfields]
-        ref_en_states = np.array(ref_en_states)
-        print(ref_en_states)
-        for t in range(nt):
-            for h in range(nh):
-                if np.absolute(ref_en_states[h]-new_en_states[t,h]) > 1.0e-12:
-                    print('RunBasis: Away from gs at t index ', t, ' and h index ', h)
-                    print("   new_en_states[t,h] = ", new_en_states[t,h])
-                    print("   ref_en_states[h] = ", ref_en_states[h])
+
+    if args.checkgs:
+        t = 0
+        for h in range(nh):
+            if np.absolute(ref_en_states[h]-new_en_states[t,h]) > 1.0e-12:
+                print('RunBasis: Away from gs at t index ', t, ' and h index ', h)
+                print("   new_en_states[t,h] = ", new_en_states[t,h])
+                print("   ref_en_states[h] = ", ref_en_states[h])
 
     #print("-----------Computing statistics----------------")
     ### STATISTICS ##
@@ -447,7 +469,9 @@ if __name__ == "__main__":
                         help = 'number of nips worm building + swaps between measurements')
     parser.add_argument('--ssf', default = False, action = 'store_true',
                         help = 'activate for single spin flip update')
-    parser.add_argument('--checkssf', default = False, action = 'store_true',
+    parser.add_argument('--alternate', default = False, action = 'store_true',
+                        help = 'activate for single spin flip update and dw update')
+    parser.add_argument('--checkgs', default = False, action = 'store_true',
                         help = 'activate to debug ssf')
     parser.add_argument('--nb', type = int, default = 20,
                         help = 'number of bins')
@@ -468,6 +492,9 @@ if __name__ == "__main__":
                         state (debug purposes)''')
     parser.add_argument('--magninit', default = False, action = 'store_true',
                         help = '''initialise all the temperature with the maximally magnetised GS''')
+    parser.add_argument('--magnstripes', default = False, action = 'store_true',
+                       help = '''initialise all the temperature with
+                       m=1/3 stripes''')
     parser.add_argument('--maxflip', default = False, action = 'store_true',
                        help = '''initialise all the temperature with
                        maximally flippable plateau''')
