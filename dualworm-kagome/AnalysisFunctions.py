@@ -1,17 +1,20 @@
 
 # coding: utf-8
 
-# In[1]:
+# In[ ]:
 
 
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pickle
 import KagomeFunctions as kf # "library" allowing to work on Kagome
 import DualwormFunctions as dw
+import KagomeDrawing as kdraw
+import KagomeFT as kft
 
 
-# In[2]:
+# In[ ]:
 
 
 def correlationsTester(state, latsize, d_ijl, ijl_d, L):
@@ -853,4 +856,349 @@ def BasicPlotsM(L, n, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
             plt.title('Filename: '+filenamelist[i])
             plt.savefig('./' + foldername + 'Plots' + results_foldername+ '/Susceptibility_various-nsms.png')
             plt.savefig('./' + foldername + 'Plots' + results_foldername+ '/Susceptibility.pgf')
+
+
+# In[ ]:
+
+
+def Compute2DCorrelations(rid, n, t_h_MeanCorr,
+                          t_h_errCorrEstim, t_h_MeanSi,
+                          hfields_plots, temperatures_plots,\
+                          ploth = False):
+    if not ploth:
+        corr = [[[] for h in hfields_plots[0]] for i in range(n)]
+        errcorr = [[[] for h in hfields_plots[0]] for i in range(n)]
+        maxerr = [[0 for h in hfields_plots[0]] for i in range(n)]
+        for i in range(n):
+            for hid, h in enumerate(hfields_plots[i]):
+                corr[i][hid] = np.array(t_h_MeanCorr[i])[:,rid,hid]
+                errcorr[i][hid] = np.sqrt(np.array(t_h_errCorrEstim[i])[:,rid,hid])
+                maxerr[i][hid] = np.amax(np.abs(np.array(t_h_MeanSi[i])[:,rid,hid]))**2
+
+    else:
+        corr = [[[] for t in temperatures_plots[0]] for i in range(n)]
+        errcorr = [[[] for t in temperatures_plots[0]] for i in range(n)]
+        maxerr = [[0 for t in temperatures_plots[0]] for i in range(n)]
+        for i in range(n):
+            for tid, t in enumerate(temperatures_plots[i]):
+                corr[i][tid] = np.array(t_h_MeanCorr[i])[:,tid,rid]
+                errcorr[i][tid] = np.sqrt(np.array(t_h_errCorrEstim[i])[:,tid,rid])
+                maxerr[i][tid] = np.amax(np.abs(np.array(t_h_MeanSi[i])[:,tid,rid]))**2
+
+    return corr, errcorr, maxerr
+
+
+# In[ ]:
+
+
+def BasicPlotsCorrelations2D(foldername, results_foldername, rid,
+                             n, L, corr, errcorr, t_h_MeanSi,
+                             hfields_plots, temperatures_plots,\
+                             ploth = False):
+    if not ploth:
+        matplotlib.rcParams.update({'font.size': 6})
+        for i in range(n):
+            a =1
+            for hid, h in enumerate(hfields_plots[i]):
+                plt.figure(dpi=300)
+                kdraw.plot_function_kag(corr[i][hid][0], L[i], a)
+                plt.title('L = {0}; h = {1}'.format(L[i], h))
+                plt.clim(-1,1)
+                plt.savefig('./' + foldername + 'Plots' +                            results_foldername+                            '/Correlations0_L{0}_h={1}.png'.format(L[i], h))
+                plt.savefig('./' + foldername + 'Plots' +                            results_foldername+                            '/Correlations0_L{0}_h={1}}.pgf'.format(L[i],h))
+                plt.show()
+
+
+                plt.figure(dpi=300)
+                kdraw.plot_function_kag(corr[i][hid][1], L[i], a)
+                plt.title('L = {0}; h = {1}'.format(L[i], h))
+                plt.clim(-1,1)
+                plt.savefig('./' + foldername + 'Plots' +                            results_foldername+                            '/Correlations1_L{0}_h={1}.png'.format(L[i],h))
+                plt.savefig('./' + foldername + 'Plots' +                            results_foldername +                            '/Correlations1_L{0}_h={1}.pgf'.format(L[i],h))
+                plt.show()
+
+                plt.figure(dpi=300)
+                kdraw.plot_function_kag(corr[i][hid][2], L[i], a)
+                plt.title('L = {0}; h = {1}'.format(L[i], h))
+                plt.clim(-1,1)
+                plt.savefig('./' + foldername + 'Plots' +                            results_foldername+                            '/Correlations_L{0}_h={1}.png'.format(L[i],h))
+                plt.savefig('./' + foldername + 'Plots' +                            results_foldername+                            '/Correlations_L{0}_h={1}.pgf'.format(L[i],h))
+                plt.show()
+                
+        avgsi =  [[[] for h in hfields_plots[0]]
+                  for i in range(n)]
+        for i in range(n):
+            for hid,h in enumerate(hfields_plots[i]):
+                avgsi[i][hid] = np.array(t_h_MeanSi[i])[rid,hid,:]
+        for i in range(n):
+            a = 1
+            for hid, h in enumerate(hfields_plots[i]):
+                plt.figure(dpi=300)
+                kdraw.plot_function_kag(avgsi[i][hid], L[i], a)
+                plt.title('L = {0}; h = {1}'.format(L[i], h))
+                #plt.clim(-1,1)
+                plt.savefig('./' + foldername + 'Plots' +                            results_foldername+                            '/Spinaverage_L{0}_h={1}.png'.format(L[i],h))
+                plt.savefig('./' + foldername + 'Plots' +                            results_foldername+                            '/Spinaverage_L{0}_h={1}.pgf'.format(L[i],h))
+                plt.show()
+    
+    else:
+        matplotlib.rcParams.update({'font.size': 6})
+        for i in range(n):
+            a =1
+            for tid, t in enumerate(temperatures_plots[i]):
+                plt.figure(dpi=300)
+                kdraw.plot_function_kag(corr[i][tid][0], L[i], a)
+                plt.title('L = {0}; t = {1}'.format(L[i], t))
+                plt.clim(-1,1)
+                plt.savefig('./' + foldername + 'Plots' +                            results_foldername+                            '/Correlations0_L{0}_t={1}.png'.format(L[i],t))
+                plt.savefig('./' + foldername + 'Plots' +                            results_foldername+                            '/Correlations0_L{0}_t={1}.pgf'.format(L[i],t))
+                plt.show()
+
+
+                plt.figure(dpi=300)
+                kdraw.plot_function_kag(corr[i][tid][1], L[i], a)
+                plt.title('L = {0}; t = {1}'.format(L[i], t))
+                plt.clim(-1,1)
+                plt.savefig('./' + foldername + 'Plots' +                            results_foldername+                            '/Correlations1_L{0}_t={1}.png'.format(L[i],t))
+                plt.savefig('./' + foldername + 'Plots' +                            results_foldername+                            '/Correlations1_L{0}_t={1}.pgf'.format(L[i],t))
+                plt.show()
+
+                plt.figure(dpi=300)
+                kdraw.plot_function_kag(corr[i][tid][2], L[i], a)
+                plt.title('L = {0}; t = {1}'.format(L[i], t))
+                plt.clim(-1,1)
+                plt.savefig('./' + foldername + 'Plots' +                            results_foldername+                            '/Correlations2_L{0}_t={1}.png'.format(L[i],t))
+                plt.savefig('./' + foldername + 'Plots' +                            results_foldername+                            '/Correlations2_L{0}_t={1}.pgf'.format(L[i],t))
+                plt.show()
+        
+        avgsi =  [[[] for t in temperatures_plots[0]]
+                  for i in range(n)]
+        for i in range(n):
+            for tid, t in enumerate(temperatures_plots[i]):
+                avgsi[i][tid] = np.array(t_h_MeanSi[i])[tid,rid,:]
+        for i in range(n):
+            a = 1
+            for tid, t in enumerate(temperatures_plots[i]):
+                plt.figure(dpi=300)
+                kdraw.plot_function_kag(avgsi[i][tid], L[i], a)
+                plt.title('L = {0}; T = {1}'.format(L[i], t))
+                #plt.clim(-1,1)
+                plt.savefig('./' + foldername + 'Plots' +                            results_foldername+                            '/Spinaverage_L{0}_t={1}.png'.format(L[i],t))
+                plt.savefig('./' + foldername + 'Plots' +                            results_foldername+                            '/Spinaverage_L{0}_t={1}.pgf'.format(L[i],t))
+                plt.show()
+                
+        #### PLOTTING ERRORS ON CORRELATIONS IN 2D
+        #for i in range(n):
+        #    a = 1
+        #    for hid, h in enumerate(hfields_plots[i]):
+#
+#
+        #        plt.figure(dpi=150)
+        #        kdraw.plot_function_kag(errcorr[i][hid][0], L[i], a)
+        #        #plt.clim(-1,1)
+        #        plt.savefig('./' + foldername + 'Plots' + results_foldername+ '/CorrelationsErr0_L{0}_various-nsms.png'.format(L[i]))
+        #        plt.savefig('./' + foldername + 'Plots' + results_foldername+ '/CorrelationsErr0_L{0}.pgf'.format(L[i]))
+        #        plt.title('L = {0}; h = {1}'.format(L[i], h))
+        #        plt.show()
+#
+#
+        #        plt.figure(dpi=150)
+        #        kdraw.plot_function_kag(errcorr[i][hid][1], L[i], a)
+        #        #plt.clim(-1,1)
+        #        plt.savefig('./' + foldername + 'Plots' + results_foldername+ '/CorrelationsErr1_L{0}_various-nsms.png'.format(L[i]))
+        #        plt.savefig('./' + foldername + 'Plots' + results_foldername+ '/CorrelationsErr1_L{0}.pgf'.format(L[i]))
+        #        plt.title('L = {0}; h = {1}'.format(L[i], h))
+        #        plt.show()
+#
+        #        plt.figure(dpi=150)
+        #        kdraw.plot_function_kag(errcorr[i][hid][2], L[i], a)
+        #        #plt.clim(-1,1)
+        #        plt.savefig('./' + foldername + 'Plots' + results_foldername+ '/CorrelationsErr2_L{0}_various-nsms.png'.format(L[i]))
+        #        plt.savefig('./' + foldername + 'Plots' + results_foldername+ '/CorrelationsErr2_L{0}.pgf'.format(L[i]))
+        #        plt.title('L = {0}; h = {1}'.format(L[i], h))
+        #        plt.show()
+
+
+# In[ ]:
+
+
+def PlotStrctFact(StrctFact, foldername, results_foldername, tid,
+                  hid,L, i, hfields_plots, temperatures_plots):
+    size = (170/L[i])**2
+    fig, ax = plt.subplots(figsize = (8,8),dpi=200)
+    kdraw.plot_function_reciprocal(np.real(StrctFact[:,0,0]),
+                                   L[i], 2, s = size)#, vmin = vmin, vmax = vmax)
+    plt.title('L = {0}; h = {1}; SF 00'.format(L[i], hfields_plots[i][hid]))
+    plt.savefig('./' + foldername + 'Plots' + results_foldername+                '/SF00_h={0}_L={1}_t={2}.png'.format(L[i],
+                                                     hfields_plots[i][hid],
+                                                     temperatures_plots[i][tid]))
+
+    fig, ax = plt.subplots(figsize = (8,8),dpi=200)
+    kdraw.plot_function_reciprocal(np.real(StrctFact[:,1,1]),
+                                   L[i], 2, s = size)#, vmin = vmin, vmax = vmax)
+    plt.title('L = {0}; h = {1}; SF 11'.format(L[i], hfields_plots[i][hid]))
+    plt.savefig('./' + foldername + 'Plots' + results_foldername+                '/SF11_h={0}_L={1}_t={2}.png'.format(L[i],
+                                                     hfields_plots[i][hid],
+                                                     temperatures_plots[i][tid]))
+
+    fig, ax = plt.subplots(figsize = (8,8),dpi=200)
+    kdraw.plot_function_reciprocal(np.real(StrctFact[:,2,2]),
+                                   L[i], 2, s = size)#, vmin = vmin, vmax = vmax)
+    plt.title('L = {0}; h = {1}; SF 22'.format(L[i], hfields_plots[i][hid]))
+    plt.savefig('./' + foldername + 'Plots' + results_foldername+                '/SF22_h={0}_L={1}_t={2}.png'.format(L[i],
+                                                     hfields_plots[i][hid],
+                                                     temperatures_plots[i][tid]))
+
+    fig, ax = plt.subplots(figsize = (8,8),dpi=200)
+    kdraw.plot_function_reciprocal(np.real(StrctFact[:,0,1]
+                                           +StrctFact[:,1,0])/2,
+                                   L[i], 2, s = size)#, vmin = vmin, vmax = vmax)
+    plt.title('L = {0}; h = {1}; SF 01 + 10'.format(L[i], hfields_plots[i][hid]))
+    plt.savefig('./' + foldername + 'Plots' + results_foldername+                '/SF01_h={0}_L={1}_t={2}.png'.format(L[i],
+                                                     hfields_plots[i][hid],
+                                                     temperatures_plots[i][tid]))
+
+    fig, ax = plt.subplots(figsize = (8,8),dpi=200)
+    kdraw.plot_function_reciprocal(np.real(StrctFact[:,0,2]
+                                           +StrctFact[:,2,0])/2,
+                                   L[i], 2, s = size)#, vmin = vmin, vmax = vmax)
+    plt.title('L = {0}; h = {1}; SF 02 + 20'.format(L[i], hfields_plots[i][hid]))
+    plt.savefig('./' + foldername + 'Plots' + results_foldername+                '/SF02_h={0}_L={1}_t={2}.png'.format(L[i],
+                                                     hfields_plots[i][hid],
+                                                     temperatures_plots[i][tid]))
+
+    fig, ax = plt.subplots(figsize = (8,8),dpi=200)
+    kdraw.plot_function_reciprocal(np.real(StrctFact[:,1,2]
+                                           +StrctFact[:,2,1])/2,
+                                   L[i], 2, s = size)#, vmin = vmin, vmax = vmax)
+    plt.title('L = {0}; h = {1}; SF 12 + 21'.format(L[i], hfields_plots[i][hid]))
+    plt.savefig('./' + foldername + 'Plots' + results_foldername+                '/SF12_h={0}_L={1}_t={2}.png'.format(L[i],
+                                                     hfields_plots[i][hid],
+                                                     temperatures_plots[i][tid]))
+
+
+# In[ ]:
+
+
+def dist_corr(L, findex, corr, errcorr,distmax):
+    distances, distances_spins, NNList, s_pos, srefs = kf.NearestNeighboursLists(L, distmax)
+    
+    C = [[0 for i in range(len(NNList[0]))] for j in range(len(srefs))]
+    ErrC = [[0 for i in range(len(NNList[0]))] for j in range(len(srefs))]
+    for j in range(len(srefs)):
+        for i in range(len(NNList[0])):
+            Corrji = 0
+            ErrCorrji = 0
+            count = 0
+            for pair in NNList[j][i]:
+                if srefs[j] == pair[0]:
+                    count += 1
+                    Corrji += corr[findex][j][pair[1]]
+                    ErrCorrji += errcorr[findex][j][pair[1]]
+            if count == 0:
+                print("NNList[", j, "][", i, "] = ", NNList[j][i])
+            Corrji = Corrji/count
+            ErrCorrji = ErrCorrji/count
+
+            
+            C[j][i] = Corrji
+            ErrC[j][i]= ErrCorrji
+        C[j] = np.array(C[j])
+        ErrC[j] = np.array(ErrC[j])
+
+    C = np.array(sum(C))/3
+    ErrC = np.array(sum(ErrC))/3
+    return distances, C, ErrC
+        
+
+
+# In[ ]:
+
+
+def PlotFirstCorrelations(n, L, foldername, results_foldername,hfields_plots, temperatures_plots,
+                         t_h_MeanCorr, t_h_errCorrEstim, distmax = 3.5, ploth = False):
+
+    distmax = min(3.5, distmax)
+    nlistnames = ['1', '2', '3', '3star', '4', '5', '6', '6star']
+
+    if not ploth:
+        for i in range(n):
+            for hid, h in enumerate(hfields_plots[i]):
+                fig, ax = plt.subplots(dpi=200, figsize = (9,9))
+                ax.set_xscale("log")
+                plt.title('First few neighbours correlations,                h = {0}'.format(h))
+                fmts = ['.','x','v','-','^','o','*','s']
+                length = len(temperatures_plots[i])
+                fmt = fmts[i]
+                for t in range(1,length):
+
+                    corr = [np.array(t_h_MeanCorr[i])[:,t,hid,:]]
+                    errcorr =                    [np.sqrt(np.array(t_h_errCorrEstim[i])[:,t,hid])]
+                    (resr, rescorr, reserrcorr) =                    dist_corr(L[i],0 ,corr, errcorr, distmax)
+                    
+                    if t == 1:
+                            print(rescorr)
+                    
+                    plt.gca().set_prop_cycle(None)
+                    alpha = 0.5
+                    for nei in range(0,len(rescorr)):
+                        if t == 1:
+                            plt.errorbar(temperatures_plots[i][t],
+                                         rescorr[nei],
+                                         reserrcorr[nei],\
+                                         fmt = fmt,\
+                                         label =\
+                                         'Neighbour {0}'.format(nlistnames[nei]),\
+                                         alpha = alpha)
+                        else:
+                            plt.errorbar(temperatures_plots[i][t],
+                                         rescorr[nei],
+                                         reserrcorr[nei],\
+                                         fmt = fmt,\
+                                         alpha = alpha)
+
+                plt.xlabel(r'$T/J_1$')
+                plt.ylabel(r'$<\sigma_i \sigma_j> - <\sigma_i> <\sigma_j> $')
+                plt.legend(loc = 'best')
+                plt.savefig('./' + foldername + 'Plots' +                            results_foldername+                            '/FewCorrelations_L={0}_h={1}.png'.format(L[i],h))
+    else:
+        for i in range(n):
+            for tid, t in enumerate(temperatures_plots[i]):
+                fig, ax = plt.subplots(dpi=200, figsize = (9,9))
+                plt.title('First few neighbours correlations,                t = {0}'.format(t))
+                fmts = ['.','x','v','-','^','o','*','s']
+                length = len(hfields_plots[i])
+                fmt = fmts[i]
+                for hid in range(1,length):
+
+                    corr = [np.array(t_h_MeanCorr[i])[:,tid,hid,:]]
+                    errcorr =                    [np.sqrt(np.array(t_h_errCorrEstim[i])[:,tid,hid])]
+                    (resr, rescorr, reserrcorr) =                    dist_corr(L[i],0 ,corr, errcorr, distmax)
+                    
+                    if hid == 1:
+                            print(rescorr)
+                    
+                    plt.gca().set_prop_cycle(None)
+                    alpha = 0.5
+                    for nei in range(0,len(rescorr)):
+                        if hid == 1:
+                            plt.errorbar(hfields_plots[i][hid],
+                                         rescorr[nei],
+                                         reserrcorr[nei],\
+                                         fmt = fmt,\
+                                         label =\
+                                         'Neighbour {0}'.format(nlistnames[nei]),\
+                                         alpha = alpha)
+                        else:
+                            plt.errorbar(hfields_plots[i][hid],
+                                         rescorr[nei],
+                                         reserrcorr[nei],\
+                                         fmt = fmt,\
+                                         alpha = alpha)
+
+                plt.xlabel(r'$h/J_1$')
+                plt.ylabel(r'$<\sigma_i \sigma_j> - <\sigma_i> <\sigma_j> $')
+                plt.legend(loc = 'best')
+                plt.savefig('./' + foldername + 'Plots' +                            results_foldername+                            '/FewCorrelations_L={0}_t={1}.png'.format(L[i],t))
+ 
 
