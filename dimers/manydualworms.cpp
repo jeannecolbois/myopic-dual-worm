@@ -30,9 +30,11 @@ tuple<double, bool, vector<int>, vector<int>> manydualworms(double J1,
         }
     }
     vector<int> looplengths(0);
-    for(int wormiter = 0; (wormiter < iterworm) && loopclosed; wormiter++ ) { // we only continue if the loops we are building are closed
+    int totlength = 0;
+    for(int wormiter = 0; totlength < iterworm*statesize && (wormiter < nmaxiter*statesize) && loopclosed; wormiter++ ) { // we only continue if the loops we are building are closed
         tuple<double, int> oneworm = dualworm(&loopclosed, &w1, &w2, J1, interactions, state, statesize, d_nd, n_nd, d_vd, n_vd, d_wn, beta, saveloops, update, nmaxiter);
        	deltaE += get<0>(oneworm);
+        totlength += get<1>(oneworm);
         if(saveloops){
           	looplengths.push_back(get<1>(oneworm));
         }
@@ -41,6 +43,7 @@ tuple<double, bool, vector<int>, vector<int>> manydualworms(double J1,
     	do {
         	tuple<double, int> oneworm = dualworm(&loopclosed, &w1, &w2, J1, interactions, state, statesize, d_nd, n_nd, d_vd, n_vd, d_wn, beta, saveloops, update, nmaxiter);
         	deltaE += get<0>(oneworm);
+          totlength += get<1>(oneworm);
         	if(saveloops){
             		looplengths.push_back(get<1>(oneworm));
         	}
@@ -75,7 +78,10 @@ tuple<double, bool, vector<int>, vector<int>> manydualworms(double J1,
     return resultingtuple;
 }
 
-tuple<double, int> dualworm(bool* loopclosed, int* w1, int*w2, double J1, vector<tuple<double, int*, int, int>> interactions, int* state, int statesize, int* d_nd, int n_nd, int* d_vd, int n_vd, int* d_wn, double beta, int saveloops, vector<int> &update, int nmaxiter) {
+tuple<double, int> dualworm(bool* loopclosed, int* w1, int*w2, double J1,
+  vector<tuple<double, int*, int, int>> interactions, int* state,
+  int statesize, int* d_nd, int n_nd, int* d_vd, int n_vd, int* d_wn,
+  double beta, int saveloops, vector<int> &update, int nmaxiter) {
 
     // max size of the loop = 5* the maximum number of iterations
     int maxiter = nmaxiter*statesize;
@@ -211,9 +217,8 @@ tuple<double, int> dualworm(bool* loopclosed, int* w1, int*w2, double J1, vector
         if (saveloops) {
             update[n_dimer] += 1;
             update[e_dimer] += 1;
-            looplength += 2;
         }
-
+        looplength += 2;
 
         // check wether these dimers cross the winding lines and update the winding numbers accordingly
         // NOTICE THAT we are only interested in the parity of the winding numbers and we are not actually computing the winding numbers,

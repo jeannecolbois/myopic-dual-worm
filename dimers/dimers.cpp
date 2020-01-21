@@ -422,7 +422,6 @@ static PyObject* dimers_mcsevolve(PyObject *self, PyObject *args) {
 static PyObject* dimers_magneticmcsevolve(PyObject *self, PyObject *args) {
     /* What we want to get from the arguments:
      * >> A list of couplings [J1, (J2, M2), (J3, M3), ...]
-     * >> A magnetic field
      * >> A table of state objects (numpy table) describing the current states of the systems (table of 1d numpy tables)
      * >> A table of spinstates object
      * >> A numpy table of dimers connected to each dimer through an n site
@@ -430,8 +429,9 @@ static PyObject* dimers_magneticmcsevolve(PyObject *self, PyObject *args) {
      * >> A numpy table of which dimers to count for each winding number
      * >> A numpy table of spins for update
      * >> A numpy table of dimers for update
-     * >> A table of temperatures (numpy)
-     * >> A numpy table of energies
+     * >> A numpy table giving the parameters associated with a walker
+     * >> A numpy table giving the indices of the parameters associated with a walker
+     * >> A numpy table of energies for each parameter
      * >> A numpy table to save the number of missed updates
      * >> A maximal loop size
      * >> A number of iterations
@@ -439,15 +439,19 @@ static PyObject* dimers_magneticmcsevolve(PyObject *self, PyObject *args) {
 
      //------------------------------------------------------INPUT INTERPRETATION---------------------------------------------------------------------//
      PyObject *list_obj;
-     double h;
      PyObject *states_obj, *spinstates_obj, *d_nd_obj, *d_vd_obj, *d_wn_obj;
-     PyObject *sidlist_obj, *didlist_obj, *betas_obj, *energies_obj;
+     PyObject *sidlist_obj, *didlist_obj;
+     PyObject *walker2params_obj, *walker2ids_obj, *energies_obj;
      PyObject *failedupdates_obj; //*saveloops_obj,
      int nmaxiter;
      int niterworm;
      int nthreads;
      // take the arguments as pointers + int
-     if(!PyArg_ParseTuple(args,"OdOOOOOOOOOOiii", &list_obj, &h, &states_obj, &spinstates_obj, &d_nd_obj, &d_vd_obj, &d_wn_obj, &sidlist_obj, &didlist_obj, &betas_obj, &energies_obj, &failedupdates_obj, &nmaxiter, &niterworm, &nthreads))
+     if(!PyArg_ParseTuple(args,"OOOOOOOOOOOOiii", &list_obj, &states_obj,
+      &spinstates_obj, &d_nd_obj, &d_vd_obj, &d_wn_obj, &sidlist_obj,
+      &didlist_obj, &walker2params_obj, &walker2ids_obj,
+      &energies_obj, &failedupdates_obj, &nmaxiter,
+      &niterworm, &nthreads))
 	    return nullptr;
     //----------------------------//
     /* Interpret the list input  */
@@ -576,32 +580,55 @@ static PyObject* dimers_magneticmcsevolve(PyObject *self, PyObject *args) {
         return nullptr;
     }
     int nbit = get<1>(didlisttuple);
-
     //--------------------------------------//
-    /* Interpret the table of temperatures */
+    /* Interpret the table of walkers2params*/
     //--------------------------------------//
 
-    // because we want to be able to update the state as well: NPY_ARRAY_INOUT_ARRAY and not NPY_ARRAY_IN_ARRAY
-    PyArrayObject *betas_array = (PyArrayObject*) PyArray_FROM_OTF(betas_obj, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
-    if(betas_array == nullptr) {
-        Py_XDECREF(betas_array);
+    PyArrayObject *walker2params_array = (PyArrayObject*) PyArray_FROM_OTF(walker2params_obj, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+    if(walker2params_array == nullptr) {
+        Py_XDECREF(walker2params_array);
         PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d (NPY array?)", __LINE__);
         return nullptr;
     }
 
-    int nbt = (int)PyArray_DIM(betas_array, 0);
+    int nbwalkers = (int)PyArray_DIM(walker2params_array, 0);
     //check that state has the dimensions expected
-    if(PyArray_NDIM(betas_array) != 1) {
+    if(PyArray_NDIM(walker2params_array) != 2 || (int)PyArray_DIM(walker2params_array,1) != 2) {
         PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d", __LINE__);
         return nullptr;
     }
 
-    if(nt_states != nbt) {
+    if(nt_states != nbwalkers) {
         PyErr_Format(PyExc_ValueError, "DIMERS.cpp : Non-consistent number of temperatures and states, see line %d", __LINE__);
         return nullptr;
     }
     //get pointer as Ctype
-    double *betas = (double*)PyArray_DATA(betas_array);
+    double *walker2params = (double*)PyArray_DATA(walker2params_array);
+
+    //--------------------------------------//
+    /* Interpret the table of walker2ids*/
+    //--------------------------------------//
+
+    PyArrayObject *walker2ids_array = (PyArrayObject*) PyArray_FROM_OTF(walker2ids_obj, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+    if(walker2ids_array == nullptr) {
+        Py_XDECREF(walker2ids_array);
+        PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d (NPY array?)", __LINE__);
+        return nullptr;
+    }
+
+    int nbidwalkers = (int)PyArray_DIM(walker2ids_array, 0);
+    //check that state has the dimensions expected
+    if(PyArray_NDIM(walker2ids_array) != 2 || (int)PyArray_DIM(walker2ids_array,1) != 2) {
+        PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d", __LINE__);
+        return nullptr;
+    }
+
+    if(nbidwalkers != nbwalkers) {
+        PyErr_Format(PyExc_ValueError, "DIMERS.cpp : Non-consistent number of temperatures and states, see line %d", __LINE__);
+        return nullptr;
+    }
+    //get pointer as Ctype
+    double *walker2ids = (double*)PyArray_DATA(walker2ids_array);
 
     //---------------------------------//
     /* Interpret the table of energies */
@@ -614,14 +641,15 @@ static PyObject* dimers_magneticmcsevolve(PyObject *self, PyObject *args) {
         return nullptr;
     }
 
-    int nte = (int)PyArray_DIM(energies_array, 0);
+    int nt = (int)PyArray_DIM(energies_array, 0);
+    int nh = (int)PyArray_DIM(energies_array,1);
     //check that state has the dimensions expected
-    if(PyArray_NDIM(energies_array) != 1) {
+    if(PyArray_NDIM(energies_array) != 2) {
         PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d", __LINE__);
         return nullptr;
     }
 
-    if(nte != nbt) {
+    if(nt*nh != nbwalkers) {
         PyErr_Format(PyExc_ValueError, "DIMERS.cpp : Non-consistent number of energies and states, see line %d", __LINE__);
         return nullptr;
     }
@@ -640,7 +668,7 @@ static PyObject* dimers_magneticmcsevolve(PyObject *self, PyObject *args) {
         return nullptr;
     }
     //check that state has the dimensions expected
-    if(PyArray_NDIM(failedupdates_array) != 1) {
+    if(PyArray_NDIM(failedupdates_array) != 2) {
         PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d", __LINE__);
         return nullptr;
     }
@@ -652,9 +680,9 @@ static PyObject* dimers_magneticmcsevolve(PyObject *self, PyObject *args) {
     /* Call the magneticmcs C function */
     //------------------------------------//
     PyThreadState* threadState = PyEval_SaveThread(); // release the GIL
-    magneticmcsevolve(J1, interactions, h, states, statesize, spinstates, spinstatesize,
-      d_nd, nnei_d_nd, d_vd, nnei_d_vd, d_wn, sidlist, didlist, nbit, betas,
-      energies, failedupdates, nbt, nmaxiter, niterworm, nthreads); //saveloops = 0
+    magneticmcsevolve(J1, interactions, states, statesize, spinstates, spinstatesize,
+      d_nd, nnei_d_nd, d_vd, nnei_d_vd, d_wn, sidlist, didlist, nbit, walker2params,
+      walker2ids, energies, failedupdates, nbwalkers, nmaxiter, niterworm, nthreads, nt, nh); //saveloops = 0
     PyEval_RestoreThread(threadState); // claim the GIL
 
     // Clean up
@@ -681,8 +709,11 @@ static PyObject* dimers_magneticmcsevolve(PyObject *self, PyObject *args) {
     if( didlist_array != nullptr){
       Py_DECREF(didlist_array); // decrement the reference
     }
-    if( betas_array != nullptr){
-      Py_DECREF(betas_array); // decrement the reference
+    if( walker2params_array != nullptr){
+      Py_DECREF(walker2params_array); // decrement the reference
+    }
+    if( walker2ids_array != nullptr){
+      Py_DECREF(walker2ids_array); // decrement the reference
     }
     if( energies_array != nullptr){
       Py_DECREF(energies_array); // decrement the reference

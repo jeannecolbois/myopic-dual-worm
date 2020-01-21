@@ -55,8 +55,10 @@ std::tuple<double, bool, std::vector<int>, std::vector<int>> magneticdualworms(d
         //    2- compute exp(-beta*DELTAE) (but DeltaE = -h*spinsdiff)
         // std::cerr << "spinsold " << spinsold << endl;
         // std::cerr << "spinsnew " << sign(h)*abs(spinsnew) << endl;
-        int spinsdiff =  sign(h)*(abs(spinsnew))-spinsold; // if h is +, we are interested in positive magnetisation;
-        // if h is -, we are interested in negative magnetisation
+        // note: we can choose to flip either the inside or the outside of the loop
+        // we select the one that's most favourable to us, that is, the one whose
+        // magnetisation has the same sign as h.
+        int spinsdiff =  sign(h)*abs(spinsnew) - spinsold;
 
         double p = exp(beta*h*spinsdiff);
         // Accept or reject by throwing a dice
@@ -71,7 +73,7 @@ std::tuple<double, bool, std::vector<int>, std::vector<int>> magneticdualworms(d
                 spinstate[spin] = - spinstate[spin];
             }
           }
-          deltaE += -h*spinsdiff; // for now always accept to see
+          deltaE += -h*spinsdiff;
         }else{// reject
           // revert state
           for( int dim = 0; dim < statesize; dim++){
@@ -83,7 +85,7 @@ std::tuple<double, bool, std::vector<int>, std::vector<int>> magneticdualworms(d
           }
           // revert energy change
           deltaE = 0;
-          // state that no update
+          // state that there was no update
           updated = false;
         }
         //clean up
