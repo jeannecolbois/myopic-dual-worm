@@ -29,7 +29,7 @@ def main(args):
     ### SIMULATIONS INITIATLISATION
     backup.params.loadfromfile = loadfromfile = args.loadfromfile
     if loadfromfile:
-        f = open('./' + args.filename +'.pkl', 'rb')
+        f = open(args.filename +'.pkl', 'rb')
         loadbackup = pickle.load(f) #save the parameters
         L = loadbackup.params.L
         
