@@ -27,11 +27,21 @@ def main(args):
     backup.params = safe()
     backup.results = safe()
     ### SIMULATIONS INITIATLISATION
+    backup.params.loadfromfile = loadfromfile = args.loadfromfile
+    if loadfromfile:
+        f = open('./' + args.filename +'.pkl', 'rb')
+        loadbackup = pickle.load(f) #save the parameters
+        L = loadbackup.params.L
+        
+        assert L == args.L, "Loaded and required lattice sizes not compatible."
+    
+        f.close
+        
     backup.params.L = L = args.L
     print('Lattice side size: ', L)
     [d_ijl, ijl_d, s_ijl, ijl_s, d_2s, s2_d, d_nd, d_vd, d_wn,
      sidlist, didlist, c_ijl, ijl_c, c2s, csign] = dw.latticeinit(L)
-    
+
 
     ## Energy
     backup.params.J1 = J1 = args.J1
@@ -48,11 +58,11 @@ def main(args):
     print("Couplings extracted")
     hamiltonian = dw.Hamiltonian(couplings,d_ijl, ijl_d, L)
     print("Hamiltonian expression (without field) computed")
-    
-    
+
+
     backup.params.ssf = ssf = args.ssf
     backup.params.alternate = alternate = args.alternate
-    
+
     s2p = dw.spin2plaquette(ijl_s, s_ijl, s2_d,L)
     if ssf:
         print("single spin flip update")
@@ -60,11 +70,11 @@ def main(args):
         print("alternating ssf and dw update")
     if ssf or alternate:
         nnspins, s2p = dw.spin2plaquette(ijl_s, s_ijl, s2_d,L)
-    
-    assert (not ((ssf or alternate) and (J2 != 0 or J3 !=0 or J3st != 0 or J4!=0))),    "The ssf is only available with J1"
-    
 
-    
+    assert (not ((ssf or alternate) and (J2 != 0 or J3 !=0 or J3st != 0 or J4!=0))),    "The ssf is only available with J1"
+
+
+
     ## Temperatures and magnetic fields to simulate
     t_list = [t for t in args.t_list]
     nt_list = args.nt_list
@@ -87,31 +97,46 @@ def main(args):
         nh = 1
     backup.params.hfields = hfields;
     backup.params.nh = nh;
-    
+
     print('Number of temperatures: ', nt)
     print('Temperatures:', temperatures)
     print('Number of magnetic fields: ', nh)
     print('Magnetic fields: ', hfields)
-    
+
     [walker2params, walker2ids, ids2walker] = dw.walkerstable(betas, nt, hfields, nh)
+
+    if loadfromfile:
+        f = open('./' + args.filename +'.pkl', 'rb')
+        loadbackup = pickle.load(f) #save the parameters
+        
+        states = loadbackup.results.states
+        spinstates = loadbackup.results.spinstates
+        energies = [[dw.compute_energy(hamiltonian, states[ids2walker[bid, hid]])
+                  - hfields[hid]*spinstates[ids2walker[bid,hid]].sum()
+                  for hid in range(nh)]
+                 for bid in range(nt)]
     
+        energies = np.array(energies)
+        f.close()
+    else:
+        backup.params.randominit = randominit = args.randominit    
+        print('Fully random initialisation = ', randominit)
+        backup.params.same = same = args.same
+        print('Identical initialisation = ', same)
+        backup.params.magninit = magninit = args.magninit
+        print('Magnetisation initialisation = ', magninit)
+        backup.params.maxflip = maxflip = args.maxflip
+        backup.params.magnstripes = magnstripes = args.magnstripes
 
-    ## States
-    backup.params.randominit = randominit = args.randominit    
-    print('Fully random initialisation = ', randominit)
-    backup.params.same = same = args.same
-    print('Identical initialisation = ', same)
-    backup.params.magninit = magninit = args.magninit
-    print('Magnetisation initialisation = ', magninit)
-    backup.params.maxflip = maxflip = args.maxflip
-    backup.params.magnstripes = magnstripes = args.magnstripes
-    kwinit = {'random': randominit, 'same': same, 
-              'magninit': magninit, 'h':h, 'maxflip':maxflip,
-             'magnstripes': magnstripes}
+        kwinit = {'random': randominit, 'same': same, 
+                  'magninit': magninit, 'h':h, 'maxflip':maxflip,
+                 'magnstripes': magnstripes}
 
-    (states, energies,spinstates) = strst.statesinit(nt, nh, hfields,
-                                    ids2walker,d_ijl, d_2s, s_ijl,
-                                    hamiltonian, **kwinit)
+        (states, energies,spinstates) = strst.statesinit(nt, nh, hfields,
+                                        ids2walker,d_ijl, d_2s, s_ijl,
+                                        hamiltonian, **kwinit)
+
+    # end if
     
     #print("Energies = ", energies)
     print("Energies size: ", energies.shape)
@@ -122,9 +147,9 @@ def main(args):
                      -hfields[hid]*spinstates[ids2walker[bid,hid]].sum()
                      for hid in range(nh)] for bid in range(nt)]
     new_en_states = np.array(new_en_states)
-    
 
-    
+
+
     for t in range(nt):
         for h in range(nh):
             if np.absolute(energies[t,h]-new_en_states[t,h]) > 1.0e-12:
@@ -137,7 +162,7 @@ def main(args):
                       dim.hamiltonian(hamiltonian, states[ids2walker[t,h]])
                       - hfields[h]*spinstates[ids2walker[t,h]].sum())
     ref_en_states = np.zeros(len(hfields))
-    
+
     if args.checkgs:
         for hid, h in enumerate(hfields):
             if h == 0:
@@ -149,11 +174,11 @@ def main(args):
                     ref_en_states[hid] = 9*L**2*(-2/3 * J1 - 1/3 * J3)
                 elif J3/J2 >= 1:
                     ref_en_states[hid] = 9*L**2*(-2/3 * J1 + 2/3 * J2 - J3)
-            elif abs(h/J1) < 6:
+            elif abs(h/J1) < 4:
                 ref_en_states[hid] = 9*L**2*(-2/3 * J1 - 1/3 * abs(h))
-            elif abs(h/J1) > 6:
+            elif abs(h/J1) > 4:
                 ref_en_states[hid] = 9*L**2*(2*J1 - abs(h))
-                
+
         print(ref_en_states)
         t = 0
         for h in range(nh):
@@ -229,10 +254,10 @@ def main(args):
         assert(l%2 == 0)
         for i in range(0, l, 2):
             stat_temps += list(range(vals[i], vals[i+1]+1))
-    
+
     backup.params.stat_temps = stat_temps
     assert len(stat_temps) <= nt,    'The number of temperature indices to measure cannot be bigger than    the number of temperatures.'
-    
+
     # magnetic fields to measure
     if args.stat_hfields_lims is None:
         #by default, we measure all the temperatures
@@ -480,28 +505,42 @@ if __name__ == "__main__":
     parser.add_argument('--ncores', type = int, default = 4,
                         help = 'number of threads to use')
 
-    #WORM PARAMETERS
-    parser.add_argument('--nmaxiter', type = int, default = 10,
-                        help = '''maximal number of segments in a loop update over the
-                        size of the lattice (1 = 1times the number of dualbonds in the
-                        lattice)''')
+    # INITIALISATION PARAMETERS
     parser.add_argument('--randominit', default = False, action ='store_true',
                         help = 'intialise the states randomly')
     parser.add_argument('--same', default = False, action = 'store_true',
                         help = '''initialise all temperatures with the same
                         state (debug purposes)''')
     parser.add_argument('--magninit', default = False, action = 'store_true',
-                        help = '''initialise all the temperature with the maximally magnetised GS''')
+                        help = '''initialise all the temperature with
+                        one of the m=1/3 GS''')
     parser.add_argument('--magnstripes', default = False, action = 'store_true',
                        help = '''initialise all the temperature with
                        m=1/3 stripes''')
     parser.add_argument('--maxflip', default = False, action = 'store_true',
                        help = '''initialise all the temperature with
                        maximally flippable plateau''')
+    parser.add_argument('--loadfromfile', default = False, action = 'store_true',
+                       help = '''initialise all the states with
+                       results from a previously performed simulations''')
+    parser.add_argument('--filename', type = str, help = '''initialise all the states with
+                       results from a previously performed simulations''')
+    
+    #WORM PARAMETERS
+    parser.add_argument('--nmaxiter', type = int, default = 10,
+                        help = '''maximal number of segments in a loop update over the
+                        size of the lattice (1 = 1times the number of dualbonds in the
+                        lattice)''')
     parser.add_argument('--measupdate', default = False, action = 'store_true',
                        help = '''activate to mimic the action of the measuring tip''')
-    parser.add_argument('--p', type = float, default = 0.1, 
+    parser.add_argument('--p', type = float, default = 0.0, 
                        help = '''prob of the measuring tip flipping the spin (number between 0 and 1)''')
+    parser.add_argument('--ssf', default = False, action = 'store_true',
+                        help = 'activate for single spin flip update')
+    parser.add_argument('--alternate', default = False, action = 'store_true',
+                        help = 'activate for single spin flip update and dw update')
+    parser.add_argument('--checkgs', default = False, action = 'store_true',
+                        help = 'activate to debug ssf')
     
     #TEMPERATURE PARAMETERS
     parser.add_argument('--t_list', nargs = '+', type = float, default = [0.5, 15.0],
