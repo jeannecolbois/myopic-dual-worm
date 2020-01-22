@@ -492,12 +492,6 @@ if __name__ == "__main__":
                         help = 'number of replica loops per MC step')
     parser.add_argument('--measperiod', type = int, default = 1,
                         help = 'number of nips worm building + swaps between measurements')
-    parser.add_argument('--ssf', default = False, action = 'store_true',
-                        help = 'activate for single spin flip update')
-    parser.add_argument('--alternate', default = False, action = 'store_true',
-                        help = 'activate for single spin flip update and dw update')
-    parser.add_argument('--checkgs', default = False, action = 'store_true',
-                        help = 'activate to debug ssf')
     parser.add_argument('--nb', type = int, default = 20,
                         help = 'number of bins')
 
