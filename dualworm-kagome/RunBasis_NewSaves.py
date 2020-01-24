@@ -3,15 +3,14 @@
 
 # In[ ]:
 
-
 import numpy as np
 import dimers as dim
 import DualwormFunctions as dw
 import StartStates as strst
 import Observables as obs
-import RunBasisFunctions as rbf
+import RunBasisFunctions_NewSaves as rbf
 
-import hickle
+import hickle as hkl
 from safe import safe
 import os
 
@@ -22,7 +21,6 @@ import argparse
 
 # In[ ]:
 
-
 def main(args):
     
     print("-------------------Initialisation--------------------")
@@ -30,21 +28,19 @@ def main(args):
     backup = rbf.SafePreparation(args)
     
     ### SIMULATIONS PARAMETERS
-    backup.params.loadfromfile = loadfromfile = args.loadfromfile
+    loadfromfile = args.loadfromfile
+    loadbackup = "./" + args.filename + ".hkl"
     if loadfromfile:
-        f = open('./' + args.filename +'.hdf5', 'rb')
-        loadbackup = hickle.load(f) #save the parameters
-        L = loadbackup.params.L
-        
+        L = hkl.load(loadbackup, path = "/parameters/L")
         assert L == args.L, "Loaded and required lattice sizes not compatible."
     
-        f.close
-    backup.params.L = L = args.L
+    L = args.L
+    
     print('Lattice side size: ', L)
     [d_ijl, ijl_d, s_ijl, ijl_s, d_2s, s2_d, d_nd, d_vd, d_wn,
      sidlist, didlist, c_ijl, ijl_c, c2s, csign] =\
     dw.latticeinit(L)
-
+    
     [couplings, hamiltonian, ssf, alternate, s2p, temperatures,
      betas, nt, hfields, nh] =\
     rbf.SimulationParameters(args,backup, loadfromfile, d_ijl,
@@ -52,10 +48,12 @@ def main(args):
     
     [walker2params, walker2ids, ids2walker] =    dw.walkerstable(betas, nt, hfields, nh)
 
+    # Saving the status:
+    
     ## SIMULATION INITIALISATION
-    (states, energies, spinstates, ref_en_states) =    rbf.StatesAndEnergyInit(args, backup, hamiltonian, ids2walker,
-                          nt, nh, hfields, d_ijl, d_2s, s_ijl,
-                           couplings, L)
+    (states, energies, spinstates, ref_en_states) =    rbf.StatesAndEnergyInit(args, backup, loadbackup,hamiltonian,
+                            ids2walker, nt, nh, hfields, d_ijl,
+                            d_2s, s_ijl, couplings, L)
     
     # Check g.s. (if required)
     rbf.CheckGs(args, ref_en_states, energies, nh)
@@ -79,7 +77,7 @@ def main(args):
 
     ## THERMALISATION
     #preparation
-    backup.params.ncores = ncores = args.ncores
+    ncores = args.ncores
     
     
     print("-----------Thermalisation------------------")
@@ -87,14 +85,17 @@ def main(args):
     num_in_bin = args.nst# mcs iterations per bins
     iterworm = nips = args.nips # maximal number of MCS iterations
     # before considering swaps (one iteration = one system size update)
-    backup.params.nrps = nrps = args.nrps # number of replica loop iterations in a MC step
+    nrps = args.nrps # number of replica loop iterations in a MC step
     nmaxiter = args.nmaxiter
     statsfunctions = [] #don't compute any statistics
     check = False #don't turn to spins to check
     print('Number of thermalisation steps = ', num_in_bin*nb)
-    backup.params.thermsteps = num_in_bin*nb
-    backup.params.ncores = ncores = args.ncores
+    thermsteps = num_in_bin*nb
     #launch thermalisation
+    thermalisation = {'ncores':ncores, 'nmaxiter':nmaxiter,
+                     'thermsteps': thermsteps}
+    hkl.dump(thermalisation,backup,
+             path = "/parameters/thermalisation", mode = 'r+')
     
     kw = {'nb':nb,'num_in_bin':num_in_bin, 'iterworm':iterworm,
           'nrps': nrps,
@@ -113,10 +114,14 @@ def main(args):
     (statstableth, swapst_th, swapsh_th, failedupdatesth) =     dw.mcs_swaps(states, spinstates, energies, betas, [],[], **kw)
     t2 = time()
     
-    backup.results.swapst_th = swapst_th
-    backup.results.swapsh_th = swapsh_th
-    backup.results.failedupdatesth = failedupdatesth
     print('Time for all thermalisation steps = ', t2-t1)
+    
+    
+    thermres = {'swapst_th':swapst_th, 'swapsh_th':swapsh_th,
+               'failedupdatesth':failedupdatesth, 'totaltime':t2-t1}
+    hkl.dump(thermres,backup,
+             path = "/results/thermres", mode = 'r+')
+    
     
     rbf.CheckEnergies(hamiltonian, energies, states, spinstates,
                       hfields, nh, ids2walker, nt)
@@ -127,20 +132,20 @@ def main(args):
 
     print("-----------Measurements-----------------")
     # Preparation to call the method
-    backup.params.nb = nb = args.nb # number of bins
-    backup.params.num_in_bin = num_in_bin = args.nsm//nb
+    nb = args.nb # number of bins
+    num_in_bin = args.nsm//nb
     print('Number of measurement steps = ', num_in_bin*nb) # number of iterations = nb * num_in_bin 
     iterworm = nips #number of worm iterations before considering swaps and measuring the state again
     statsfunctions = observables #TODO set functions
-    backup.results.namefunctions = observableslist #TODO set functions corresponding to the above
-    print(backup.results.namefunctions)
+    namefunctions = observableslist #TODO set functions corresponding to the above
+    print(namefunctions)
     check = True #turn to spins and check match works
-    backup.params.measperiod = measperiod = args.measperiod
+    measperiod = args.measperiod
     print('Measurement period:', measperiod)
-    backup.params.measupdate = measupdate = args.measupdate
+    measupdate = args.measupdate
     if measupdate:
         nnspins, s2p = dw.spin2plaquette(ijl_s, s_ijl, s2_d,L)
-        backup.params.p = p = args.p
+        p = args.p
     else:
         if not ssf:
             nnspins = []
@@ -149,7 +154,11 @@ def main(args):
         else:
             nnspins = []
             p = 0
-                
+    
+    kwmeas = {'nb':nb, 'num_in_bin':num_in_bin,'nips':nips,
+             'measperiod':measperiod, 'measupdate':measupdate,
+             'nnspins':nnspins, 's2p': s2p}
+    hkl.dump(kwmeas, backup, path = "/parameters/measurements", mode = 'r+')
     kw = {'nb':nb,'num_in_bin':num_in_bin, 'iterworm':iterworm,
           'nrps': nrps,
           'nitermax':nmaxiter,'check':check,
@@ -165,16 +174,22 @@ def main(args):
           'walker2ids':walker2ids,'ids2walker':ids2walker,
           'ssf':ssf, 'alternate':alternate, 'randspinupdate': False}
         # Run measurements
+    
     t1 = time()
-   
-    (backup.results.statstable, backup.results.swapst, backup.results.swapsh,
-     backup.results.failedupdates) =\
-    (statstable, swapst, swapsh, failedupdates) =\
-    dw.mcs_swaps(states, spinstates, energies, betas, stat_temps, stat_hfields,**kw)
+    (statstable, swapst, swapsh, failedupdates) =    dw.mcs_swaps(states, spinstates, energies, betas, stat_temps, stat_hfields,**kw)
     #print("Energies = ", energies)
-    print("Energies size: ", energies.shape)
     t2 = time()
+    
     print('Time for all measurements steps = ', t2-t1)
+    print("Energies size: ", energies.shape)
+    
+    measurementsres = {'swapst': swapst, 'swapsh': swapsh,
+                       'failedupdates':failedupdates}
+    
+    hkl.dump(measurementsres, backup, path = "/results/measurements", mode = 'r+')
+    
+    hkl.dump(statstable, backup+"_statstable")
+    
     new_en_states = [[dim.hamiltonian(hamiltonian,
                                      states[ids2walker[bid,hid]])
                      -hfields[hid]*spinstates[ids2walker[bid,hid]].sum()
@@ -186,16 +201,14 @@ def main(args):
     rbf.CheckGs(args,ref_en_states, energies, nh)
                 
     #Save the final results
-    backup.results.states = states
-    backup.results.spinstates = spinstates
-    #Save the backup object in a file
-    hickle.dump(backup, open(args.output + '.hkl','w'))
+    hkl.dump(states, backup+"_states")
+    hkl.dump(spinstates, backup+"_spinstates")
+    
     print("Job done")
     return statstable, swapst, swapsh, failedupdatesth, failedupdates
 
 
 # In[ ]:
-
 
 if __name__ == "__main__":
 
