@@ -3,6 +3,7 @@
 
 # In[ ]:
 
+
 import numpy as np
 import dimers as dim
 import DualwormFunctions as dw
@@ -20,6 +21,7 @@ import argparse
 
 
 # In[ ]:
+
 
 def main(args):
     
@@ -94,7 +96,7 @@ def main(args):
     #launch thermalisation
     thermalisation = {'ncores':ncores, 'nmaxiter':nmaxiter,
                      'thermsteps': thermsteps}
-    hkl.dump(thermalisation,backup,
+    hkl.dump(thermalisation,backup+".hkl",
              path = "/parameters/thermalisation", mode = 'r+')
     
     kw = {'nb':nb,'num_in_bin':num_in_bin, 'iterworm':iterworm,
@@ -119,7 +121,7 @@ def main(args):
     
     thermres = {'swapst_th':swapst_th, 'swapsh_th':swapsh_th,
                'failedupdatesth':failedupdatesth, 'totaltime':t2-t1}
-    hkl.dump(thermres,backup,
+    hkl.dump(thermres,backup+".hkl",
              path = "/results/thermres", mode = 'r+')
     
     
@@ -158,7 +160,7 @@ def main(args):
     kwmeas = {'nb':nb, 'num_in_bin':num_in_bin,'nips':nips,
              'measperiod':measperiod, 'measupdate':measupdate,
              'nnspins':nnspins, 's2p': s2p}
-    hkl.dump(kwmeas, backup, path = "/parameters/measurements", mode = 'r+')
+    hkl.dump(kwmeas, backup+".hkl", path = "/parameters/measurements", mode = 'r+')
     kw = {'nb':nb,'num_in_bin':num_in_bin, 'iterworm':iterworm,
           'nrps': nrps,
           'nitermax':nmaxiter,'check':check,
@@ -172,7 +174,8 @@ def main(args):
           'c2s':c2s, 'csign':csign, 'measperiod':measperiod,
           'nh':nh, 'hfields':hfields, 'walker2params':walker2params,
           'walker2ids':walker2ids,'ids2walker':ids2walker,
-          'ssf':ssf, 'alternate':alternate, 'randspinupdate': False}
+          'ssf':ssf, 'alternate':alternate, 'randspinupdate': False,
+         'namefunctions': namefunctions, 'backup': backup}
         # Run measurements
     
     t1 = time()
@@ -186,9 +189,9 @@ def main(args):
     measurementsres = {'swapst': swapst, 'swapsh': swapsh,
                        'failedupdates':failedupdates}
     
-    hkl.dump(measurementsres, backup, path = "/results/measurements", mode = 'r+')
+    hkl.dump(measurementsres, backup+".hkl", path = "/results/measurements", mode = 'r+')
     
-    hkl.dump(statstable, backup+"_statstable")
+    #hkl.dump(statstable, backup+"_statstable.hkl")
     
     new_en_states = [[dim.hamiltonian(hamiltonian,
                                      states[ids2walker[bid,hid]])
@@ -201,14 +204,15 @@ def main(args):
     rbf.CheckGs(args,ref_en_states, energies, nh)
                 
     #Save the final results
-    hkl.dump(states, backup+"_states")
-    hkl.dump(spinstates, backup+"_spinstates")
+    hkl.dump(states, backup+"_states.hkl")
+    hkl.dump(spinstates, backup+"_spinstates.hkl")
     
     print("Job done")
     return statstable, swapst, swapsh, failedupdatesth, failedupdates
 
 
 # In[ ]:
+
 
 if __name__ == "__main__":
 

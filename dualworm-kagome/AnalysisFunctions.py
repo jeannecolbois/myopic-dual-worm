@@ -7,11 +7,12 @@
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-import pickle
+import hickle as hkl
 import KagomeFunctions as kf # "library" allowing to work on Kagome
 import DualwormFunctions as dw
 import KagomeDrawing as kdraw
 import KagomeFT as kft
+import warnings
 
 
 # In[ ]:
@@ -89,35 +90,41 @@ def LoadParameters(foldername, filenamelist):
 
 
 def LoadParametersFromFile(foldername, filename):
-    f = open('./' + foldername + filename +'.pkl', 'rb')
-    backup = pickle.load(f) #save the parameters
-    L = backup.params.L
+    backup = "./"+foldername+filename+".hkl"
+    L = hkl.load(backup, path="/parameters/L")
     
     #spin table and dictionary
     (s_ijl, ijl_s) = kf.createspinsitetable(L)
     numsites = len(s_ijl)
     
     #couplings
-    J1 = backup.params.J1
-    J2 = backup.params.J2
-    J3 = backup.params.J3
-    J3st = backup.params.J3st
-    J4 = backup.params.J4
+    couplings = hkl.load(backup, path="/parameters/couplings")
     
-    nb = backup.params.nb
-    num_in_bin = backup.params.num_in_bin
+    J1 = couplings['J1']
+    J2 = couplings['J2']
+    J3 = couplings['J3']
+    J3st = couplings['J3st']
+    J4 = couplings['J4']
     
-    temperatures = backup.params.temperatures.tolist()
-    nt = backup.params.nt
-    stat_temps = backup.params.stat_temps
+    kwmeas = hkl.load(backup,  path = "/parameters/measurements")
+    nb = kwmeas['nb']
+    num_in_bin = kwmeas['num_in_bin']
+    
+    physical = hkl.load(backup, path = "/parameters/physical")
+    temperatures = physical['temperatures'].tolist()
+    nt = physical['nt']
+    
+    stat_temps = hkl.load(backup, path = "/parameters/stat_temps")
     temperatures_plots = [temperatures[t] for t in stat_temps]
     
-    hfields = backup.params.hfields.tolist()
-    nh = backup.params.nh
-    stat_hfields = backup.params.stat_hfields
+    hfields = physical['hfields'].tolist()
+    nh = physical['nh']
+    
+    stat_hfields = hkl.load(backup, path = "/parameters/stat_hfields")
     hfields_plots = [hfields[h] for h in stat_hfields]
     
-    listfunctions = backup.results.namefunctions
+    obsparams = hkl.load(backup, path = "/parameters/obsparams")
+    listfunctions = obsparams['observableslist']
     
     #reference spins
     s0 = ijl_s[L, L, 0]
@@ -125,7 +132,6 @@ def LoadParametersFromFile(foldername, filename):
     s2 = ijl_s[L, L, 2]
     
     sref = [s0, s1, s2]
-    f.close()
     
     return L, numsites, J1, J2, J3, J3st, J4, nb, num_in_bin, temperatures, nt,             stat_temps, temperatures_plots, hfields, nh,             stat_hfields, hfields_plots, listfunctions, sref
 
@@ -133,7 +139,8 @@ def LoadParametersFromFile(foldername, filename):
 # In[ ]:
 
 
-def ExtractStatistics(idfunc, statstable, nb, stat_temps, stat_hfields, sq = 0, **kwargs):
+def ExtractStatistics(backup, idfunc, name,
+                      nb, stat_temps, stat_hfields, sq = 0, **kwargs):
     '''
         This function gets the statistics from a file and
         computes the expectation values and variances of 
@@ -142,8 +149,10 @@ def ExtractStatistics(idfunc, statstable, nb, stat_temps, stat_hfields, sq = 0, 
         sq = 0 -> not square stats
         sq = 1 -> square stats
     '''
-    stattuple = statstable[idfunc];
-    t_h_meanfunc = np.array(stattuple[sq]).sum(2)/nb
+    
+    nb_stattuple = hkl.load(backup+"_"+name+"_final.hkl")
+    
+    t_h_meanfunc = np.array(nb_stattuple[:][sq]).sum(0)/nb
     
     binning = kwargs.get('binning', False)
 
@@ -151,10 +160,10 @@ def ExtractStatistics(idfunc, statstable, nb, stat_temps, stat_hfields, sq = 0, 
     for resid, t in enumerate(stat_temps):
         for reshid, h in enumerate(stat_hfields):
             for b in range(nb):
-                t_h_varmeanfunc[resid][reshid] += ((stattuple[sq][resid][reshid][b] - t_h_meanfunc[resid][reshid]) ** 2)/(nb * (nb - 1))
+                t_h_varmeanfunc[resid][reshid] += ((nb_stattuple[b][sq][resid][reshid] - t_h_meanfunc[resid][reshid]) ** 2)/(nb * (nb - 1))
     if binning:
-        print('binning!')
-        Binning(t_h_meanfunc,t_h_varmeanfunc, stattuple[sq], nb,
+        warnings.warn("binning not implemented for the new structure of statstable!")
+        Binning(t_h_meanfunc,t_h_varmeanfunc, nb_stattuple[sq], nb,
                                 stat_temps, stat_hfields, **kwargs)
         
     return t_h_meanfunc, t_h_varmeanfunc
@@ -284,14 +293,14 @@ def LoadEnergy(foldername, filenamelist, numsites, nb, stat_temps, temperatures,
 
 def LoadEnergyFromFile(foldername, filename, numsites, nb, stat_temps,
                        temperatures, stat_hfields, idfunc, **kwargs):
-    f = open('./' + foldername + filename +'.pkl', 'rb')
-    backup = pickle.load(f) 
+    backup = "./"+foldername+filename
     
-    statstable = backup.results.statstable
     
-    t_h_MeanE, t_h_varMeanE =    ExtractStatistics(idfunc, statstable, nb, 
-                      stat_temps,stat_hfields, **kwargs)
-    t_h_MeanEsq, t_h_varMeanEsq =    ExtractStatistics(idfunc, statstable, nb,
+    name = "Energy"
+    
+    t_h_MeanE, t_h_varMeanE =    ExtractStatistics(backup, idfunc, name,
+                      nb, stat_temps, stat_hfields, **kwargs)
+    t_h_MeanEsq, t_h_varMeanEsq =    ExtractStatistics(backup, idfunc, name, nb,
                       stat_temps, stat_hfields, sq = 1, **kwargs)
     
     C = []
@@ -375,9 +384,9 @@ def LoadMagnetisationFromFile(foldername, filename, numsites, nb, stat_temps,
     
     statstable = backup.results.statstable
     
-    t_h_MeanM, t_h_varMeanM =    ExtractStatistics(idfunc, statstable, nb, stat_temps,
+    t_h_MeanM, t_h_varMeanM =    ExtractStatistics(backup, idfunc, name,nb, stat_temps,
                       stat_hfields, **kwargs)
-    t_h_MeanMsq, t_h_varMeanMsq =    ExtractStatistics(idfunc, statstable, nb, stat_temps,
+    t_h_MeanMsq, t_h_varMeanMsq =    ExtractStatistics(backup, idfunc, name,nb, stat_temps,
                       stat_hfields, sq = 1, **kwargs)
     Chi = []
     for resid, t in enumerate(stat_temps):
@@ -460,10 +469,10 @@ def LoadCorrelationsFromFile(foldername, filename, idfunc, idfuncsi, sref, stat_
     
     
     # Averages and corresponding variances
-    t_h_MeanSi, t_h_varMeanSi =    ExtractStatistics(idfuncsi, statstable, nb, stat_temps,
+    t_h_MeanSi, t_h_varMeanSi =    ExtractStatistics(backup, idfuncsi, name, nb, stat_temps,
                       stat_hfields, **kwargs)
     
-    t_h_MeanSs, t_h_varMeanSs =    ExtractStatistics(idfunc, statstable, nb, stat_temps,
+    t_h_MeanSs, t_h_varMeanSs =    ExtractStatistics(backup, idfunc, name, nb, stat_temps,
                       stat_hfields, **kwargs)
     
     
@@ -540,7 +549,7 @@ def LoadSiFromFile(foldername, filename, idfunc, stat_temps, **kwargs):
     
     statstable = backup.results.statstable
     
-    t_MeanSi, t_varMeanSi = ExtractStatistics(idfuncsi, statstable, nb, stat_temps, **kwargs)
+    t_MeanSi, t_varMeanSi = ExtractStatistics(backup, idfuncsi, name, nb, stat_temps, **kwargs)
     
     f.close()
     

@@ -9,9 +9,11 @@ import dimers as dim
 import DualwormFunctions as dw
 import StartStates as strst
 import Observables as obs
+import RunBasisFunctions as rbf
 
-import pickle
+import hickle as hkl
 from safe import safe
+import os
 
 from time import time
 
@@ -22,276 +24,83 @@ import argparse
 
 
 def main(args):
+    
+    print("-------------------Initialisation--------------------")
     ### PREPARE SAVING
-    backup = safe()
-    backup.params = safe()
-    backup.results = safe()
-    ### SIMULATIONS INITIATLISATION
-    backup.params.loadfromfile = loadfromfile = args.loadfromfile
+    backup = rbf.SafePreparation(args)
+    
+    print(backup+".hkl")
+    
+    ### SIMULATIONS PARAMETERS
+    loadfromfile = args.loadfromfile
+    loadbackup = "./" + args.filename + ".hkl"
     if loadfromfile:
-        f = open('./' + args.filename +'.pkl', 'rb')
-        loadbackup = pickle.load(f) #save the parameters
-        L = loadbackup.params.L
-        
+        L = hkl.load(loadbackup, path = "/parameters/L")
         assert L == args.L, "Loaded and required lattice sizes not compatible."
     
-        f.close
-        
-    backup.params.L = L = args.L
+    L = args.L
+    hkl.dump(L, backup+".hkl", path="/parameters/L", mode = 'r+')
+    
     print('Lattice side size: ', L)
     [d_ijl, ijl_d, s_ijl, ijl_s, d_2s, s2_d, d_nd, d_vd, d_wn,
-     sidlist, didlist, c_ijl, ijl_c, c2s, csign] = dw.latticeinit(L)
-
-
-    ## Energy
-    backup.params.J1 = J1 = args.J1
-    backup.params.J2 = J2 = args.J2
-    backup.params.J3 = J3 = args.J3
-    backup.params.J3st = J3st = J3
-    backup.params.J4 = J4 = args.J4
-    backup.params.h = h = args.h
-    print('J1 ', J1)
-    print('J2 ', J2)
-    print('J3 ', J3)
-    print('J3st ', J3st)
-    couplings = {'J1': J1, 'J2':J2, 'J3':J3, 'J3st':J3st, 'J4':J4}
-    print("Couplings extracted")
-    hamiltonian = dw.Hamiltonian(couplings,d_ijl, ijl_d, L)
-    print("Hamiltonian expression (without field) computed")
-
-
-    backup.params.ssf = ssf = args.ssf
-    backup.params.alternate = alternate = args.alternate
-
-    s2p = dw.spin2plaquette(ijl_s, s_ijl, s2_d,L)
-    if ssf:
-        print("single spin flip update")
-    if alternate:
-        print("alternating ssf and dw update")
-    if ssf or alternate:
-        nnspins, s2p = dw.spin2plaquette(ijl_s, s_ijl, s2_d,L)
-
-    assert (not ((ssf or alternate) and (J2 != 0 or J3 !=0 or J3st != 0 or J4!=0))),    "The ssf is only available with J1"
-
-
-
-    ## Temperatures and magnetic fields to simulate
-    t_list = [t for t in args.t_list]
-    nt_list = args.nt_list
-    backup.params.loglist = loglist = args.log_tlist
-    if loglist:
-        temperatures = dw.create_log_temperatures(nt_list, t_list)
-    else:
-        temperatures = dw.create_temperatures(nt_list, t_list)
-    betas = 1/temperatures
-    backup.params.temperatures = temperatures
-    # total number of different temperatures
-    backup.params.nt = nt = len(temperatures)
-    if args.h_list:
-        h_list = [h for h in args.h_list]
-        nh_list = args.nh_list
-        hfields = dw.create_hfields(nh_list, h_list)
-        nh = len(hfields)
-    else:
-        hfields = np.array([h])
-        nh = 1
-    backup.params.hfields = hfields;
-    backup.params.nh = nh;
-
-    print('Number of temperatures: ', nt)
-    print('Temperatures:', temperatures)
-    print('Number of magnetic fields: ', nh)
-    print('Magnetic fields: ', hfields)
-
-    [walker2params, walker2ids, ids2walker] = dw.walkerstable(betas, nt, hfields, nh)
-
-    if loadfromfile:
-        f = open('./' + args.filename +'.pkl', 'rb')
-        loadbackup = pickle.load(f) #save the parameters
-        
-        states = loadbackup.results.states
-        spinstates = loadbackup.results.spinstates
-        energies = [[dw.compute_energy(hamiltonian, states[ids2walker[bid, hid]])
-                  - hfields[hid]*spinstates[ids2walker[bid,hid]].sum()
-                  for hid in range(nh)]
-                 for bid in range(nt)]
+     sidlist, didlist, c_ijl, ijl_c, c2s, csign] =\
+    dw.latticeinit(L)
     
-        energies = np.array(energies)
-        f.close()
-    else:
-        backup.params.randominit = randominit = args.randominit    
-        print('Fully random initialisation = ', randominit)
-        backup.params.same = same = args.same
-        print('Identical initialisation = ', same)
-        backup.params.magninit = magninit = args.magninit
-        print('Magnetisation initialisation = ', magninit)
-        backup.params.maxflip = maxflip = args.maxflip
-        backup.params.magnstripes = magnstripes = args.magnstripes
-
-        kwinit = {'random': randominit, 'same': same, 
-                  'magninit': magninit, 'h':h, 'maxflip':maxflip,
-                 'magnstripes': magnstripes}
-
-        (states, energies,spinstates) = strst.statesinit(nt, nh, hfields,
-                                        ids2walker,d_ijl, d_2s, s_ijl,
-                                        hamiltonian, **kwinit)
-
-    # end if
+    [couplings, hamiltonian, ssf, alternate, s2p, temperatures,
+     betas, nt, hfields, nh] =\
+    rbf.SimulationParameters(args,backup, loadfromfile, d_ijl,
+                             ijl_d, ijl_s, s_ijl, s2_d, L)
     
-    #print("Energies = ", energies)
-    print("Energies size: ", energies.shape)
-    backup.params.ncores = ncores = args.ncores
+    [walker2params, walker2ids, ids2walker] =    dw.walkerstable(betas, nt, hfields, nh)
 
-    new_en_states = [[dim.hamiltonian(hamiltonian,
-                                     states[ids2walker[bid,hid]])
-                     -hfields[hid]*spinstates[ids2walker[bid,hid]].sum()
-                     for hid in range(nh)] for bid in range(nt)]
-    new_en_states = np.array(new_en_states)
+    # Saving the status:
+    
+    ## SIMULATION INITIALISATION
+    (states, energies, spinstates, ref_en_states) =    rbf.StatesAndEnergyInit(args, backup, loadbackup,hamiltonian,
+                            ids2walker, nt, nh, hfields, d_ijl,
+                            d_2s, s_ijl, couplings, L)
+    
+    # Check g.s. (if required)
+    rbf.CheckGs(args, ref_en_states, energies, nh)
 
-
-
-    for t in range(nt):
-        for h in range(nh):
-            if np.absolute(energies[t,h]-new_en_states[t,h]) > 1.0e-12:
-                print('RunBasis: Issue at temperature index ', t, ' and h index ', h)
-                print("   energies[t,h] = ", energies[t,h])
-                print("   H0[t,h] = ", dim.hamiltonian(hamiltonian,
-                                                       states[ids2walker[t,h]]))
-                print("   magntot[t,h] ", spinstates[ids2walker[t,h]].sum())
-                print("   new_E[t,h] = H0[t,h] - h*magntot[t,h]",
-                      dim.hamiltonian(hamiltonian, states[ids2walker[t,h]])
-                      - hfields[h]*spinstates[ids2walker[t,h]].sum())
-    ref_en_states = np.zeros(len(hfields))
-
-    if args.checkgs:
-        for hid, h in enumerate(hfields):
-            if h == 0:
-                if J2 == 0:
-                    ref_en_states[hid] = 9*L**2*(-2/3 * J1 - J3)
-                elif J3/J2 < 0.5:
-                    ref_en_states[hid] = 9*L**2*(-2/3 * J1 - 2/3 * J2)
-                elif J3/J2 >= 0.5 and J3/J2 < 1:
-                    ref_en_states[hid] = 9*L**2*(-2/3 * J1 - 1/3 * J3)
-                elif J3/J2 >= 1:
-                    ref_en_states[hid] = 9*L**2*(-2/3 * J1 + 2/3 * J2 - J3)
-            elif abs(h/J1) < 4:
-                ref_en_states[hid] = 9*L**2*(-2/3 * J1 - 1/3 * abs(h))
-            elif abs(h/J1) > 4:
-                ref_en_states[hid] = 9*L**2*(2*J1 - abs(h))
-
-        print(ref_en_states)
-        t = 0
-        for h in range(nh):
-            if np.absolute(ref_en_states[h]-new_en_states[t,h]) > 1.0e-12:
-                print('RunBasis: Away from gs at t index ', t, ' and h index ', h)
-                print("   new_en_states[t,h] = ", new_en_states[t,h])
-                print("   ref_en_states[h] = ", ref_en_states[h])
-
-
+    # Check states consistency:
     if not dw.statescheck(spinstates, states, d_2s):
         mistakes = [dw.onestatecheck(spinstate, state, d_2s) for spinstate, state in zip(spinstates, states)]
         print('Mistakes: ', mistakes)
+    
     ### INITIALISATION FOR THE MEASUREMENTS
-
     # Observables to measure
-    nnlists = []
-    observables = []
-    observableslist = []
-    backup.params.energy = energy = args.energy
-    if energy:
-        observables.append(obs.energy)
-        observableslist.append('Energy')
-    backup.params.magnetisation = magnetisation = args.magnetisation
-    if magnetisation:
-        observables.append(obs.magnetisation)
-        observableslist.append('Magnetisation')
-        magnfuncid = observableslist.index('Magnetisation')
-    else:
-        magnfuncid = -1
-    backup.params.charges = charges = args.charges
-    if charges:
-        observables.append(obs.charges)
-        observableslist.append('Charges')
-        cfuncid = observableslist.index('Magnetisation')
-    backup.params.correlations = correlations = args.correlations
-    backup.params.all_correlations = all_correlations = args.all_correlations
-    backup.params.firstcorrelations = firstcorrelations = args.firstcorrelations
-    if correlations:
-        observables.append(obs.si)
-        observableslist.append('Si')
-        if all_correlations:
-            observables.append(obs.allcorrelations)
-            observableslist.append('All_Correlations')
-        else:
-            if firstcorrelations:
-                print("Check: length of s_ijl", len(s_ijl))
-                print("Check: length of NN pairslist:", len(dw.NNpairs(ijl_s, s_ijl, L)))
-                print("Check: length of 2ndNN pairs list: ", len(dw.NN2pairs(ijl_s, s_ijl, L)))
-                print("Check: length of 3rdNN pairs list: ", len(dw.NN3pairs(ijl_s, s_ijl, L)))
-                print("Check: length of 4thNN pairs list: ", len(dw.NN4pairs(ijl_s, s_ijl, L)))
-                nnlists = [dw.NNpairs(ijl_s, s_ijl, L), dw.NN2pairs(ijl_s, s_ijl, L),
-                           dw.NN3pairs(ijl_s, s_ijl, L), dw.NN4pairs(ijl_s, s_ijl, L)]
-                observables.append(obs.firstcorrelations)
-                observableslist.append('FirstCorrelations')
-            else:
-                observables.append(obs.centralcorrelations)
-                observableslist.append('Central_Correlations')
-
-    print('List of measurements to be performed:', observableslist)
-
+    [nnlists, observables, observableslist, magnfuncid,cfuncid]  =    rbf.ObservablesInit(args, backup, s_ijl, ijl_s, L)
+    
     # Temperatures to measure
-    if args.stat_temps_lims is None:
-        #by default, we measure all the temperatures
-        stat_temps = range(nt)
-    else: # if args.stat_temps is not none
-        vals = []
-        stat_temps = []
-        # we need to turn the stat_temps_lims into actual lists of indices
-        for val in args.stat_temps_lims:
-            vals.append(np.abs(temperatures-val).argmin())
-            print(val, vals)
-        l = len(vals)
-        assert(l%2 == 0)
-        for i in range(0, l, 2):
-            stat_temps += list(range(vals[i], vals[i+1]+1))
+    stat_temps = rbf.Temperatures2MeasureInit(args, backup,
+                                             temperatures, nt)
 
-    backup.params.stat_temps = stat_temps
-    assert len(stat_temps) <= nt,    'The number of temperature indices to measure cannot be bigger than    the number of temperatures.'
-
-    # magnetic fields to measure
-    if args.stat_hfields_lims is None:
-        #by default, we measure all the temperatures
-        stat_hfields = range(nh)
-    else: # if args.stat_temps is not none
-        vals = []
-        stat_hfields = []
-        # we need to turn the stat_temps_lims into actual lists of indices
-        for val in args.stat_hfields_lims:
-            vals.append(np.abs(hfields-val).argmin())
-            print(val, vals)
-        l = len(vals)
-        assert(l%2 == 0)
-        for i in range(0, l, 2):
-            stat_hfields += list(range(vals[i], vals[i+1]+1))
-    print('List of field indices to measure:', stat_hfields)
-    backup.params.stat_hfields = stat_hfields
-    assert len(stat_hfields) <= nh,    'The number of field indices to measure cannot be bigger than    the number of fields.'
+    # Magnetic fields to measure
+    stat_hfields = rbf.MagneticFields2MeasureInit(args, backup,
+                                                 hfields, nh)
 
     ## THERMALISATION
     #preparation
+    ncores = args.ncores
+    
+    
     print("-----------Thermalisation------------------")
     nb = 1 # only one bin, no statistics
     num_in_bin = args.nst# mcs iterations per bins
     iterworm = nips = args.nips # maximal number of MCS iterations
     # before considering swaps (one iteration = one system size update)
-    backup.params.nrps = nrps = args.nrps # number of replica loop iterations in a MC step
+    nrps = args.nrps # number of replica loop iterations in a MC step
     nmaxiter = args.nmaxiter
     statsfunctions = [] #don't compute any statistics
     check = False #don't turn to spins to check
     print('Number of thermalisation steps = ', num_in_bin*nb)
-    backup.params.thermsteps = num_in_bin*nb
-    backup.params.ncores = ncores = args.ncores
+    thermsteps = num_in_bin*nb
     #launch thermalisation
+    thermalisation = {'ncores':ncores, 'nmaxiter':nmaxiter,
+                     'thermsteps': thermsteps}
+    hkl.dump(thermalisation,backup+".hkl",
+             path = "/parameters/thermalisation", mode = 'r+')
     
     kw = {'nb':nb,'num_in_bin':num_in_bin, 'iterworm':iterworm,
           'nrps': nrps,
@@ -310,62 +119,38 @@ def main(args):
     (statstableth, swapst_th, swapsh_th, failedupdatesth) =     dw.mcs_swaps(states, spinstates, energies, betas, [],[], **kw)
     t2 = time()
     
-    #print("Energies = ", energies)
-    print("Energies size: ", energies.shape)
-    backup.results.swapst_th = swapst_th
-    backup.results.swapsh_th = swapsh_th
-    backup.results.failedupdatesth = failedupdatesth
     print('Time for all thermalisation steps = ', t2-t1)
-    new_en_states = [[dim.hamiltonian(hamiltonian,
-                                     states[ids2walker[bid,hid]])
-                     -hfields[hid]*spinstates[ids2walker[bid,hid]].sum()
-                     for hid in range(nh)] for bid in range(nt)]
-    new_en_states = np.array(new_en_states)
-    for t in range(nt):
-        for h in range(nh):
-            if np.absolute(energies[t,h]-new_en_states[t,h]) > 1.0e-9:
-                print('RunBasis: Issue at temperature index ', t, ' and h index ', h)
-                print("   energies[t,h] = ", energies[t,h])
-                print("   H0[t,h] = ", dim.hamiltonian(hamiltonian,
-                                                       states[ids2walker[t,h]]))
-                print("   magntot[t,h] ", spinstates[ids2walker[t,h]].sum())
-                print("   new_E[t,h] = H0[t,h] - h*magntot[t,h]",
-                      dim.hamiltonian(hamiltonian, states[ids2walker[t,h]])
-                      - hfields[h]*spinstates[ids2walker[t,h]].sum())
+    
+    
+    thermres = {'swapst_th':swapst_th, 'swapsh_th':swapsh_th,
+               'failedupdatesth':failedupdatesth, 'totaltime':t2-t1}
+    hkl.dump(thermres,backup+".hkl",
+             path = "/results/thermres", mode = 'r+')
+    
+    
+    rbf.CheckEnergies(hamiltonian, energies, states, spinstates,
+                      hfields, nh, ids2walker, nt)
 
-    if args.checkgs:
-        t = 0
-        for h in range(nh):
-            if np.absolute(ref_en_states[h]-new_en_states[t,h]) > 1.0e-12:
-                print('RunBasis: Away from gs at t index ', t, ' and h index ', h)
-                print("   new_en_states[t,h] = ", new_en_states[t,h])
-                print("   ref_en_states[h] = ", ref_en_states[h])
-
-    #print("walker2params shape: ", walker2params.shape)
-    #print("walker2ids shape: ", walker2ids.shape)
-    #print("ids2walker shape: ", ids2walker.shape)
-    #
-    #print("walker2params = ", walker2params)
-    #print("walker2ids = ", walker2ids)
-    #print("ids2walker = ", ids2walker)
+    rbf.CheckGs(args,ref_en_states, energies, nh)
+    
     ## MEASUREMENT PREPARATION 
 
     print("-----------Measurements-----------------")
     # Preparation to call the method
-    backup.params.nb = nb = args.nb # number of bins
-    backup.params.num_in_bin = num_in_bin = args.nsm//nb
+    nb = args.nb # number of bins
+    num_in_bin = args.nsm//nb
     print('Number of measurement steps = ', num_in_bin*nb) # number of iterations = nb * num_in_bin 
     iterworm = nips #number of worm iterations before considering swaps and measuring the state again
     statsfunctions = observables #TODO set functions
-    backup.results.namefunctions = observableslist #TODO set functions corresponding to the above
-    print(backup.results.namefunctions)
+    namefunctions = observableslist #TODO set functions corresponding to the above
+    print(namefunctions)
     check = True #turn to spins and check match works
-    backup.params.measperiod = measperiod = args.measperiod
+    measperiod = args.measperiod
     print('Measurement period:', measperiod)
-    backup.params.measupdate = measupdate = args.measupdate
+    measupdate = args.measupdate
     if measupdate:
         nnspins, s2p = dw.spin2plaquette(ijl_s, s_ijl, s2_d,L)
-        backup.params.p = p = args.p
+        p = args.p
     else:
         if not ssf:
             nnspins = []
@@ -374,7 +159,11 @@ def main(args):
         else:
             nnspins = []
             p = 0
-                
+    
+    kwmeas = {'nb':nb, 'num_in_bin':num_in_bin,'nips':nips,
+             'measperiod':measperiod, 'measupdate':measupdate,
+             'nnspins':nnspins, 's2p': s2p}
+    hkl.dump(kwmeas, backup+".hkl", path = "/parameters/measurements", mode = 'r+')
     kw = {'nb':nb,'num_in_bin':num_in_bin, 'iterworm':iterworm,
           'nrps': nrps,
           'nitermax':nmaxiter,'check':check,
@@ -383,78 +172,42 @@ def main(args):
           'nnlists':nnlists,
           'd_nd':d_nd,'d_vd':d_vd,'d_wn':d_wn, 'd_2s':d_2s, 's2_d':s2_d,
           'sidlist':sidlist,'didlist':didlist,'s_ijl':s_ijl,'ijl_s':ijl_s,'L':L,
-          'ncores':ncores, 'measupdate': measupdate, 'nnspins': nnspins, 's2p':s2p,'magnfuncid':magnfuncid, 'p':p,
+          'ncores':ncores, 'measupdate': measupdate, 'nnspins': nnspins, 's2p':s2p,
+          'magnfuncid':magnfuncid, 'p':p,
           'c2s':c2s, 'csign':csign, 'measperiod':measperiod,
           'nh':nh, 'hfields':hfields, 'walker2params':walker2params,
           'walker2ids':walker2ids,'ids2walker':ids2walker,
-          'ssf':ssf, 'alternate':alternate, 'randspinupdate': False}
+          'ssf':ssf, 'alternate':alternate, 'randspinupdate': False,
+         'namefunctions': namefunctions, 'backup': backup}
         # Run measurements
+    
     t1 = time()
-   
-    (backup.results.statstable, backup.results.swapst, backup.results.swapsh,
-     backup.results.failedupdates) =\
-    (statstable, swapst, swapsh, failedupdates) =\
-    dw.mcs_swaps(states, spinstates, energies, betas, stat_temps, stat_hfields,**kw)
+    (statstable, swapst, swapsh, failedupdates) =    dw.mcs_swaps(states, spinstates, energies, betas, stat_temps, stat_hfields,**kw)
     #print("Energies = ", energies)
-    print("Energies size: ", energies.shape)
     t2 = time()
+    
     print('Time for all measurements steps = ', t2-t1)
+    print("Energies size: ", energies.shape)
+    
+    measurementsres = {'swapst': swapst, 'swapsh': swapsh,
+                       'failedupdates':failedupdates}
+    
+    hkl.dump(measurementsres, backup+".hkl", path = "/results/measurements", mode = 'r+')
+        
     new_en_states = [[dim.hamiltonian(hamiltonian,
                                      states[ids2walker[bid,hid]])
                      -hfields[hid]*spinstates[ids2walker[bid,hid]].sum()
                      for hid in range(nh)] for bid in range(nt)]
-    new_en_states = np.array(new_en_states)
-    for t in range(nt):
-        for h in range(nh):
-            if np.absolute(energies[t,h]-new_en_states[t,h]) > 1.0e-9:
-                print('RunBasis: Issue at temperature index ', t, ' and h index ', h)
-                print("   energies[t,h] = ", energies[t,h])
-                print("   H0[t,h] = ", dim.hamiltonian(hamiltonian,
-                                                       states[ids2walker[t,h]]))
-                print("   magntot[t,h] ", spinstates[ids2walker[t,h]].sum())
-                print("   new_E[t,h] = H0[t,h] - h*magntot[t,h]",
-                      dim.hamiltonian(hamiltonian, states[ids2walker[t,h]])
-                      - hfields[h]*spinstates[ids2walker[t,h]].sum())
-
-    if args.checkgs:
-        t = 0
-        for h in range(nh):
-            if np.absolute(ref_en_states[h]-new_en_states[t,h]) > 1.0e-12:
-                print('RunBasis: Away from gs at t index ', t, ' and h index ', h)
-                print("   new_en_states[t,h] = ", new_en_states[t,h])
-                print("   ref_en_states[h] = ", ref_en_states[h])
-
-    #print("-----------Computing statistics----------------")
-    ### STATISTICS ##
-    #t_h_meanfunc = list() #for each function, for each temperature,for each field, mean of the state function
-    #t_h_varmeanfunc = list() #for each function, for each temperature,for each field, variance of the state function
-    #numsites = len(s_ijl)
-
-    #for idtuple, stattuple in enumerate(statstable):
-    #    # means per magnetic field and temperature
-    #    # note: stattuple[tupleindex][resid][reshid][bid] where bid is the bin index
-    #    t_h_meanfunc.append((np.array(stattuple[0]).sum(2)/nb, np.array(stattuple[1]).sum(2)/nb))
-
-    #    #variances:
-    #    tuplevar1 = [[0 for h in stat_hfields] for t in stat_temps]
-    #    tuplevar2 = [[0 for h in stat_hfields] for t in stat_temps]
-    #    for resid, t in enumerate(stat_temps):
-    #        for reshid, h in enumerate(stat_hfields):
-    #            for b in range(nb):
-    #                tuplevar1[resid][reshid] += ((stattuple[0][resid][reshid][b] - t_h_meanfunc[idtuple][0][resid][reshid]) ** 2)/(nb * (nb - 1))
-    #                tuplevar2[resid][reshid] += ((stattuple[1][resid][reshid][b] - t_h_meanfunc[idtuple][1][resid][reshid]) ** 2)/(nb * (nb - 1))
-    #    t_h_varmeanfunc.append((tuplevar1, tuplevar2))
-
-    # Additional results for the correlations are handled directly in AnalysisBasis_3dot1dot5
-
-    #backup.results.t_h_meanfunc = t_h_meanfunc
-    #backup.results.t_h_varmeanfunc = t_h_varmeanfunc
     
+    rbf.CheckEnergies(hamiltonian, energies, states, spinstates,
+                      hfields, nh, ids2walker, nt)
+
+    rbf.CheckGs(args,ref_en_states, energies, nh)
+                
     #Save the final results
-    backup.results.states = states
-    backup.results.spinstates = spinstates
-    #Save the backup object in a file
-    pickle.dump(backup, open(args.output + '.pkl','wb'))
+    hkl.dump(states, backup+"_states.hkl")
+    hkl.dump(spinstates, backup+"_spinstates.hkl")
+    
     print("Job done")
     return statstable, swapst, swapsh, failedupdatesth, failedupdates
 
@@ -576,31 +329,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     main(args)
-
-
-# In[ ]:
-
-
-#    t_meanfunc = list() #for each function, for each temperature, mean of the state function
-#    t_varmeanfunc = list() #for each function, for each temperature, variance of the state function
-#    numsites = len(s_ijl)
-#    if not magnstats:
-#        for idtuple, stattuple in enumerate(meanstat):
-#            # means:
-#            t_meanfunc.append((np.array(stattuple[0]).sum(1)/nb, np.array(stattuple[1]).sum(1)/nb))
-#
-#            #variances:
-#            tuplevar1 = [0 for t in stat_temps]
-#            tuplevar2 = [0 for t in stat_temps]
-#            for resid, t in enumerate(stat_temps):
-#                for b in range(nb):
-#                    tuplevar1[resid] += ((stattuple[0][resid][b] - t_meanfunc[idtuple][0][resid]) ** 2)/(nb * (nb - 1))
-#                    tuplevar2[resid] += ((stattuple[1][resid][b] - t_meanfunc[idtuple][1][resid]) ** 2)/(nb * (nb - 1))
-#            t_varmeanfunc.append((tuplevar1, tuplevar2))
-#
-#    # Additional results for the correlations are handled directly in AnalysisBasis_3dot1dot5
-#    print("avg magn: ", t_meanfunc[magnfuncid])
-#    #Save the final results
-#    backup.results.t_meanfunc = t_meanfunc
-#    backup.results.t_varmeanfunc = t_varmeanfunc
 

@@ -3,11 +3,12 @@
 
 # In[ ]:
 
+
 import numpy as np
 import dimers as dim
 import DualwormFunctions as dw
 import StartStates as strst
-import Observables as obs
+import Observables_NewSaves as obs
 
 import hickle as hkl
 
@@ -20,6 +21,7 @@ import argparse
 
 # In[ ]:
 
+
 def SafePreparation(args):
     ### PREPARE SAVING
     
@@ -31,12 +33,13 @@ def SafePreparation(args):
     
     # prepare the backup structure
     backup = "./" + args.output+"_folder/"+"backup"
-    hkl.dump("check", backup)
+    hkl.dump("check", backup+".hkl")
     
     return backup
 
 
 # In[ ]:
+
 
 def SimulationParameters(args, backup, loadfromfile, d_ijl,
                          ijl_d, ijl_s, s_ijl, s2_d, L):
@@ -52,7 +55,7 @@ def SimulationParameters(args, backup, loadfromfile, d_ijl,
     print('J3 ', J3)
     print('J3st ', J3st)
     couplings = {'J1': J1, 'J2':J2, 'J3':J3, 'J3st':J3st, 'J4':J4}
-    hkl.dump(couplings,backup, path = "/parameters/couplings", mode = 'r+')
+    hkl.dump(couplings,backup+".hkl", path = "/parameters/couplings", mode = 'r+')
     
     print("Couplings extracted")
     hamiltonian = dw.Hamiltonian(couplings,d_ijl, ijl_d, L)
@@ -74,7 +77,7 @@ def SimulationParameters(args, backup, loadfromfile, d_ijl,
     updatetype = {'ssf': ssf, 'alternate': alternate,
                   'nnspins': nnspins, 's2p':s2p}
     
-    hkl.dump(updatetype,backup, path = "/parameters/updatetype", mode = 'r+')
+    hkl.dump(updatetype,backup+".hkl", path = "/parameters/updatetype", mode = 'r+')
     
 
     ## Temperatures and magnetic fields to simulate
@@ -99,7 +102,7 @@ def SimulationParameters(args, backup, loadfromfile, d_ijl,
     
     physical = {'temperatures': temperatures, 'nt':nt, 'nh':nh,
                 'hfields': hfields}
-    hkl.dump(physical,backup, path = "/parameters/physical", mode = 'r+')
+    hkl.dump(physical,backup+".hkl", path = "/parameters/physical", mode = 'r+')
     
     print('Number of temperatures: ', nt)
     print('Temperatures:', temperatures)
@@ -111,6 +114,7 @@ def SimulationParameters(args, backup, loadfromfile, d_ijl,
 
 
 # In[ ]:
+
 
 def StatesAndEnergyInit(args, backup, loadbackup,hamiltonian, ids2walker,
                         nt, nh, hfields, d_ijl, d_2s, s_ijl,
@@ -140,7 +144,7 @@ def StatesAndEnergyInit(args, backup, loadbackup,hamiltonian, ids2walker,
                   'magninit': magninit, 'maxflip':maxflip,
                  'magnstripes': magnstripes}
 
-        hkl.dump(kwinit, backup, path = "/parameters/kwinit", mode = 'r+')
+        hkl.dump(kwinit, backup+".hkl", path = "/parameters/kwinit", mode = 'r+')
         
         (states, energies,spinstates) =        strst.statesinit(nt, nh, hfields, ids2walker, d_ijl,
                          d_2s, s_ijl, hamiltonian, **kwinit)
@@ -176,6 +180,7 @@ def StatesAndEnergyInit(args, backup, loadbackup,hamiltonian, ids2walker,
 
 # In[ ]:
 
+
 def CheckEnergies(hamiltonian, energies, states, spinstates,
                   hfields, nh, ids2walker, nt):
     
@@ -200,6 +205,7 @@ def CheckEnergies(hamiltonian, energies, states, spinstates,
 
 
 # In[ ]:
+
 
 def ObservablesInit(args, backup, s_ijl, ijl_s, L):
     nnlists = []
@@ -253,13 +259,14 @@ def ObservablesInit(args, backup, s_ijl, ijl_s, L):
                 'charges':charges, 'correlations':correlations,
                 'all_correlations':all_correlations,
                  'firstcorrelations':firstcorrelations}
-    hkl.dump(obsparams, backup, path = "/parameters/obsparams", mode = 'r+')
+    hkl.dump(obsparams, backup+".hkl", path = "/parameters/obsparams", mode = 'r+')
     
     return [nnlists, observables, observableslist, magnfuncid,
             cfuncid] 
 
 
 # In[ ]:
+
 
 def Temperatures2MeasureInit(args, backup, temperatures, nt):
     if args.stat_temps_lims is None:
@@ -277,13 +284,14 @@ def Temperatures2MeasureInit(args, backup, temperatures, nt):
         for i in range(0, l, 2):
             stat_temps += list(range(vals[i], vals[i+1]+1))
     
-    hkl.dump(stat_temps, backup, path = "/parameters/stat_temps")
+    hkl.dump(stat_temps, backup+".hkl", path = "/parameters/stat_temps")
     assert len(stat_temps) <= nt,    'The number of temperature indices to measure cannot be bigger than    the number of temperatures.'
     
     return stat_temps
 
 
 # In[ ]:
+
 
 def MagneticFields2MeasureInit(args, backup, hfields, nh):
     # Magnetic fields to measure
@@ -304,13 +312,14 @@ def MagneticFields2MeasureInit(args, backup, hfields, nh):
     
     print('List of field indices to measure:', stat_hfields)
     
-    hkl.dump(stat_hfields, backup, path = "/parameters/stat_hfields")
+    hkl.dump(stat_hfields, backup+".hkl", path = "/parameters/stat_hfields")
     assert len(stat_hfields) <= nh,    'The number of field indices to measure cannot be bigger than    the number of fields.'
     
     return stat_hfields
 
 
 # In[ ]:
+
 
 def CheckGs(args, ref_en_states, new_en_states, nh):
     if args.checkgs:

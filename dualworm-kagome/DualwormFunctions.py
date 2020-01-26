@@ -7,9 +7,11 @@
 import numpy as np
 import dimers as dim
 import KagomeFunctions as lattice
+import Observables as obs
 from scipy.special import erfc
 from time import time
 import itertools
+import hickle as hkl
 
 
 # In[ ]:
@@ -770,22 +772,40 @@ def statistics(tid, resid, hid, reshid, bid, states, statesen, statstables,
     m = 0
     
     wid = ids2walker[tid, hid]
-    for stat_id in range(len(statstables)): #stat_id: index of the statistical
-        #function you're currently looking at
-        func_per_site = statsfunctions[stat_id](stlen, states[wid],
-                                                statesen[tid, hid], 
-                                                spinstates[wid],
-                                                s_ijl, ijl_s,m=m,
-                                                **kwargs)
-        # c2s = c2s, csign = csign,nnlists = nnlists, m = m) 
-        #evaluation depends on the temperature index
-        if stat_id == magnfuncid:
-            m = func_per_site
-            
-        statstables[stat_id][0][resid][reshid][bid] += func_per_site / num_in_bin 
-        #storage depends on the result index
-        
-        statstables[stat_id][1][resid][reshid][bid] += (func_per_site ** 2) / num_in_bin
+    if bid == 0:
+        for stat_id in range(len(statstables)): #stat_id: index of the statistical
+            #function you're currently looking at
+            func_per_site = statsfunctions[stat_id](stlen, states[wid],
+                                                    statesen[tid, hid], 
+                                                    spinstates[wid],
+                                                    s_ijl, ijl_s,m=m,
+                                                    **kwargs)
+            # c2s = c2s, csign = csign,nnlists = nnlists, m = m) 
+            #evaluation depends on the temperature index
+            if stat_id == magnfuncid:
+                m = func_per_site
+
+            statstables[stat_id][bid][0][resid][reshid] = func_per_site / num_in_bin 
+            #storage depends on the result index
+
+            statstables[stat_id][bid][1][resid][reshid] = (func_per_site ** 2) / num_in_bin
+    elif bid > 0:
+        for stat_id in range(len(statstables)): #stat_id: index of the statistical
+            #function you're currently looking at
+            func_per_site = statsfunctions[stat_id](stlen, states[wid],
+                                                    statesen[tid, hid], 
+                                                    spinstates[wid],
+                                                    s_ijl, ijl_s,m=m,
+                                                    **kwargs)
+            # c2s = c2s, csign = csign,nnlists = nnlists, m = m) 
+            #evaluation depends on the temperature index
+            if stat_id == magnfuncid:
+                m = func_per_site
+
+            statstables[stat_id][bid][0][resid][reshid] += func_per_site / num_in_bin 
+            #storage depends on the result index
+
+            statstables[stat_id][bid][1][resid][reshid] += (func_per_site ** 2) / num_in_bin
 
 
 # In[ ]:
@@ -1054,7 +1074,7 @@ def mcs_swaps(states, spinstates, statesen,
     s2p = kwargs.get('s2p', None)
     nt = kwargs.get('nt',None)
     randspinupdate = kwargs.get('randspinupdate', True)
-    
+    namefunctions = kwargs.get('namefunctions', [])
     #structure for replica:
     hfields = kwargs.get('hfields', None)
     nh = kwargs.get('nh',None)
@@ -1063,15 +1083,22 @@ def mcs_swaps(states, spinstates, statesen,
     ids2walker = kwargs.get('ids2walker', [])
     ssf = kwargs.get('ssf', False)
     alternate = kwargs.get('alternate', False)
+    
+    #save
+    backup = kwargs.get('backup', "")
     ################################
     # actual code
     ################################
 
     ## Define the table for statistics
     if len(statsfunctions) != 0:
-            statstables = [(np.zeros((len(stat_temps), len(stat_fields), nb)).tolist(),
-                           np.zeros((len(stat_temps), len(stat_fields), nb)).tolist())
-                           for i in range(len(statsfunctions))]
+            statstables = obs.initstatstables(namefunctions,
+                                  nb,c2s,
+                                  nnlists,
+                                  stat_temps,
+                                  stat_fields,
+                                  stlen)
+
     else:
         statstables =  []
         
@@ -1179,7 +1206,19 @@ def mcs_swaps(states, spinstates, statesen,
                 # it would probably be worth it to parallelise this in c++
                 # ideally I should do it before the spins update, then 
                 # perform the spin update and possibly the replicas in c++.
-            
+            if backup and (it//measperiod)/num_in_bin == binid:
+                if binid == 0:
+                    for funcid in range(len(statsfunctions)):
+                        hkl.dump(statstables[funcid][binid],
+                                backup+"_"+namefunctions[funcid]+".hkl",
+                                 path = "/binid{0}".format(binid),
+                                mode = 'w')
+                else:
+                    for funcid in range(len(statsfunctions)):
+                        hkl.dump(statstables[funcid][binid],
+                                backup+"_"+namefunctions[funcid]+".hkl",
+                                 path = "/binid{0}".format(binid),
+                                mode = 'r+')
         t4 = time()
         t_spins += (t4-t3)/itermcs
 
@@ -1197,6 +1236,14 @@ def mcs_swaps(states, spinstates, statesen,
     print('Time for mapping to spins + computing statistics= {0}'.format(t_spins))
     if ssf:
         failedupdates = failedupdates/len(s_ijl)
+        
+    #final save for easier analysis
+    if len(statsfunctions) != 0:
+        for funcid in range(len(statsfunctions)):
+            hkl.dump(statstables[funcid],
+                    backup+"_"+namefunctions[funcid]+"_final.hkl",
+                    mode = 'w')
+        
     return statstables, swapst, swapsh, failedupdates
     
     
