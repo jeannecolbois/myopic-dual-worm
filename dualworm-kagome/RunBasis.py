@@ -38,7 +38,9 @@ def main(args):
         loadbackup = "./" + args.filename
         L = hkl.load(loadbackup+"/backup.hkl", path = "/parameters/L")
         assert L == args.L, "Loaded and required lattice sizes not compatible."
-    
+    else:
+        loadbackup = ""
+        
     L = args.L
     hkl.dump(L, backup+".hkl", path="/parameters/L", mode = 'r+')
     
