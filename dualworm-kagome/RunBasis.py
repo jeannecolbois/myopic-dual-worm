@@ -33,8 +33,9 @@ def main(args):
     
     ### SIMULATIONS PARAMETERS
     loadfromfile = args.loadfromfile
-    loadbackup = "./" + args.filename
+    
     if loadfromfile:
+        loadbackup = "./" + args.filename
         L = hkl.load(loadbackup+"/backup.hkl", path = "/parameters/L")
         assert L == args.L, "Loaded and required lattice sizes not compatible."
     
@@ -271,7 +272,7 @@ if __name__ == "__main__":
     parser.add_argument('--loadfromfile', default = False, action = 'store_true',
                        help = '''initialise all the states with
                        results from a previously performed simulations''')
-    parser.add_argument('--filename', type = str, help = '''initialise all the states with
+    parser.add_argument('--filename', type = str, default = "", help = '''initialise all the states with
                        results from a previously performed simulations''')
     
     #WORM PARAMETERS
