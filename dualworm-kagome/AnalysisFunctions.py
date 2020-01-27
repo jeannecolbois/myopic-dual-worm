@@ -1221,6 +1221,6 @@ def PlotFirstCorrelations(n, L, foldername, results_foldername,hfields_plots, te
                 plt.xlabel(r'$h/J_1$')
                 plt.ylabel(r'$<\sigma_i \sigma_j> - <\sigma_i> <\sigma_j> $')
                 plt.legend(loc = 'best')
-                plt.savefig('./' + foldername + 'Plots' +                            results_foldername+                            '/FewCorrelations_L={0}_t={1}.png'.format(L[i],t))
+                plt.savefig('./' + foldername + 'Plots' +                            results_foldername+                            'FewCorrelations_L={0}_t={1}.png'.format(L[i],t))
  
 
