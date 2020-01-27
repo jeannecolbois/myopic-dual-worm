@@ -121,15 +121,14 @@ def StatesAndEnergyInit(args, backup, loadbackup,hamiltonian, ids2walker,
                        couplings, L):
     if args.loadfromfile:
         
-        states = hkl.load(loadbackup, path = "/results/states")
-        spinstates = hkl.load(loadbackup, path = "/results/spinstates")
+        states = hkl.load(loadbackup+"/backup_states.hkl")
+        spinstates = hkl.load(loadbackup+"/backup_spinstates.hkl")
         energies = [[dw.compute_energy(hamiltonian,states[ids2walker[bid, hid]])
                   - hfields[hid]*spinstates[ids2walker[bid,hid]].sum()
                   for hid in range(nh)]
                  for bid in range(nt)]
     
         energies = np.array(energies)
-        f.close()
     else:
         randominit = args.randominit    
         print('Fully random initialisation = ', randominit)

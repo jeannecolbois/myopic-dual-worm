@@ -33,9 +33,9 @@ def main(args):
     
     ### SIMULATIONS PARAMETERS
     loadfromfile = args.loadfromfile
-    loadbackup = "./" + args.filename + ".hkl"
+    loadbackup = "./" + args.filename
     if loadfromfile:
-        L = hkl.load(loadbackup, path = "/parameters/L")
+        L = hkl.load(loadbackup+"/backup.hkl", path = "/parameters/L")
         assert L == args.L, "Loaded and required lattice sizes not compatible."
     
     L = args.L
