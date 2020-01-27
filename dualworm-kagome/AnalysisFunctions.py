@@ -152,8 +152,8 @@ def ExtractStatistics(backup, idfunc, name,
     
     nb_stattuple = hkl.load(backup+"_"+name+"_final.hkl")
     
-    t_h_meanfunc = np.array(nb_stattuple[:][sq]).sum(0)/nb
-    
+    t_h_meanfunc = nb_stattuple.sum(0)/nb
+    t_h_meanfunc = t_h_meanfunc[sq]
     binning = kwargs.get('binning', False)
 
     t_h_varmeanfunc = [[0 for h in stat_hfields] for t in stat_temps]
@@ -248,19 +248,24 @@ def LoadSwaps(foldername, filenamelist, nb, num_in_bin, nh, nt):
 
 
 def LoadSwapsFromFile(foldername, filename, nb, num_in_bin, nh, nt):
-    f = open('./' + foldername + filename +'.pkl', 'rb')
-    backup = pickle.load(f)
+    backup = "./"+foldername+filename+".hkl"
     
-    nrps = backup.params.nrps
+    kwmeas = hkl.load(backup, path="/parameters/measurements")
+    
+    nrps = kwmeas['nrps']
     nsms = nb*num_in_bin
-    measperiod = backup.params.measperiod
+    measperiod = kwmeas['measperiod']
     
-    swapst_th = backup.results.swapst_th
-    swapsh_th = backup.results.swapsh_th
+    thermres = hkl.load(backup, path="/results/thermres")
+    swapst_th = thermres['swapst_th']
+    swapsh_th = thermres['swapsh_th']
     
-    swapst = 4*np.array(backup.results.swapst)/(nsms*nrps*measperiod*nh)
-    swapsh = 4*np.array(backup.results.swapsh)/(nsms*nrps*measperiod*nt)
-    f.close()
+    meas = hkl.load(backup, path = "/results/measurements")
+    swapst = meas['swapst']
+    swapsh = meas['swapsh']
+    swapst = 4*np.array(swapst)/(nsms*nrps*measperiod*nh)
+    swapsh = 4*np.array(swapsh)/(nsms*nrps*measperiod*nt)
+    
     return swapst_th, swapsh_th, swapst, swapsh
 
 
@@ -317,8 +322,7 @@ def LoadEnergyFromFile(foldername, filename, numsites, nb, stat_temps,
     # Note that C_b = N/T^2 * (<E^2>_b - <E>_b ^2)
     # where <>_b stands for the average over bin b
 
-    tb_E = statstable[idfunc][0]
-    tb_Esq = statstable[idfunc][1]
+    bsth_E = hkl.load(backup+"_"+name+"_final.hkl")
 
     ErrC = []
     for resid, t in enumerate(stat_temps):
@@ -328,10 +332,10 @@ def LoadEnergyFromFile(foldername, filename, numsites, nb, stat_temps,
             Mean_VarE = 0
             Mean_VarE_Sq = 0
             for b in range(nb):
-                    Mean_VarE += (tb_Esq[resid][reshid][b] - 
-                                  tb_E[resid][reshid][b] ** 2)/nb
-                    Mean_VarE_Sq += ((tb_Esq[resid][reshid][b] -
-                                      tb_E[resid][reshid][b] ** 2) ** 2)/nb
+                    Mean_VarE += (bsth_E[b][1][resid][reshid] - 
+                                  bsth_E[b][0][resid][reshid] ** 2)/nb
+                    Mean_VarE_Sq += ((bsth_E[b][1][resid][reshid] -
+                                      bsth_E[b][0][resid][reshid] ** 2) ** 2)/nb
             if (Mean_VarE_Sq - Mean_VarE ** 2 >= 0) :
                 ErrCh.append(numsites / (T ** 2) * np.sqrt(Mean_VarE_Sq 
                                                            - Mean_VarE ** 2))
@@ -339,8 +343,6 @@ def LoadEnergyFromFile(foldername, filename, numsites, nb, stat_temps,
                 assert(Mean_VarE_Sq - Mean_VarE ** 2 >= -1e-15)
                 ErrCh.append(0)
         ErrC.append(ErrCh)
-            
-    f.close()
     
     return t_h_MeanE, t_h_MeanEsq, t_h_varMeanE, t_h_varMeanEsq, C, ErrC
 
@@ -379,10 +381,9 @@ def LoadMagnetisation(foldername, filenamelist, numsites, nb, stat_temps,
 
 def LoadMagnetisationFromFile(foldername, filename, numsites, nb, stat_temps,
                               temperatures, stat_hfields, idfunc,  **kwargs):
-    f = open('./' + foldername + filename +'.pkl', 'rb')
-    backup = pickle.load(f) 
     
-    statstable = backup.results.statstable
+    backup = "./"+foldername+filename
+    name = "Magnetisation"
     
     t_h_MeanM, t_h_varMeanM =    ExtractStatistics(backup, idfunc, name,nb, stat_temps,
                       stat_hfields, **kwargs)
@@ -396,8 +397,7 @@ def LoadMagnetisationFromFile(foldername, filename, numsites, nb, stat_temps,
             Chih.append(numsites * ( t_h_MeanMsq[resid][reshid] -  t_h_MeanM[resid][reshid] ** 2) / T)
         Chi.append(Chih)
         
-    tb_M = statstable[idfunc][0]
-    tb_Msq = statstable[idfunc][1]
+    bsth_M = hkl.load(backup+"_"+name+"_final.hkl")
 
     
     ErrChi = []
@@ -408,16 +408,16 @@ def LoadMagnetisationFromFile(foldername, filename, numsites, nb, stat_temps,
             Mean_VarM = 0
             Mean_VarM_Sq = 0
             for b in range(nb):
-                    Mean_VarM += (tb_Msq[resid][reshid][b] - tb_M[resid][reshid][b] ** 2)/nb
-                    Mean_VarM_Sq += ((tb_Msq[resid][reshid][b] - tb_M[resid][reshid][b] ** 2) ** 2)/nb
+                    Mean_VarM += (bsth_M[b][1][resid][reshid]
+                                  - bsth_M[b][0][resid][reshid] ** 2)/nb
+                    Mean_VarM_Sq += ((bsth_M[b][1][resid][reshid]
+                                      - bsth_M[b][0][resid][reshid] ** 2) ** 2)/nb
             if Mean_VarM_Sq - Mean_VarM ** 2 >= 0 :
                 ErrChih.append(numsites / T * np.sqrt(Mean_VarM_Sq - Mean_VarM ** 2))  
             else:
                 assert(Mean_VarM_Sq - Mean_VarM ** 2 >= -1e-15)
                 ErrChih.append(0)
         ErrChi.append(ErrChih)
-            
-    f.close()
     
     return  t_h_MeanM,  t_h_MeanMsq, t_h_varMeanM, t_h_varMeanMsq, Chi, ErrChi
 
@@ -462,14 +462,13 @@ def LoadCentralCorrelations(foldername, filenamelist, listfunctions, sref, stat_
 
 
 def LoadCorrelationsFromFile(foldername, filename, idfunc, idfuncsi, sref, stat_temps, stat_hfields, nb, **kwargs):
-    f = open('./' + foldername + filename +'.pkl', 'rb')
-    backup = pickle.load(f) 
     
-    statstable = backup.results.statstable
-    
+    backup = "./"+foldername+filename
+    name = "Central_Correlations"
+    namesi = "Si"
     
     # Averages and corresponding variances
-    t_h_MeanSi, t_h_varMeanSi =    ExtractStatistics(backup, idfuncsi, name, nb, stat_temps,
+    t_h_MeanSi, t_h_varMeanSi =    ExtractStatistics(backup, idfuncsi, namesi, nb, stat_temps,
                       stat_hfields, **kwargs)
     
     t_h_MeanSs, t_h_varMeanSs =    ExtractStatistics(backup, idfunc, name, nb, stat_temps,
@@ -483,39 +482,53 @@ def LoadCorrelationsFromFile(foldername, filename, idfunc, idfuncsi, sref, stat_
         t_h_MeanCorr.append(t_h_MeanSs[:,:,i,:] - t_h_MeanSi*column) #<si sj> - <si> <sj> for j in lattice. /!\ this is ELEMENTWISE
         
     # Estimating the error on <si sj> - <si><sj>
-    t_h_errCorrEstim = CorrelErrorEstimator(statstable, idfunc, idfuncsi, sref, nb)   
- 
-    f.close()
+    t_h_errCorrEstim = CorrelErrorEstimator(backup, idfunc,
+                                            idfuncsi, sref,
+                                            name, namesi,
+                                            nb)   
+
     return t_h_MeanSs, t_h_varMeanSs, t_h_MeanSi, t_h_varMeanSi, t_h_MeanCorr, t_h_errCorrEstim
 
 
 # In[ ]:
 
 
-def CorrelErrorEstimator(statstable, idfunc, idfuncsi, sref, nb):
+def CorrelErrorEstimator(backup, idfunc, idfuncsi, sref,
+                         name, namesi,nb):
     
-    t_h_b_sisj = np.array(statstable[idfunc][0]) # <s0sj>_b (t)
-    (ntm, nhm, nb, nrefs, nsites) = t_h_b_sisj.shape #getting the system size
+    bsth_sisj = hkl.load(backup+"_"+name+"_final.hkl")
+    bth_sisj = bsth_sisj[:,0,:,:,:,:] # <s0sj>_b (t,h)
+    (nb, ntm, nhm, nrefs, nsites) = bth_sisj.shape
+    #t_h_b_sisj = np.array(statstable[idfunc][0]) # <s0sj>_b (t)
+    #(ntm, nhm, nb, nrefs, nsites) = t_h_b_sisj.shape #getting the system size
     
-    t_h_b_sj = np.array(statstable[idfuncsi][0]) # <si>_b (t)
-    t_h_b_s0 = t_h_b_sj[:,:,:,sref]
+    bsth_sj = hkl.load(backup+"_"+namesi+"_final.hkl")
+    bth_sj = bsth_sj[:,0,:,:,:]# <si>_b (t)
+    bth_s0 = bth_sj[:,:,:,sref]# <s0>_b (t)
     
-    t_h_b_gamma = [[] for _  in range(nrefs)]
-    t_h_gamma = [np.zeros((ntm, nhm, nsites)) for _ in range(nrefs)]
+    #t_h_b_s0 = t_h_b_sj[:,:,:,sref]
+    
+    
+    #t_h_b_gamma = [[] for _  in range(nrefs)]
+    #t_h_gamma = [np.zeros((ntm, nhm, nsites)) for _ in range(nrefs)]
+    sbth_gamma = np.zeros((nrefs,nb,ntm, nhm, nsites))
+    sth_gamma = np.zeros((nrefs,ntm, nhm, nsites))
     for i in range(nrefs):
-        t_h_b_s0i = t_h_b_s0[:,:,:,i]
-        t_h_b_s0i = t_h_b_s0i[:,:,:,np.newaxis]
+        bth_s0i = bth_s0[:,:,:,i]
+        bth_s0i = bth_s0i[:,:,:,np.newaxis]
         
-        for b in range(nb):
-            t_h_b_gamma[i].append(t_h_b_sisj[:,:,b,i,:] - t_h_b_s0i[:,:,b]*t_h_b_sj[:,:,b,:])
-            t_h_gamma[i] += t_h_b_gamma[i][b]
-        t_h_gamma[i] = t_h_gamma[i]/nb
+        #t_h_b_s0i = t_h_b_s0[:,:,:,i]
+        #t_h_b_s0i = t_h_b_s0i[:,:,:,np.newaxis]
+
+        
+        sbth_gamma[i] = bth_sisj[:,:,:,i,:] - bth_s0i*bth_sj
+        sth_gamma[i] = sbth_gamma[i].sum(0)/nb
     
     
-    t_h_vargamma = [np.zeros((ntm, nhm, nsites)) for _ in range(nrefs)]
+    t_h_vargamma = np.zeros((nrefs,ntm, nhm, nsites))
     for i in range(nrefs):
         for b in range(nb):
-            t_h_vargamma[i] += np.power((t_h_b_gamma[i][b] - t_h_gamma[i]),2)
+            t_h_vargamma[i] += np.power((sbth_gamma[i][b] - sth_gamma[i]),2)
         t_h_vargamma[i] = t_h_vargamma[i]/(nb*(nb-1))
 
     return t_h_vargamma

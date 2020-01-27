@@ -161,6 +161,7 @@ def main(args):
             p = 0
     
     kwmeas = {'nb':nb, 'num_in_bin':num_in_bin,'nips':nips,
+              'nrps':nrps,
              'measperiod':measperiod, 'measupdate':measupdate,
              'nnspins':nnspins, 's2p': s2p}
     hkl.dump(kwmeas, backup+".hkl", path = "/parameters/measurements", mode = 'r+')
