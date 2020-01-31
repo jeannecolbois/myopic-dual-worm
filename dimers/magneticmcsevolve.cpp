@@ -20,12 +20,11 @@ void magneticmcsevolve(double J1, std::vector<std::tuple<double, int*, int, int>
 
         double beta = walker2params[walker*2];
         double h = walker2params[walker*2 + 1];
-        int saveloops = 0; // don't save loops
             //manydual worms
-            tuple<double, bool, vector<int>, vector<int>> resultworm = magneticdualworms(J1,
+            tuple<double, bool> resultworm = magneticdualworms(J1,
               interactions, h, state, spinstate, statesize, spinstatesize, d_nd, n_nd,
               d_vd, n_vd, d_wn, sidlist, didlist, nbit, beta,
-              saveloops, nmaxiter, niterworm);
+              nmaxiter, niterworm);
 
             //add things to e
             int bid = walker2ids[walker*2];

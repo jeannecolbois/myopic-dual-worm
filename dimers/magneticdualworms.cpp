@@ -16,21 +16,21 @@ int sign(double x){
   return (int)copysign(1.0, x);
 }
 
-std::tuple<double, bool, std::vector<int>, std::vector<int>> magneticdualworms(double J1,
+std::tuple<double, bool> magneticdualworms(double J1,
   std::vector<std::tuple<double, int*, int, int>> interactions, double h,
   int* state, int* spinstate, int statesize, int spinstatesize,
   int* d_nd, int n_nd, int* d_vd, int n_vd, int* d_wn,
   int* sidlist, int* didlist, int nbit,
-  double beta, int saveloops, int nmaxiter, int iterworm) {
+  double beta, int nmaxiter, int iterworm) {
     // save a copy of the state:
     int *savestate = new int[statesize];
     for( int dim = 0; dim < statesize; dim++){
         savestate[dim] = state[dim];
     }
     ////Call manydualworms
-    tuple<double, bool, vector<int>, vector<int>> resultworm = manydualworms(J1,
+    tuple<double, bool> resultworm = manydualworms(J1,
       interactions, state, statesize, d_nd, n_nd, d_vd, n_vd, d_wn, beta,
-      saveloops, nmaxiter, iterworm);
+      nmaxiter, iterworm);
     double& deltaE = get<0>(resultworm);// treating as reference so no need to update resultworm at the end!
     bool& updated = get<1>(resultworm);// treating as reference so no need to update resultworm at the end!
     if(updated){
