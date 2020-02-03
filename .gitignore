@@ -2,12 +2,14 @@ dimers/build
 tests/
 test_random/
 dimers/*.txt
+dualworm-kagome/prun*
 dualworm-kagome/*.png
 dualworm-kagome/*.out
 dualworm-kagome/*.pkl
 dualworm-kagome/*.png
 dualworm-kagome/__pycache__/
 dualworm-kagome/Plot*
+dualworm-kagome/*_folder/
 ANALYSIS_CSCS/
 Analysis_CSCS/
 Analysis_PSI/
