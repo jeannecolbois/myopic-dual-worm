@@ -120,7 +120,7 @@ def StatesAndEnergyInit(args, backup, loadbackup,hamiltonian, ids2walker,
                         nt, nh, hfields, d_ijl, d_2s, s_ijl,
                        couplings, L):
     if args.loadfromfile:
-        
+        print("Initialisation = loading from file!")
         states = hkl.load(loadbackup+"/backup_states.hkl")
         spinstates = hkl.load(loadbackup+"/backup_spinstates.hkl")
         energies = [[dw.compute_energy(hamiltonian,states[ids2walker[bid, hid]])
