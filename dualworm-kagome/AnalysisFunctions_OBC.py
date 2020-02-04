@@ -359,7 +359,6 @@ def StrctFact(ijl, ijl_sconfig, m1m2, sconf,L, periodic = True, subtractm = True
         Analysis Function calling for kagome ft "subroutines" to
         compute the structure factor depending on whether the BC
         are periodic or open
-        
     '''
     
     if not periodic:
@@ -368,6 +367,40 @@ def StrctFact(ijl, ijl_sconfig, m1m2, sconf,L, periodic = True, subtractm = True
         StrctFact, m = kft.PBCStrctFact(L, sconf, ijl_sconfig, subtractm = subtractm, **kwargs)
     
     return StrctFact, m
+
+
+# In[ ]:
+
+
+def SampleCorrelations(ijl, ijl_sconfig, sconf, L, subtractm = True, **kwargs):
+    '''
+        Analysis Function computing the centered correlations on a given sample,
+        with no averaging whatsoever
+    '''
+    # spin site table:
+    (s_ijl, ijl_s) = kf.createspinsitetable(L)
+    nspins = len(s_ijl)
+    N = np.sqrt((nspins**2)) # normalization for the FT
+    
+    m = 0
+    print("subtractm = {0}".format(subtractm))
+    if subtractm:
+        for s1 in range(nspins):
+            (i1,j1,l1) = s_ijl[s1]
+            vals1 = sconf[ijl_sconfig[(i1,j1,l1)]]
+            
+            m += vals1/nspins
+            
+    correlations = np.zeros((3,nspins))
+    for s1 in range(3):
+        (i1,j1,l1) = s_ijl[s1]
+        vals1 = sconf[ijl_sconfig[(i1,j1,l1)]]
+        for s2 in range(nspins):
+            (i2,j2,l2) = s_ijl[s2]
+            vals2 = sconf[ijl_sconfig[(i2,j2,l2)]]
+            correlations[s1,s2] = np.asscalar(vals1*vals2 - m**2) # m is zero if not subtractm
+    
+    return correlations, m
 
 
 # In[ ]:
