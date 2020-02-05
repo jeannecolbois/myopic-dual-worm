@@ -211,7 +211,43 @@ def fixbc(i, j, l, L):
         j -= L
     return (i, j, l)
 
-
+def fullfixbc(i,j,l,L, ijl_s, xtrafix = False, numxtrafix = [], check = True):
+    '''
+        For a lattice side size L, this function handles the periodic 
+        boundary conditions by returning the appropriate values
+        of i, j, l if they initially corresponded to neighbouring cells
+    '''
+    listnei = [(0,0),
+               (-2, 1), (-1,2), (1,1),
+               (2,-1), (1,-2),(-1,-1)]
+    
+    (si, sj, sl) = (0,0,0)
+    # first attempt:
+    for nei in listnei:
+        (ni, nj, nl) = (i+nei[0]*L, j+nei[1]*L, l)
+        if (ni, nj, nl) in ijl_s:
+            (si, sj, sl) = (ni, nj, nl)
+            
+    if (si, sj, sl) not in ijl_s and xtrafix:
+        # second attempt:
+        notdone = True
+        neiid = 0
+        while notdone and neiid < len(listnei):
+            nei = listnei[neiid]
+            (ni, nj, nl) = (i+nei[0]*L, j+nei[1]*L, l)
+            (ni, nj, nl) = fullfixbc(ni, nj, nl, L, ijl_s, check = False)
+            if (ni, nj, nl) in ijl_s:
+                (si, sj, sl) = (ni, nj, nl)
+                notdone = False
+                numxtrafix[0]+=1
+            else:
+                neiid += 1
+    
+    if (si, sj, sl) not in ijl_s and check:
+        raise Exception("(si, sj, sl) = ({0},{1},{2}) not in ijl_s (initially ({3},{4},{5})".format(si, sj, sl,
+                                                                                                   i, j, l))
+        
+    return (si, sj, sl)
 # In[6]:
 
 

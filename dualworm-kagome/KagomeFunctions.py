@@ -83,6 +83,31 @@ def fixbc(i, j, l, L):
 # In[ ]:
 
 
+def fullfixbc(i,j,l,L, ijl_s):
+    '''
+        For a lattice side size L, this function handles the periodic 
+        boundary conditions by returning the appropriate values
+        of i, j, l if they initially corresponded to neighbouring cells
+    '''
+    listnei = [(0,0),
+               (-2, 1), (-1,2), (1,1),
+               (2,-1), (1,-2),(-1,-1)]
+    
+    (si, sj, sl) = (i, j, l)
+    for nei in listnei:
+        (ni, nj, nl) = (i+nei[0]*L, j+nei[1]*L, l)
+        if (ni, nj, nl) in ijl_s:
+            (si, sj, sl) = (ni, nj, nl)
+            
+    if (si, sj, sl) not in ijl_s:
+        raise Exception("(si, sj, sl) = ({0},{1},{2}) not in ijl_s".format(si, sj, sl))
+        
+    return (si, sj, sl)
+
+
+# In[ ]:
+
+
 def dualbondspinsitelinks(d_ijl, ijl_s, L):
     '''
         For a lattice with side size L, this function  returns two tables:
