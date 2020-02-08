@@ -150,7 +150,7 @@ def PBCStrctFact(L, sconf, ijl_sconfig, xy_m1m2 = np.zeros((2,2)), subtractm = T
             (i1,j1,l1) = s_ijl[s1]
             vals1 = sconf[ijl_sconfig[(i1,j1,l1)]]
             
-            for s2 in range(s1+1, nspins):
+            for s2 in range(nspins):
                 (i2,j2,l2) = s_ijl[s2]
                 vals2 = sconf[ijl_sconfig[(i2,j2,l2)]]
                 correlations[s1][s2] = np.asscalar(vals1*vals2 - m**2)
@@ -181,7 +181,10 @@ def StrctFact(L, correlations, centered = True, srefs = range(3), s_ijl =[],\
     if not s_ijl or nsites == 0:
         (s_ijl, ijl_s) = kf.createspinsitetable(L)
         nsites = len(s_ijl)
-        N = np.sqrt((nsites**2)) # normalization for the FT
+        if centered:
+            N = 4
+        else:
+            N = np.sqrt(nsites*nsites/2) # normalization for the FT
     if not s_pos:
         s_pos, ijl_pos = kf.reducedgraphkag(L, s_ijl, ijl_s)
     
@@ -214,7 +217,7 @@ def StrctFact(L, correlations, centered = True, srefs = range(3), s_ijl =[],\
                                  for nei in listnei])
              
             
-            for s2 in range(s1+1, nsites):
+            for s2 in range(s1, nsites):
                 (i2,j2,l2) = s_ijl[s2]
                 pos2 = s_pos[s2]
                 
@@ -243,7 +246,7 @@ def StrctFact(L, correlations, centered = True, srefs = range(3), s_ijl =[],\
             pos1list = np.array([pos1 + nei[0]*Leff*n1 + nei[1]*Leff*n2
                                  for nei in listnei])
             
-            for s2 in range(s1+1, nsites):
+            for s2 in range(nsites):
                 (i2,j2,l2) = s_ijl[s2]
                 pos2 = s_pos[s2]
                 # separation
