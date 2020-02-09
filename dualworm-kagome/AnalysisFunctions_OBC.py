@@ -359,7 +359,6 @@ def StrctFact(ijl, ijl_sconfig, m1m2, sconf,L, periodic = True, subtractm = True
         Analysis Function calling for kagome ft "subroutines" to
         compute the structure factor depending on whether the BC
         are periodic or open
-        
     '''
     
     if not periodic:
@@ -368,6 +367,102 @@ def StrctFact(ijl, ijl_sconfig, m1m2, sconf,L, periodic = True, subtractm = True
         StrctFact, m = kft.PBCStrctFact(L, sconf, ijl_sconfig, subtractm = subtractm, **kwargs)
     
     return StrctFact, m
+
+
+# In[ ]:
+
+
+def SampleCorrelations(ijl, ijl_sconfig, sconf, L, subtractm = True, **kwargs):
+    '''
+        Analysis Function computing the centered correlations on a given sample,
+        with no averaging whatsoever
+    '''
+    # spin site table:
+    (s_ijl, ijl_s) = kf.createspinsitetable(L)
+    nspins = len(s_ijl)
+    N = np.sqrt((nspins**2)) # normalization for the FT
+    
+    m = 0
+    print("subtractm = {0}".format(subtractm))
+    if subtractm:
+        for s1 in range(nspins):
+            (i1,j1,l1) = s_ijl[s1]
+            vals1 = sconf[ijl_sconfig[(i1,j1,l1)]]
+            
+            m += vals1/nspins
+            
+    correlations = np.zeros((3,nspins))
+    for s1 in range(3):
+        (i1,j1,l1) = s_ijl[s1]
+        vals1 = sconf[ijl_sconfig[(i1,j1,l1)]]
+        for s2 in range(nspins):
+            (i2,j2,l2) = s_ijl[s2]
+            vals2 = sconf[ijl_sconfig[(i2,j2,l2)]]
+            correlations[s1,s2] = np.asscalar(vals1*vals2 - m**2) # m is zero if not subtractm
+    
+    return correlations, m
+
+
+# In[ ]:
+
+
+def Correlations(ijl, ijl_sconfig, sconf, L, subtractm = True, **kwargs):
+    '''
+        Analysis Function computing the centered correlations on a given sample,
+        averaging over the sample
+    '''
+    # spin site table:
+    (s_ijl, ijl_s) = kf.createspinsitetable(L)
+    nspins = len(s_ijl)
+    #N = np.sqrt((nspins**2)) # normalization for the FT
+    
+    #s_pos, ijl_pos = kf.reducedgraphkag(L, s_ijl, ijl_s)
+    
+    # super lattice
+    #n1, n2, Leff, S = kf.superlattice(L)
+    
+    # list of neighbours:
+    listnei = [(0, 0), (0, 1), (1, 0), (-1, 1),
+               (-1, 0), (0, -1),(1, -1)]
+    
+    m = 0
+    print("subtractm = {0}".format(subtractm))
+    if subtractm:
+        for s1 in range(nspins):
+            (i1,j1,l1) = s_ijl[s1]
+            vals1 = sconf[ijl_sconfig[(i1,j1,l1)]]
+            
+            m += vals1/nspins
+    numxtrafix = [0]
+    correlations = np.zeros((3,nspins))
+    for s1 in range(nspins):
+        # location
+        (i1,j1,l1) = s_ijl[s1]
+        # value
+        vals1 = sconf[ijl_sconfig[(i1,j1,l1)]]
+        
+        #pos1 = s_pos[s1]
+        #pos1list = np.array([pos1 + nei[0]*Leff*n1 + nei[1]*Leff*n2
+        #                     for nei in listnei])
+        for s2 in range(s1, nspins):
+            (i2,j2,l2) = s_ijl[s2]
+            vals2 = sconf[ijl_sconfig[(i2,j2,l2)]]
+            #pos2 = s_pos[s2]
+            ## separation
+            #sep = pos2 - pos1list
+            ## index of minmum distance
+            #neiid = np.argmin([np.linalg.norm(sep[i]) for i in
+            #                   range(sep.shape[0])])
+
+            #
+            c = np.asscalar(vals1*vals2 - m**2) # m is zero if not subtractm
+            (si, sj, sl) = kf.fullfixbc(i2-i1+L, j2-j1+L, l2, L , ijl_s, xtrafix = True, numxtrafix = numxtrafix)
+            correlations[l1,ijl_s[(si, sj, sl)]] += c/nspins
+            (si, sj, sl) = kf.fullfixbc(i1-i2+L, j1-j2+L, l1, L , ijl_s, xtrafix = True, numxtrafix = numxtrafix)
+            correlations[l2,ijl_s[(si, sj, sl)]] += c/nspins
+            
+    print("number of extra fix needed: ", numxtrafix)
+    return correlations, m
 
 
 # In[ ]:
