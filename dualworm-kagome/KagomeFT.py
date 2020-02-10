@@ -234,8 +234,9 @@ def StrctFact(L, correlations, centered = True, srefs = range(3), s_ijl =[],\
                 exponent = 1j * 2 * np.pi * np.dot(q_k1k2, dm1m2)/L
                 StrctFactRes[:,l1, l2] +=\
                 correlations[s1][s2]*np.exp(exponent)/N
-                StrctFactRes[:,l2, l1] +=\
-                correlations[s1][s2]*np.exp(-exponent)/N
+                if s1 != s2:
+                    StrctFactRes[:,l2, l1] +=\
+                    correlations[s1][s2]*np.exp(-exponent)/N
                 
     else:
         for s1 in range(3):
@@ -261,8 +262,6 @@ def StrctFact(L, correlations, centered = True, srefs = range(3), s_ijl =[],\
                 exponent = 1j * 2 * np.pi * np.dot(q_k1k2, dm1m2)/L
                 StrctFactRes[:,l1, l2] +=\
                 correlations[s1][s2]*np.exp(exponent)/N
-                StrctFactRes[:,l2, l1] +=\
-                correlations[s1][s2]*np.exp(-exponent)/N    
     
     return StrctFactRes
 
