@@ -150,7 +150,7 @@ def PBCStrctFact(L, sconf, ijl_sconfig, xy_m1m2 = np.zeros((2,2)), subtractm = T
             vals1 = sconf[ijl_sconfig[(i1,j1,l1)]]
             pos1list = np.array([pos1 + nei[0]*Leff*n1 + nei[1]*Leff*n2
                                  for nei in listnei])
-            for s2 in range(s1+1, nspins):
+            for s2 in range(s1, nspins):
                 (i2,j2,l2) = s_ijl[s2]
                 vals2 = sconf[ijl_sconfig[(i2,j2,l2)]]
                 pos2 = s_pos[s2]
@@ -175,7 +175,7 @@ def PBCStrctFact(L, sconf, ijl_sconfig, xy_m1m2 = np.zeros((2,2)), subtractm = T
             vals1 = sconf[ijl_sconfig[(i1,j1,l1)]]
             pos1list = np.array([pos1 + nei[0]*Leff*n1 + nei[1]*Leff*n2
                                  for nei in listnei])
-            for s2 in range(s1+1, nspins):
+            for s2 in range(nspins):
                 (i2,j2,l2) = s_ijl[s2]
                 vals2 = sconf[ijl_sconfig[(i2,j2,l2)]]
                 pos2 = s_pos[s2]
@@ -216,7 +216,7 @@ def OBCStrctFact(ijl, m1m2, sconf, L, subtractm = True, **kwargs):
     for s1 in range(nspins):
         (i1,j1,l1) = ijl[s1]
         if not l1 == -1:
-            for s2 in range(s1+1, nspins):
+            for s2 in range(s1, nspins):
                 # correlation
                 c = np.asscalar(sconf[s1]*sconf[s2]-m**2)
                 # structure factor computation
