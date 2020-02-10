@@ -182,7 +182,7 @@ def StrctFact(L, correlations, centered = True, srefs = range(3), s_ijl =[],\
         (s_ijl, ijl_s) = kf.createspinsitetable(L)
         nsites = len(s_ijl)
         if centered:
-            N = 4
+            N = 1
         else:
             N = np.sqrt(nsites*nsites/2) # normalization for the FT
     if not s_pos:
