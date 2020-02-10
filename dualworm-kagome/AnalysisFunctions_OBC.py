@@ -10,7 +10,6 @@
 
 # In[ ]:
 
-
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
@@ -22,7 +21,6 @@ import itertools
 
 
 # In[ ]:
-
 
 def ComputeNthCorrList(NNListN, sconf, x, y, factor):
     '''
@@ -66,7 +64,6 @@ def ComputeNthCorrList(NNListN, sconf, x, y, factor):
 
 
 # In[ ]:
-
 
 def ComputeNthCorr(firstpairs, rss, s42_realpos):
     '''
@@ -115,7 +112,6 @@ def ComputeNthCorr(firstpairs, rss, s42_realpos):
 
 # In[ ]:
 
-
 def LoadSpinConfigsLarge(foldername, spinconfigfile, imgfile, alpha = 0.3, factor = 1):
     configlist = np.loadtxt(foldername+spinconfigfile,delimiter=',')
     x = configlist[:,0]
@@ -149,7 +145,6 @@ def LoadSpinConfigsLarge(foldername, spinconfigfile, imgfile, alpha = 0.3, facto
 
 
 # In[ ]:
-
 
 def DrawClusterOnConfig(secondfoldername, L, refid, spos, LParam = (0,0,0), factor = 1, factorth = 1, doplot = False,
                         domap = False, a = 2, **kwargs):
@@ -308,7 +303,6 @@ def DrawClusterOnConfig(secondfoldername, L, refid, spos, LParam = (0,0,0), fact
 
 # In[ ]:
 
-
 def m1m2toijl_mapping(m1m2):
     '''
         Getting (i,j,l) coordinates from (m1, m2) tilted axis coordinates
@@ -353,7 +347,6 @@ def m1m2toijl_mapping(m1m2):
 
 # In[ ]:
 
-
 def StrctFact(ijl, ijl_sconfig, m1m2, sconf,L, periodic = True, subtractm = True, **kwargs):
     '''
         Analysis Function calling for kagome ft "subroutines" to
@@ -371,40 +364,45 @@ def StrctFact(ijl, ijl_sconfig, m1m2, sconf,L, periodic = True, subtractm = True
 
 # In[ ]:
 
-
-def SampleCorrelations(ijl, ijl_sconfig, sconf, L, subtractm = True, **kwargs):
+def SampleCorrelations(ijl, ijl_sconfig, sconf, L, subtractm = False, centered = True, **kwargs):
     '''
         Analysis Function computing the centered correlations on a given sample,
         with no averaging whatsoever
     '''
-    # spin site table:
-    (s_ijl, ijl_s) = kf.createspinsitetable(L)
-    nspins = len(s_ijl)
-    N = np.sqrt((nspins**2)) # normalization for the FT
-    
-    m = 0
-    print("subtractm = {0}".format(subtractm))
-    if subtractm:
-        for s1 in range(nspins):
+    if centered:
+        # spin site table:
+        (s_ijl, ijl_s) = kf.createspinsitetable(L)
+        nspins = len(s_ijl)
+        N = np.sqrt((nspins**2)) # normalization for the FT
+
+        m = 0
+        print("subtractm = {0}".format(subtractm))
+        if subtractm:
+            for s1 in range(nspins):
+                (i1,j1,l1) = s_ijl[s1]
+                vals1 = sconf[ijl_sconfig[(i1,j1,l1)]]
+
+                m += vals1/nspins
+
+        correlations = np.zeros((3,nspins))
+        marray = np.zeros(nspins)
+        
+        for s1 in range(3):
             (i1,j1,l1) = s_ijl[s1]
-            vals1 = sconf[ijl_sconfig[(i1,j1,l1)]]
-            
-            m += vals1/nspins
-            
-    correlations = np.zeros((3,nspins))
-    for s1 in range(3):
-        (i1,j1,l1) = s_ijl[s1]
-        vals1 = sconf[ijl_sconfig[(i1,j1,l1)]]
-        for s2 in range(nspins):
-            (i2,j2,l2) = s_ijl[s2]
-            vals2 = sconf[ijl_sconfig[(i2,j2,l2)]]
-            correlations[s1,s2] = np.asscalar(vals1*vals2 - m**2) # m is zero if not subtractm
-    
+            vals1 = sconf[ijl_sconfig[(i1,j1,l1)]]    
+            for s2 in range(nspins):
+                (i2,j2,l2) = s_ijl[s2]
+                vals2 = sconf[ijl_sconfig[(i2,j2,l2)]]
+                correlations[s1,s2] = np.asscalar(vals1*vals2 - m**2) # m is zero if not subtractm
+                if s1 == 0:
+                    marray[s2] = vals2
+    else:
+        correlations, m = Correlations(ijl, ijl_sconfig, sconf, L,
+                                       subtractm = subtractm)
     return correlations, m
 
 
 # In[ ]:
-
 
 def Correlations(ijl, ijl_sconfig, sconf, L, subtractm = True, **kwargs):
     '''
@@ -425,14 +423,16 @@ def Correlations(ijl, ijl_sconfig, sconf, L, subtractm = True, **kwargs):
     listnei = [(0, 0), (0, 1), (1, 0), (-1, 1),
                (-1, 0), (0, -1),(1, -1)]
     
-    m = 0
+    marray = 0
     print("subtractm = {0}".format(subtractm))
+    
+    for s1 in range(nspins):
+        (i1,j1,l1) = s_ijl[s1]
+        vals1 = sconf[ijl_sconfig[(i1,j1,l1)]]
+
+        marray += vals1/nspins
     if subtractm:
-        for s1 in range(nspins):
-            (i1,j1,l1) = s_ijl[s1]
-            vals1 = sconf[ijl_sconfig[(i1,j1,l1)]]
-            
-            m += vals1/nspins
+        m = marray
     numxtrafix = [0]
     correlations = np.zeros((3,nspins))
     for s1 in range(nspins):
@@ -441,32 +441,24 @@ def Correlations(ijl, ijl_sconfig, sconf, L, subtractm = True, **kwargs):
         # value
         vals1 = sconf[ijl_sconfig[(i1,j1,l1)]]
         
-        #pos1 = s_pos[s1]
-        #pos1list = np.array([pos1 + nei[0]*Leff*n1 + nei[1]*Leff*n2
-        #                     for nei in listnei])
         for s2 in range(s1, nspins):
             (i2,j2,l2) = s_ijl[s2]
             vals2 = sconf[ijl_sconfig[(i2,j2,l2)]]
-            #pos2 = s_pos[s2]
-            ## separation
-            #sep = pos2 - pos1list
-            ## index of minmum distance
-            #neiid = np.argmin([np.linalg.norm(sep[i]) for i in
-            #                   range(sep.shape[0])])
-
-            #
+            
             c = np.asscalar(vals1*vals2 - m**2) # m is zero if not subtractm
+            
             (si, sj, sl) = kf.fullfixbc(i2-i1+L, j2-j1+L, l2, L , ijl_s, xtrafix = True, numxtrafix = numxtrafix)
             correlations[l1,ijl_s[(si, sj, sl)]] += c/nspins
-            (si, sj, sl) = kf.fullfixbc(i1-i2+L, j1-j2+L, l1, L , ijl_s, xtrafix = True, numxtrafix = numxtrafix)
-            correlations[l2,ijl_s[(si, sj, sl)]] += c/nspins
             
+            if s2 != s1:
+                (si, sj, sl) = kf.fullfixbc(i1-i2+L, j1-j2+L, l1, L , ijl_s, xtrafix = True, numxtrafix = numxtrafix)
+                correlations[l2,ijl_s[(si, sj, sl)]] += c/nspins
+
     print("number of extra fix needed: ", numxtrafix)
-    return correlations, m
+    return correlations, marray
 
 
 # In[ ]:
-
 
 def plotSpinSites(foldername, imgfile, x, y, listsites, putimage = True, marker = '.', color = 'blue', alpha = 0.3, linestyle='none'):
     xplot = x[listsites]
@@ -481,7 +473,6 @@ def plotSpinSites(foldername, imgfile, x, y, listsites, putimage = True, marker 
 
 # In[ ]:
 
-
 def plotSpinPairs(foldername, imgfile, x, y, listpairs, putimage = True, marker = '.', color = 'blue', alpha = 0.3):
     plotSpinSites(foldername, imgfile, x,y, list(listpairs[0]), putimage = putimage, marker = marker,color = color, alpha = alpha, linestyle = 'solid')
     for pair in listpairs:
@@ -490,13 +481,11 @@ def plotSpinPairs(foldername, imgfile, x, y, listpairs, putimage = True, marker 
 
 # In[ ]:
 
-
 def expdist(sid1, sid2, x, y, factor):
     return np.sqrt((x[sid1]-x[sid2])**2 +(y[sid1]-y[sid2])**2)/factor
 
 
 # In[ ]:
-
 
 def KagomeLatticeHistogram(x, y, factor = 20):
     nspins = len(x)
@@ -521,7 +510,6 @@ def KagomeLatticeHistogram(x, y, factor = 20):
 
 
 # In[ ]:
-
 
 def KagomeLatticeNeighboursLists(distances_s1s2, distconds):
     nn = len(distconds)
@@ -568,7 +556,6 @@ def KagomeLatticeNeighboursLists(distances_s1s2, distconds):
 
 # In[ ]:
 
-
 def KagomeLatticeTriangles(NNList,sizelatt):
     trianglelist = []
 
@@ -596,7 +583,6 @@ def KagomeLatticeTriangles(NNList,sizelatt):
 
 # In[ ]:
 
-
 def LoadSpinConfigs(L,n,spinconfigfile):
     assert(n==1)
 
@@ -608,7 +594,6 @@ def LoadSpinConfigs(L,n,spinconfigfile):
 
 
 # In[ ]:
-
 
 def KagomeLatticeCharges(NNList, sconf, x, y):
     trianglelist = KagomeLatticeTriangles(NNList,len(sconf))
@@ -628,7 +613,6 @@ def KagomeLatticeCharges(NNList, sconf, x, y):
 
 
 # In[ ]:
-
 
 def OBCmapping(L, s_ijl, filename):
     s42_ijl = []
