@@ -49,7 +49,7 @@ def FTf_at_q(L, k1, k2, f, s_ijl, ijl_s, vec_l):
     return sum_at_q
 
 
-
+# In[5]:
 
 
 def KagomeFT(f):
@@ -89,9 +89,11 @@ def KagomeFT(f):
     return FTf
 
 
+# In[ ]:
+
 def PBCStrctFact(L, sconf, ijl_sconfig, xy_m1m2 = np.zeros((2,2)), subtractm = True, centered = False, a = 2, **kwargs):
     '''
-        Computes the full structure factor associated with a spin config,
+        Computes the full structure factor associated with config,
         with PBC imposed on a kagome system of size L (i.e. computes
         the structure factor of a sub-system if the config doesn't
         have the right shape).
@@ -117,11 +119,18 @@ def PBCStrctFact(L, sconf, ijl_sconfig, xy_m1m2 = np.zeros((2,2)), subtractm = T
     # super lattice
     n1, n2, Leff, S = kf.superlattice(L)
     
+    # reciprocal site table:
+    (q_k1k2, k1k2_q) = kdraw.KagomeReciprocal(L)
+    q_k1k2 = np.array(q_k1k2)
+    
     # list of neighbours:
     listnei = [(0, 0), (0, 1), (1, 0), (-1, 1),
                (-1, 0), (0, -1),(1, -1)]
     
-
+    # xy_m1m2
+    if np.linalg.det(xy_m1m2) == 0:
+        xy_m1m2 = (1/a)*np.array([[1, -1/np.sqrt(3)],[0, 2/np.sqrt(3)]])
+    
     m = 0
     print("subtractm = {0}".format(subtractm))
     if subtractm:
@@ -132,123 +141,43 @@ def PBCStrctFact(L, sconf, ijl_sconfig, xy_m1m2 = np.zeros((2,2)), subtractm = T
             
             m += vals1/nspins
     
-    #StrctFactRes = np.zeros((q_k1k2.shape[0],3, 3), dtype = 'complex128')
+    StrctFact = np.zeros((q_k1k2.shape[0],3, 3), dtype = 'complex128')
     print("centered = ", centered)
     if not centered:
-        correlations = [[0 for s2 in range(s1+1, nspins)]for s1 in range(nspins)]
         for s1 in range(nspins):
             (i1,j1,l1) = s_ijl[s1]
+            pos1 = s_pos[s1]
             vals1 = sconf[ijl_sconfig[(i1,j1,l1)]]
-            
-            for s2 in range(s1+1, nspins):
+            pos1list = np.array([pos1 + nei[0]*Leff*n1 + nei[1]*Leff*n2
+                                 for nei in listnei])
+            for s2 in range(s1, nspins):
                 (i2,j2,l2) = s_ijl[s2]
                 vals2 = sconf[ijl_sconfig[(i2,j2,l2)]]
-                correlations[s1][s2] = np.asscalar(vals1*vals2 - m**2)
-                # m is zero if not subtractm
+                pos2 = s_pos[s2]
+                # separation
+                sep = pos2 - pos1list
+                # index of minmum distance
+                neiid = np.argmin([np.linalg.norm(sep[i]) for i in
+                                   range(sep.shape[0])])
+
+                # position difference in (m1, m2) coordinates
+                dm1m2 = np.dot(xy_m1m2, sep[neiid]) 
+
+                c = np.asscalar(vals1*vals2 - m**2) # m is zero if not subtractm
+
+                exponent = 1j * 2 * np.pi * np.dot(q_k1k2, dm1m2)/L
+                StrctFact[:,l1, l2] += c*np.exp(exponent)/N
+                StrctFact[:,l2, l1] += c*np.exp(-exponent)/N
     else:
         for s1 in range(3):
             (i1,j1,l1) = s_ijl[s1]
+            pos1 = s_pos[s1]
             vals1 = sconf[ijl_sconfig[(i1,j1,l1)]]
-            
+            pos1list = np.array([pos1 + nei[0]*Leff*n1 + nei[1]*Leff*n2
+                                 for nei in listnei])
             for s2 in range(nspins):
                 (i2,j2,l2) = s_ijl[s2]
                 vals2 = sconf[ijl_sconfig[(i2,j2,l2)]]
-                correlations[s1][s2] = np.asscalar(vals1*vals2 - m**2)
-                # m is zero if not subtractm
-               
-            
-    StrctFactRes = StrctFact(L, correlations, centered = centered,\
-                             s_ijl = s_ijl, ijl_s = ijl_s, s_pos = s_pos,\
-                             ijl_pos = ijl_pos, n1 = n1, n2 = n2, Leff = Leff,\
-                             S = S, xy_m1m2 = xy_m1m2, nsites = nspins)
-                             
-    return StrctFactRes, m
-
-
-def StrctFact(L, correlations, centered = True, srefs = range(3), s_ijl =[],\
-              ijl_s = [], s_pos = [], ijl_pos = [], n1 = [],n2 = [], Leff = 0, S = [],\
-             q_k1k2= [], k1k2_q = {}, xy_m1m2 = [], nsites = 0, a = 2, **kwargs):
-    '''
-        Given correlations of a function, computes the associated structure
-        factor on the lattice with size L.
-        - centered: if the correlations are relatively to three sites only;
-        if centered is False the sum over all the possible centers is made.
-        - srefs: if centered is True, srefs gives the indices of the three
-        reference spins (by default, 0,1,2)
-    '''
-    
-    ## Computing the lattice structure:
-    if not s_ijl or nsites == 0:
-        (s_ijl, ijl_s) = kf.createspinsitetable(L)
-        nsites = len(s_ijl)
-        if centered:
-            N = 1
-        else:
-            N = np.sqrt(nsites*nsites/2) # normalization for the FT
-    if not s_pos:
-        s_pos, ijl_pos = kf.reducedgraphkag(L, s_ijl, ijl_s)
-    
-    # super lattice
-    if not n1:
-        n1, n2, Leff, S = kf.superlattice(L)
-    
-    ## Computing the reciprocal lattice structure
-    # reciprocal site table:
-    if not q_k1k2:
-        (q_k1k2, k1k2_q) = kdraw.KagomeReciprocal(L)
-        q_k1k2 = np.array(q_k1k2)
-    
-    # list of neighbours:
-    listnei = [(0, 0), (0, 1), (1, 0), (-1, 1),
-               (-1, 0), (0, -1),(1, -1)]
-    
-    # xy_m1m2
-    if not xy_m1m2 or np.linalg.det(xy_m1m2) == 0:
-        xy_m1m2 = (1/a)*np.array([[1, -1/np.sqrt(3)],[0, 2/np.sqrt(3)]])
-    
-    ## Computing the structure factor associated with the correlations
-    StrctFactRes = np.zeros((q_k1k2.shape[0],3, 3), dtype = 'complex128')
-    if not centered:
-        for s1 in range(nsites):
-            (i1,j1,l1) = s_ijl[s1]
-            pos1 = s_pos[s1]
-            # equivalent positions with PBC
-            pos1list = np.array([pos1 + nei[0]*Leff*n1 + nei[1]*Leff*n2
-                                 for nei in listnei])
-             
-            
-            for s2 in range(s1, nsites):
-                (i2,j2,l2) = s_ijl[s2]
-                pos2 = s_pos[s2]
-                
-                # separation
-                sep = pos2 - pos1list
-                
-                # index of minmum distance
-                neiid = np.argmin([np.linalg.norm(sep[i]) for i in
-                                   range(sep.shape[0])])
-
-                # position difference in (m1, m2) coordinates
-                dm1m2 = np.dot(xy_m1m2, sep[neiid]) 
-
-                exponent = 1j * 2 * np.pi * np.dot(q_k1k2, dm1m2)/L
-                StrctFactRes[:,l1, l2] +=\
-                correlations[s1][s2]*np.exp(exponent)/N
-                if s1 != s2:
-                    StrctFactRes[:,l2, l1] +=\
-                    correlations[s1][s2]*np.exp(-exponent)/N
-                
-    else:
-        for s1 in range(3):
-            s1id = srefs[s1]
-            (i1,j1,l1) = s_ijl[s1id]
-            pos1 = s_pos[s1id]
-            # equivalent positions with PBC
-            pos1list = np.array([pos1 + nei[0]*Leff*n1 + nei[1]*Leff*n2
-                                 for nei in listnei])
-            
-            for s2 in range(nsites):
-                (i2,j2,l2) = s_ijl[s2]
                 pos2 = s_pos[s2]
                 # separation
                 sep = pos2 - pos1list
@@ -259,11 +188,12 @@ def StrctFact(L, correlations, centered = True, srefs = range(3), s_ijl =[],\
                 # position difference in (m1, m2) coordinates
                 dm1m2 = np.dot(xy_m1m2, sep[neiid]) 
 
+                c = np.asscalar(vals1*vals2 - m**2) # m is zero if not subtractm
+
                 exponent = 1j * 2 * np.pi * np.dot(q_k1k2, dm1m2)/L
-                StrctFactRes[:,l1, l2] +=\
-                correlations[s1][s2]*np.exp(exponent)/N
-    
-    return StrctFactRes
+                StrctFact[:,l1, l2] += c*np.exp(exponent)/N
+                StrctFact[:,l2, l1] += c*np.exp(-exponent)/N    
+    return StrctFact, m
 
 def OBCStrctFact(ijl, m1m2, sconf, L, subtractm = True, **kwargs):
     '''
@@ -276,7 +206,7 @@ def OBCStrctFact(ijl, m1m2, sconf, L, subtractm = True, **kwargs):
     (q_k1k2, k1k2_q) = kdraw.KagomeReciprocal(L)
     q_k1k2 = np.array(q_k1k2)
     
-    StrctFactRes = np.zeros((q_k1k2.shape[0],3, 3), dtype = 'complex128')
+    StrctFact = np.zeros((q_k1k2.shape[0],3, 3), dtype = 'complex128')
     nspins = len(sconf)
     m = sum(sconf)/sum(abs(sconf))
     if not subtractm:
@@ -286,54 +216,52 @@ def OBCStrctFact(ijl, m1m2, sconf, L, subtractm = True, **kwargs):
     for s1 in range(nspins):
         (i1,j1,l1) = ijl[s1]
         if not l1 == -1:
-            for s2 in range(s1+1, nspins):
+            for s2 in range(s1, nspins):
                 # correlation
                 c = np.asscalar(sconf[s1]*sconf[s2]-m**2)
                 # structure factor computation
                 (i2,j2,l2) = ijl[s2]
                 if not l2 == -1:
                     exponent = 1j*2 * np.pi * np.dot(q_k1k2, (m1m2[s1]-m1m2[s2]))/L
-                    StrctFactRes[:,l1,l2] += c * np.exp(exponent)/N
-                    StrctFactRes[:,l2,l1] += c * np.exp(-exponent)/N
-    return StrctFactRes, m
+                    StrctFact[:,l1,l2] += c * np.exp(exponent)/N
+                    StrctFact[:,l2,l1] += c * np.exp(-exponent)/N
+    return StrctFact, m
 
 
+def StrctFact(corr0, corr1, corr2):
+    '''
+        Returns the structure factor linked to the correlation functions corr0, corr1 and corr2, which are respectively
+        centered on (L, L, 0), (L, L, 1) and (L, L, 2).
+    '''
+     ## define the lattice depending on the size of the function we get
+    # size of the function:
+    num_sites = len(corr0) # = 9* L*L
+    # size of the side of the lattice:
+    L = np.sqrt(num_sites/9)
+    L = L.astype(int)
+    # spin site table:
+    (s_ijl, ijl_s) = kf.createspinsitetable(L)
+    # reciprocal site table:
+    (q_k1k2, k1k2_q) = kdraw.KagomeReciprocal(L)
 
-#def StrctFact(corr0, corr1, corr2):
-#    '''
-#        Returns the structure factor linked to the correlation functions corr0, corr1 and corr2, which are respectively
-#        centered on (L, L, 0), (L, L, 1) and (L, L, 2).
-#    '''
-#     ## define the lattice depending on the size of the function we get
-#    # size of the function:
-#    num_sites = len(corr0) # = 9* L*L
-#    # size of the side of the lattice:
-#    L = np.sqrt(num_sites/9)
-#    L = L.astype(int)
-#    # spin site table:
-#    (s_ijl, ijl_s) = kf.createspinsitetable(L)
-#    # reciprocal site table:
-#    (q_k1k2, k1k2_q) = kdraw.KagomeReciprocal(L)
-#
-#    ## Define the return vector
-#    StrctFactRes = np.empty(len(q_k1k2), dtype = 'complex128')
-#    StrF0 = np.empty(len(q_k1k2), dtype = 'complex128')
-#    StrF1 = np.empty(len(q_k1k2), dtype = 'complex128')
-#    StrF2 = np.empty(len(q_k1k2), dtype = 'complex128')
-#    vec_l = [[0, 0],[-0.5, 0.5],[-1, 0.5]] #### /!!!!!!\ make sure
-#    for q, (k1, k2) in enumerate(q_k1k2):
-#        exponent1 = 2 * np.pi * k1 / L * (vec_l[0][0])
-#        exponent2 = 2 * np.pi * k2 / L * (vec_l[0][1])
-#        StrF0[q] = FTf_at_q(L, k1, k2, corr0, s_ijl, ijl_s, vec_l) * np.exp(- 1j * (exponent1 + exponent2))
-#
-#        exponent1 = 2 * np.pi * k1 / L * (vec_l[1][0])
-#        exponent2 = 2 * np.pi * k2 / L * (vec_l[1][1])
-#        StrF1[q] = FTf_at_q(L, k1, k2, corr1, s_ijl, ijl_s, vec_l)* np.exp(- 1j * (exponent1 + exponent2))
-#
-#        exponent1 = 2 * np.pi * k1 / L * (vec_l[2][0])
-#        exponent2 = 2 * np.pi * k2 / L * (vec_l[2][1])
-#        StrF2[q] = FTf_at_q(L, k1, k2, corr2, s_ijl, ijl_s, vec_l)* np.exp(- 1j * (exponent1 + exponent2))
-#
-#    StrctFactRes = StrF0 + StrF1 + StrF2
-#    return StrctFactRes, StrF0, StrF1, StrF2
-#
+    ## Define the return vector
+    StrctFact = np.empty(len(q_k1k2), dtype = 'complex128')
+    StrF0 = np.empty(len(q_k1k2), dtype = 'complex128')
+    StrF1 = np.empty(len(q_k1k2), dtype = 'complex128')
+    StrF2 = np.empty(len(q_k1k2), dtype = 'complex128')
+    vec_l = [[0, 0],[-0.5, 0.5],[-1, 0.5]] #### /!!!!!!\ make sure
+    for q, (k1, k2) in enumerate(q_k1k2):
+        exponent1 = 2 * np.pi * k1 / L * (vec_l[0][0])
+        exponent2 = 2 * np.pi * k2 / L * (vec_l[0][1])
+        StrF0[q] = FTf_at_q(L, k1, k2, corr0, s_ijl, ijl_s, vec_l) * np.exp(- 1j * (exponent1 + exponent2))
+
+        exponent1 = 2 * np.pi * k1 / L * (vec_l[1][0])
+        exponent2 = 2 * np.pi * k2 / L * (vec_l[1][1])
+        StrF1[q] = FTf_at_q(L, k1, k2, corr1, s_ijl, ijl_s, vec_l)* np.exp(- 1j * (exponent1 + exponent2))
+
+        exponent1 = 2 * np.pi * k1 / L * (vec_l[2][0])
+        exponent2 = 2 * np.pi * k2 / L * (vec_l[2][1])
+        StrF2[q] = FTf_at_q(L, k1, k2, corr2, s_ijl, ijl_s, vec_l)* np.exp(- 1j * (exponent1 + exponent2))
+
+    StrctFact = StrF0 + StrF1 + StrF2
+    return StrctFact, StrF0, StrF1, StrF2
