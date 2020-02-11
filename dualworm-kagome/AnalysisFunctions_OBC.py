@@ -370,6 +370,7 @@ def SampleCorrelations(ijl, ijl_sconfig, sconf, L, subtractm = False, centered =
         with no averaging whatsoever
     '''
     if centered:
+        print("Centered")
         # spin site table:
         (s_ijl, ijl_s) = kf.createspinsitetable(L)
         nspins = len(s_ijl)
@@ -397,6 +398,7 @@ def SampleCorrelations(ijl, ijl_sconfig, sconf, L, subtractm = False, centered =
                 if s1 == 0:
                     marray[s2] = vals2
     else:
+        print("Not centered")
         correlations, m = Correlations(ijl, ijl_sconfig, sconf, L,
                                        subtractm = subtractm)
     return correlations, m
@@ -412,6 +414,7 @@ def Correlations(ijl, ijl_sconfig, sconf, L, subtractm = True, **kwargs):
     # spin site table:
     (s_ijl, ijl_s) = kf.createspinsitetable(L)
     nspins = len(s_ijl)
+    print("nspins: ", nspins)
     #N = np.sqrt((nspins**2)) # normalization for the FT
     
     #s_pos, ijl_pos = kf.reducedgraphkag(L, s_ijl, ijl_s)
@@ -431,8 +434,10 @@ def Correlations(ijl, ijl_sconfig, sconf, L, subtractm = True, **kwargs):
         vals1 = sconf[ijl_sconfig[(i1,j1,l1)]]
 
         marray += vals1/nspins
+    m = 0
     if subtractm:
         m = marray
+    print("subtracted m = ",m)
     numxtrafix = [0]
     correlations = np.zeros((3,nspins))
     for s1 in range(nspins):
@@ -447,12 +452,12 @@ def Correlations(ijl, ijl_sconfig, sconf, L, subtractm = True, **kwargs):
             
             c = np.asscalar(vals1*vals2 - m**2) # m is zero if not subtractm
             
-            (si, sj, sl) = kf.fullfixbc(i2-i1+L, j2-j1+L, l2, L , ijl_s, xtrafix = True, numxtrafix = numxtrafix)
-            correlations[l1,ijl_s[(si, sj, sl)]] += c/nspins
+            (si, sj, sl) = kf.fullfixbc(i2-i1+(L-1), j2-j1+(L-1), l2, L , ijl_s, xtrafix = True, numxtrafix = numxtrafix)
+            correlations[l1,ijl_s[(si, sj, sl)]] += c/(nspins/3) # three sites per unit cell
             
             if s2 != s1:
-                (si, sj, sl) = kf.fullfixbc(i1-i2+L, j1-j2+L, l1, L , ijl_s, xtrafix = True, numxtrafix = numxtrafix)
-                correlations[l2,ijl_s[(si, sj, sl)]] += c/nspins
+                (si, sj, sl) = kf.fullfixbc(i1-i2+(L-1), j1-j2+(L-1), l1, L , ijl_s, xtrafix = True, numxtrafix = numxtrafix)
+                correlations[l2,ijl_s[(si, sj, sl)]] += c/(nspins/3)
 
     print("number of extra fix needed: ", numxtrafix)
     return correlations, marray
