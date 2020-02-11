@@ -3,7 +3,6 @@
 
 # In[ ]:
 
-
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
@@ -16,7 +15,6 @@ import warnings
 
 
 # In[ ]:
-
 
 def correlationsTester(state, latsize, d_ijl, ijl_d, L):
     # J1 #
@@ -46,7 +44,6 @@ def correlationsTester(state, latsize, d_ijl, ijl_d, L):
 
 
 # In[ ]:
-
 
 def LoadParameters(foldername, filenamelist):
     n = len(filenamelist)
@@ -87,7 +84,6 @@ def LoadParameters(foldername, filenamelist):
 
 
 # In[ ]:
-
 
 def LoadParametersFromFile(foldername, filename):
     backup = "./"+foldername+filename+".hkl"
@@ -138,7 +134,6 @@ def LoadParametersFromFile(foldername, filename):
 
 # In[ ]:
 
-
 def ExtractStatistics(backup, idfunc, name,
                       nb, stat_temps, stat_hfields, sq = 0, **kwargs):
     '''
@@ -166,11 +161,10 @@ def ExtractStatistics(backup, idfunc, name,
         Binning(t_h_meanfunc,t_h_varmeanfunc, nb_stattuple[sq], nb,
                                 stat_temps, stat_hfields, **kwargs)
         
-    return t_h_meanfunc, t_h_varmeanfunc
+    return np.array(t_h_meanfunc), np.array(t_h_varmeanfunc)
 
 
 # In[ ]:
-
 
 def Binning(t_h_mean, t_h_varmean, stattuple, nb, stat_temps,stat_hfields, **kwargs):
     '''
@@ -227,7 +221,6 @@ def Binning(t_h_mean, t_h_varmean, stattuple, nb, stat_temps,stat_hfields, **kwa
 
 # In[ ]:
 
-
 def LoadSwaps(foldername, filenamelist, nb, num_in_bin, nh, nt):
     n = len(filenamelist)
     swapst_th = [[] for _ in range(n)]
@@ -245,7 +238,6 @@ def LoadSwaps(foldername, filenamelist, nb, num_in_bin, nh, nt):
 
 
 # In[ ]:
-
 
 def LoadSwapsFromFile(foldername, filename, nb, num_in_bin, nh, nt):
     backup = "./"+foldername+filename+".hkl"
@@ -271,7 +263,6 @@ def LoadSwapsFromFile(foldername, filename, nb, num_in_bin, nh, nt):
 
 # In[ ]:
 
-
 def LoadEnergy(foldername, filenamelist, numsites, nb, stat_temps, temperatures, stat_hfields, listfunctions, **kwargs):
     n = len(filenamelist)
     
@@ -294,7 +285,6 @@ def LoadEnergy(foldername, filenamelist, numsites, nb, stat_temps, temperatures,
 
 
 # In[ ]:
-
 
 def LoadEnergyFromFile(foldername, filename, numsites, nb, stat_temps,
                        temperatures, stat_hfields, idfunc, **kwargs):
@@ -349,7 +339,6 @@ def LoadEnergyFromFile(foldername, filename, numsites, nb, stat_temps,
 
 # In[ ]:
 
-
 def LoadMagnetisation(foldername, filenamelist, numsites, nb, stat_temps,
                       temperatures, stat_hfields, listfunctions, **kwargs):
     n = len(filenamelist)
@@ -377,7 +366,6 @@ def LoadMagnetisation(foldername, filenamelist, numsites, nb, stat_temps,
 
 
 # In[ ]:
-
 
 def LoadMagnetisationFromFile(foldername, filename, numsites, nb, stat_temps,
                               temperatures, stat_hfields, idfunc,  **kwargs):
@@ -424,7 +412,6 @@ def LoadMagnetisationFromFile(foldername, filename, numsites, nb, stat_temps,
 
 # In[ ]:
 
-
 def LoadCentralCorrelations(foldername, filenamelist, listfunctions, sref, stat_temps, stat_hfields, nb, **kwargs):
     n = len(filenamelist)
     
@@ -460,7 +447,6 @@ def LoadCentralCorrelations(foldername, filenamelist, listfunctions, sref, stat_
 
 # In[ ]:
 
-
 def LoadCorrelationsFromFile(foldername, filename, idfunc, idfuncsi, sref, stat_temps, stat_hfields, nb, **kwargs):
     
     backup = "./"+foldername+filename
@@ -474,7 +460,6 @@ def LoadCorrelationsFromFile(foldername, filename, idfunc, idfuncsi, sref, stat_
     t_h_MeanSs, t_h_varMeanSs =    ExtractStatistics(backup, idfunc, name, nb, stat_temps,
                       stat_hfields, **kwargs)
     
-    
     t_h_MeanCorr = []
     for i in range(len(sref)):
         column = t_h_MeanSi[:, :, sref[i]]
@@ -487,11 +472,10 @@ def LoadCorrelationsFromFile(foldername, filename, idfunc, idfuncsi, sref, stat_
                                             name, namesi,
                                             nb)   
 
-    return t_h_MeanSs, t_h_varMeanSs, t_h_MeanSi, t_h_varMeanSi, t_h_MeanCorr, t_h_errCorrEstim
+    return t_h_MeanSs, t_h_varMeanSs, t_h_MeanSi, t_h_varMeanSi, np.array(t_h_MeanCorr), np.array(t_h_errCorrEstim)
 
 
 # In[ ]:
-
 
 def CorrelErrorEstimator(backup, idfunc, idfuncsi, sref,
                          name, namesi,nb):
@@ -536,7 +520,6 @@ def CorrelErrorEstimator(backup, idfunc, idfuncsi, sref,
 
 # In[ ]:
 
-
 def LoadSi(foldername, filenamelist, listfunctions, **kwargs):
     n = len(filenamelist)
     
@@ -555,7 +538,6 @@ def LoadSi(foldername, filenamelist, listfunctions, **kwargs):
 
 # In[ ]:
 
-
 def LoadSiFromFile(foldername, filename, idfunc, stat_temps, **kwargs):
     f = open('./' + foldername + filename +'.pkl', 'rb')
     backup = pickle.load(f) 
@@ -571,7 +553,6 @@ def LoadSiFromFile(foldername, filename, idfunc, stat_temps, **kwargs):
 
 
 # In[ ]:
-
 
 def SwapsAnalysis(L, n, tidmin, tidmax, temperatures, hfields, foldername, results_foldername, swapst, swapsh):
     for i in range(n):
@@ -592,7 +573,6 @@ def SwapsAnalysis(L, n, tidmin, tidmax, temperatures, hfields, foldername, resul
 
 
 # In[ ]:
-
 
 def BasicPlotsE(L, n, tidmin, tidmax, temperatures_plots, hfields_plots, foldername,
                 results_foldername, filenamelist, t_h_MeanE, t_h_MeanEsq, t_h_varMeanE,
@@ -795,7 +775,6 @@ def BasicPlotsE(L, n, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
 
 # In[ ]:
 
-
 def BasicPlotsM(L, n, tidmin, tidmax, temperatures_plots, hfields_plots, foldername,
                 results_foldername, filenamelist, t_h_MeanM, t_h_MeanMsq, 
                 t_h_varMeanM, t_h_varMeanMsq, Chi, ErrChi, J1, J2, J3, J4, **kwargs):
@@ -882,8 +861,7 @@ def BasicPlotsM(L, n, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
 
 # In[ ]:
 
-
-def Compute2DCorrelations(rid, n, t_h_MeanCorr,
+def PrepPlot2DCorrelations(rid, n, t_h_MeanCorr,
                           t_h_errCorrEstim, t_h_MeanSi,
                           hfields_plots, temperatures_plots,\
                           ploth = False):
@@ -903,15 +881,14 @@ def Compute2DCorrelations(rid, n, t_h_MeanCorr,
         maxerr = [[0 for t in temperatures_plots[0]] for i in range(n)]
         for i in range(n):
             for tid, t in enumerate(temperatures_plots[i]):
-                corr[i][tid] = np.array(t_h_MeanCorr[i])[:,tid,rid]
-                errcorr[i][tid] = np.sqrt(np.array(t_h_errCorrEstim[i])[:,tid,rid])
+                corr[i][tid] = np.array(t_h_MeanCorr[i])[:,tid,rid,:]
+                errcorr[i][tid] = np.sqrt(np.array(t_h_errCorrEstim[i])[:,tid,rid,:])
                 maxerr[i][tid] = np.amax(np.abs(np.array(t_h_MeanSi[i])[:,tid,rid]))**2
 
     return corr, errcorr, maxerr
 
 
 # In[ ]:
-
 
 def BasicPlotsCorrelations2D(foldername, results_foldername, rid,
                              n, L, corr, errcorr, t_h_MeanSi,
@@ -1043,7 +1020,6 @@ def BasicPlotsCorrelations2D(foldername, results_foldername, rid,
 
 # In[ ]:
 
-
 def PlotStrctFact(StrctFact, foldername, results_foldername, tid,
                   hid,L, i, hfields_plots, temperatures_plots, **kwargs):
     size = (170/L[i])**2
@@ -1101,7 +1077,6 @@ def PlotStrctFact(StrctFact, foldername, results_foldername, tid,
 
 # In[ ]:
 
-
 def dist_corr(L, findex, corr, errcorr,distmax):
     distances, distances_spins, NNList, s_pos, srefs = kf.NearestNeighboursLists(L, distmax)
     
@@ -1135,7 +1110,6 @@ def dist_corr(L, findex, corr, errcorr,distmax):
 
 
 # In[ ]:
-
 
 def PlotFirstCorrelations(n, L, foldername, results_foldername,hfields_plots, temperatures_plots,
                          t_h_MeanCorr, t_h_errCorrEstim, distmax = 3.5, ploth = False):
