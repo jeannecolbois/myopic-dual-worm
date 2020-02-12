@@ -1021,56 +1021,66 @@ def BasicPlotsCorrelations2D(foldername, results_foldername, rid,
 # In[ ]:
 
 def PlotStrctFact(StrctFact, foldername, results_foldername, tid,
-                  hid,L, i, hfields_plots, temperatures_plots, **kwargs):
+                  hid,L, i, hfields_plots, temperatures_plots,
+                  vmindiag = None, vmaxdiag = None,
+                  vminoff = None, vmaxoff = None, **kwargs):
+    
+    
     size = (170/L[i])**2
     fig, ax = plt.subplots(figsize = (8,8),dpi=200)
     kdraw.plot_function_reciprocal(np.real(StrctFact[:,0,0]),
-                                   L[i], 2, s = size, **kwargs)#, vmin = vmin, vmax = vmax)
+                                   L[i], 2, s = size, vmin = vmindiag,
+                                   vmax = vmaxdiag, **kwargs)
     plt.title('L = {0}; h = {1}; SF 00'.format(L[i], hfields_plots[i][hid]))
-    plt.savefig('./' + foldername + 'Plots' + results_foldername+                '/SF00_h={0}_L={1}_t={2}.png'.format(L[i],
+    plt.savefig('./' + foldername + 'Plots' + results_foldername+                '/SF00_L={0}_h={1}_t={2}.png'.format(L[i],
                                                      hfields_plots[i][hid],
                                                      temperatures_plots[i][tid]))
 
     fig, ax = plt.subplots(figsize = (8,8),dpi=200)
     kdraw.plot_function_reciprocal(np.real(StrctFact[:,1,1]),
-                                   L[i], 2, s = size, **kwargs)#, vmin = vmin, vmax = vmax)
+                                   L[i], 2, s = size, vmin = vmindiag,
+                                   vmax = vmaxdiag, **kwargs)
     plt.title('L = {0}; h = {1}; SF 11'.format(L[i], hfields_plots[i][hid]))
-    plt.savefig('./' + foldername + 'Plots' + results_foldername+                '/SF11_h={0}_L={1}_t={2}.png'.format(L[i],
+    plt.savefig('./' + foldername + 'Plots' + results_foldername+                '/SF11_L={0}_h={1}_t={2}.png'.format(L[i],
                                                      hfields_plots[i][hid],
                                                      temperatures_plots[i][tid]))
 
     fig, ax = plt.subplots(figsize = (8,8),dpi=200)
     kdraw.plot_function_reciprocal(np.real(StrctFact[:,2,2]),
-                                   L[i], 2, s = size, **kwargs)#, vmin = vmin, vmax = vmax)
+                                   L[i], 2, s = size, vmin = vmindiag,
+                                   vmax = vmaxdiag, **kwargs)
     plt.title('L = {0}; h = {1}; SF 22'.format(L[i], hfields_plots[i][hid]))
-    plt.savefig('./' + foldername + 'Plots' + results_foldername+                '/SF22_h={0}_L={1}_t={2}.png'.format(L[i],
+    plt.savefig('./' + foldername + 'Plots' + results_foldername+                '/SF22_L={0}_h={1}_t={2}.png'.format(L[i],
                                                      hfields_plots[i][hid],
                                                      temperatures_plots[i][tid]))
 
     fig, ax = plt.subplots(figsize = (8,8),dpi=200)
     kdraw.plot_function_reciprocal(np.real(StrctFact[:,0,1]
                                            +StrctFact[:,1,0])/2,
-                                   L[i], 2, s = size, **kwargs)#, vmin = vmin, vmax = vmax)
+                                   L[i], 2, s = size, vmin = vminoff,
+                                   vmax = vmaxoff, **kwargs)
     plt.title('L = {0}; h = {1}; SF 01 + 10'.format(L[i], hfields_plots[i][hid]))
-    plt.savefig('./' + foldername + 'Plots' + results_foldername+                '/SF01_h={0}_L={1}_t={2}.png'.format(L[i],
+    plt.savefig('./' + foldername + 'Plots' + results_foldername+                '/SF01_L={0}_h={1}_t={2}.png'.format(L[i],
                                                      hfields_plots[i][hid],
                                                      temperatures_plots[i][tid]))
 
     fig, ax = plt.subplots(figsize = (8,8),dpi=200)
     kdraw.plot_function_reciprocal(np.real(StrctFact[:,0,2]
                                            +StrctFact[:,2,0])/2,
-                                   L[i], 2, s = size, **kwargs)#, vmin = vmin, vmax = vmax)
+                                   L[i], 2, s = size, vmin = vminoff,
+                                   vmax = vmaxoff, **kwargs)
     plt.title('L = {0}; h = {1}; SF 02 + 20'.format(L[i], hfields_plots[i][hid]))
-    plt.savefig('./' + foldername + 'Plots' + results_foldername+                '/SF02_h={0}_L={1}_t={2}.png'.format(L[i],
+    plt.savefig('./' + foldername + 'Plots' + results_foldername+                '/SF02_L={0}_h={1}_t={2}.png'.format(L[i],
                                                      hfields_plots[i][hid],
                                                      temperatures_plots[i][tid]))
 
     fig, ax = plt.subplots(figsize = (8,8),dpi=200)
     kdraw.plot_function_reciprocal(np.real(StrctFact[:,1,2]
                                            +StrctFact[:,2,1])/2,
-                                   L[i], 2, s = size, **kwargs)#, vmin = vmin, vmax = vmax)
+                                   L[i], 2, s = size, vmin = vminoff,
+                                   vmax = vmaxoff, **kwargs)
     plt.title('L = {0}; h = {1}; SF 12 + 21'.format(L[i], hfields_plots[i][hid]))
-    plt.savefig('./' + foldername + 'Plots' + results_foldername+                '/SF12_h={0}_L={1}_t={2}.png'.format(L[i],
+    plt.savefig('./' + foldername + 'Plots' + results_foldername+                '/SF12_L={0}_h={1}_t={2}.png'.format(L[i],
                                                      hfields_plots[i][hid],
                                                      temperatures_plots[i][tid]))
 
