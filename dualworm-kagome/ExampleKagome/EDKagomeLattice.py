@@ -3,7 +3,6 @@
 
 # In[ ]:
 
-
 import numpy as np
 import matplotlib.pyplot as plt
 get_ipython().run_line_magic('matplotlib', 'inline')
@@ -16,7 +15,6 @@ import argparse
 
 
 # In[ ]:
-
 
 def getPositions(s_ijl,a = 2):
     pos = {} #empty dictionary
@@ -37,13 +35,11 @@ def getPositions(s_ijl,a = 2):
 
 # In[ ]:
 
-
 def spinHamiltonian():
     return 0
 
 
 # In[ ]:
-
 
 def unpackbits(x, num_bits):
     '''
@@ -60,7 +56,6 @@ def unpackbits(x, num_bits):
 
 
 # In[ ]:
-
 
 def main(args):
     ## Initialisation
@@ -111,38 +106,40 @@ def main(args):
     hamiltonian = dw.Hamiltonian(couplings,d_ijl, ijl_d, L)
     print("hamiltonian computed")
     
-    #minstate = np.zeros(9*L**2, dtype = "int8")
-    #minenergy = 0;
-    #for spinstateval in range(0,2**(9*L**2)):
-    #    spinstate = unpackbits(np.array(spinstateval),9*L**2)*2 - 1
-    #    state = np.zeros(len(d_ijl), dtype ='int8')
-    #    for id_dim in range(len(d_ijl)):
-    #        [id_s1, id_s2] = d_2s[id_dim]
-    #        s1 = spinstate[id_s1]
-    #        s2 = spinstate[id_s2]
-    #        state[id_dim] = s1*s2
-    #    energy = dw.compute_energy(hamiltonian, state)
-    #    if energy < minenergy:
-    #        minstate = spinstate
-    #        minenergy = energy
-    #
-    #plt.figure()
-    #plt.axis('equal')
-    #kdraw.plot_kag_spinstate(minstate, ijl_s, L, 2, 'lightblue', 'blue', 'red', linewidth = 1)
-    #plt.tick_params(  
-    #    which = 'both',      # both major and minor ticks are affected
-    #    bottom = False,      # ticks along the bottom edge are off
-    #    top = False,         # ticks along the top edge are off
-    #    labelbottom = False,
-    #    left = False,
-    #    right = False,
-    #    labelleft = False)
-    #plt.show()
-    return s_ijl, hamiltonian, minstate, minenergy
+    minstate = np.zeros(9*L**2, dtype = "int8")
+    
+    energies = np.zeros(2**(9*L**2))
+    minenergy = 0;
+    for spinstateval in range(0,2**(9*L**2)):
+        spinstate = unpackbits(np.array(spinstateval),9*L**2)*2 - 1
+        state = np.zeros(len(d_ijl), dtype ='int8')
+        for id_dim in range(len(d_ijl)):
+            [id_s1, id_s2] = d_2s[id_dim]
+            s1 = spinstate[id_s1]
+            s2 = spinstate[id_s2]
+            state[id_dim] = s1*s2
+        energy = dw.compute_energy(hamiltonian, state)
+        energies[spinstateval] = energy
+        if energy < minenergy:
+            minstate = spinstate
+            minenergy = energy
+    
+    plt.figure()
+    plt.axis('equal')
+    kdraw.plot_kag_spinstate(minstate, ijl_s, L, 2, 'lightblue', 'blue', 'red', linewidth = 1)
+    plt.tick_params(  
+        which = 'both',      # both major and minor ticks are affected
+        bottom = False,      # ticks along the bottom edge are off
+        top = False,         # ticks along the top edge are off
+        labelbottom = False,
+        left = False,
+        right = False,
+        labelleft = False)
+    plt.show()
+    return s_ijl, hamiltonian, minstate, minenergy, energies
 
 
 # In[ ]:
-
 
 if __name__ == "__main__":
     
