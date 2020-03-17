@@ -7,7 +7,8 @@ dualworm-kagome/*.png
 dualworm-kagome/*.out
 dualworm-kagome/*.pkl
 dualworm-kagome/*.png
-dualworm-kagome/__pycache__/*
+*/__pycache__/*
+*/*/__pycache__/
 dualworm-kagome/Plot*
 dualworm-kagome/Profiling_Folder/
 dualworm-kagome/Profiling/
