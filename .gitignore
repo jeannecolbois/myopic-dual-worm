@@ -11,6 +11,7 @@ dualworm-kagome/__pycache__/*
 dualworm-kagome/Plot*
 dualworm-kagome/Profiling
 dualworm-kagome/*_folder/
+dualworm-kagome/*States/
 ANALYSIS_CSCS/
 Analysis_CSCS/
 Analysis_PSI/
