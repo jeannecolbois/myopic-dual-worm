@@ -10,8 +10,7 @@ dualworm-kagome/*.png
 */__pycache__/*
 */*/__pycache__/
 dualworm-kagome/Plot*
-dualworm-kagome/Profiling_Folder/
-dualworm-kagome/Profiling/
+dualworm-kagome/Profiling*/Results/
 dualworm-kagome/*_folder/
 dualworm-kagome/GroundStates/*GSStates/
 ANALYSIS_CSCS/
