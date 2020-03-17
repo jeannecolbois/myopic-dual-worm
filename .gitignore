@@ -12,7 +12,7 @@ dualworm-kagome/Plot*
 dualworm-kagome/Profiling_Folder/
 dualworm-kagome/Profiling/
 dualworm-kagome/*_folder/
-dualworm-kagome/*States/
+dualworm-kagome/GroundStates/*GSStates/
 ANALYSIS_CSCS/
 Analysis_CSCS/
 Analysis_PSI/
