@@ -9,6 +9,34 @@ import numpy as np
 
 # In[ ]:
 
+def fixbc(i, j, l, L):
+    '''
+        For a lattice side size L, this function handles the periodic boundary conditions by returning the corresponding
+        value of i, j, l if they match a point which is just outside the borders of the considered cell.
+    '''
+    if i == 2*L : # bottom right mapped to top left
+        i = 0
+        j += L
+    if j == 2*L: # top mapped to bottom
+        i += L
+        j = 0
+    if i+j == L-2: # bottom left mapped to top right
+        i += L
+        j += L
+    if i+j == 3*L-1: # top right mapped to bottom left
+        i -= L
+        j -= L
+    if j == -1: # bottom mapped to top
+        i -= L
+        j = 2*L-1
+    if i == -1: # top left mapped to bottom right
+        i = 2*L-1
+        j -= L
+    return (i, j, l)
+
+
+# In[ ]:
+
 def magnetisedInit(spinstates, nt, s_ijl, h, same):
    
     if same:
@@ -551,77 +579,114 @@ def LargeJ2Init(spinstates, nt, s_ijl, same):
 
 # In[ ]:
 
-def IntermediateInitOneState(spinstate, s_ijl):
-    sign = np.random.randint(0,2)*2-1
+def IntermediateInitOneState(spinstate, s_ijl,version, sign, shift, rot):
+    # Prepare cells to flip
+    L = int(np.sqrt(len(s_ijl)//9))
+    listtoflip = []
+    for flipid in range(len(s_ijl)//(9*3)):
+        sid = np.random.randint(0,len(s_ijl))
+        (i,j,l) = s_ijl[sid]
+        (i,j,l) = (i,j,2);
+        if not listtoflip: # only if no flip
+            if version == 0:
+                if rot == 0:
+                    k = (i + 2*j +shift)
+                    m = (i - j+shift)
+                    if k%6 ==5 and m%6 == 5:
+                        localflip = [fixbc(i,j,2,L), fixbc(i-2, j+1,0,L), fixbc(i-2, j, 1,L),
+                                     fixbc(i-1, j-1,2,L), fixbc(i-1,j-1,0,L), fixbc(i,j-1, 1,L)]
+                        listtoflip.append(localflip)
+                        
+    print("List to flip:", listtoflip)
     for s, (i, j, l) in enumerate(s_ijl):
-        k = i + 2*j
-        m = i - j
-        if k%6 == 0:
-            if m%6 == 0:
-                if l == 1:
-                    spinstate[s] = sign
-                else:
-                    spinstate[s] = - sign
-            if m%6 == 3:
-                if l == 0:
-                    spinstate[s] = sign
-                else:
-                    spinstate[s] = - sign
+        if not listtoflip:
+            flipfactor = 1
+        else:
+            flipfactors = [-1 for localflip in listtoflip if (i,j,l) in localflip]
+            flipfactor = np.prod(flipfactors)
+            if flipfactor == -1:
+                print("(i,j,l) = (",i,",",j,",",l,")")
+        
+        if version == 0:
+            if rot == 0:
+                k = (i + 2*j +shift)
+                m = (i - j+shift)
+                if k%6 == 0:
+                    if m%6 == 0:
+                        if l == 1:
+                            spinstate[s] = sign
+                        else:
+                            spinstate[s] = - sign
+                    if m%6 == 3:
+                        if l == 0:
+                            spinstate[s] = sign
+                        else:
+                            spinstate[s] = - sign
 
-        if k%6 == 1:
-            if m%6 == 1:
-                if l== 2:
-                    spinstate[s] = - sign
-                else:
-                    spinstate[s] = sign
-            if m%6 == 4:
-                if l == 1:
-                    spinstate[s] = - sign
-                else:
-                    spinstate[s] = sign
-        if k%6 == 2:
-            if m%6 == 2:
-                if l == 1:
-                    spinstate[s] = sign
-                else:
-                    spinstate[s] = - sign
-            if m%6 == 5:
-                if l == 0:
-                    spinstate[s]= sign
-                else:
-                    spinstate[s] = - sign
-        if k%6 == 3:
-            if m % 6 == 0:
-                if l == 2:
-                    spinstate[s] = sign
-                else:
-                    spinstate[s] = - sign
-            if m % 6 == 3:
-                spinstate[s] = sign
+                if k%6 == 1:
+                    if m%6 == 1:
+                        if l== 2:
+                            spinstate[s] = - sign
+                        else:
+                            spinstate[s] = sign
+                    if m%6 == 4:
+                        if l == 1:
+                            spinstate[s] = - sign
+                        else:
+                            spinstate[s] = sign
+                if k%6 == 2:
+                    if m%6 == 2:
+                        if l == 1:
+                            spinstate[s] = sign
+                        else:
+                            spinstate[s] = - sign
+                    if m%6 == 5:
+                        if l == 0:
+                            spinstate[s]= flipfactor*sign
+                        elif l == 1:
+                            spinstate[s] = - sign
+                        elif l == 2:
+                            spinstate[s] = -flipfactor*sign
+                if k%6 == 3:
+                    if m % 6 == 0:
+                        if l == 2:
+                            spinstate[s] = sign
+                        elif l == 0:
+                            spinstate[s] = - sign
+                        elif l == 1:
+                            spinstate[s] = - flipfactor*sign
+                    if m % 6 == 3:
+                        if l == 1:
+                            spinstate[s] = flipfactor*sign
+                        else:
+                            spinstate[s] = sign
 
-        if k%6 == 4:
-            if m%6 == 1:
-                if l == 2:
-                    spinstate[s] = sign
-                else:
-                    spinstate[s] = - sign
-            if m%6 == 4:
-                if l == 1:
-                    spinstate[s] = sign
-                else:
-                    spinstate[s] = - sign
+                if k%6 == 4:
+                    if m%6 == 1:
+                        if l == 2:
+                            spinstate[s] = sign
+                        else:
+                            spinstate[s] = - sign
+                    if m%6 == 4:
+                        if l == 1:
+                            spinstate[s] = sign
+                        else:
+                            spinstate[s] = - sign
 
-        if k%6 == 5:
-            if m%6 == 2:
-                if l == 0:
-                    spinstate[s] = - sign
-                else:
-                    spinstate[s] = sign
-            if m%6 == 5:
-                if l == 1:
-                    spinstate[s] = - sign
-                else:
-                    spinstate[s] = sign
+                if k%6 == 5:
+                    if m%6 == 2:
+                        if l == 0:
+                            spinstate[s] = - flipfactor*sign
+                        else:
+                            spinstate[s] = sign
+                    if m%6 == 5:
+                        if l == 1:
+                            spinstate[s] = - sign
+                        elif l == 0:
+                            spinstate[s] = sign
+                        elif l == 2:
+                            spinstate[s] = flipfactor*sign
+    
 
 
 # In[ ]:
@@ -629,13 +694,21 @@ def IntermediateInitOneState(spinstate, s_ijl):
 def IntermediateInit(spinstates, nt, s_ijl, same):
     if same:
         spinstate = np.zeros(len(s_ijl))
-        IntermediateInit(onestate, s_ijl)
+        version = 0
+        sign = np.random.randint(0,2)*2-1
+        shift = np.random.randint(0,6)
+        rot = 0
+        IntermediateInit(spinstate, s_ijl,version, sign, shift, rot)
         
         for t in range(nt):
             spinstates[t] = np.copy(spinstate)
     else:
+        versions = [0 for t in range(nt)]
+        signs = [np.random.randint(0,2)*2-1 for t in range(nt)]
+        shifts = [np.random.randint(0,6) for t in range(nt)]
+        rots = [0 for t in range(nt)]
         for t in range(nt):
-            IntermediateInitOneState(spinstates[t], s_ijl)
+            IntermediateInitOneState(spinstates[t], s_ijl,versions[t], signs[t], shifts[t], rots[t])
 
 
 # In[ ]:
