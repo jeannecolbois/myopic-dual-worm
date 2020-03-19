@@ -52,7 +52,6 @@ def firstcorrelations(stlen, state, en_state, spinstate, s_ijl, ijl_s, nnlists =
 
 def charges(stlen, state, en_state, spinstate, s_ijl, ijl_s,c2s = [], csign= [], **kwargs):
     cvals = np.array([csign[c]*(spinstate[s1]+spinstate[s2]+spinstate[s3]) for c, (s1,s2,s3) in enumerate(c2s)], dtype = 'int8')
- #print(sum(abs(cvals)==3)/len(c2s))
     return cvals
     
 # In[ ]:

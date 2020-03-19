@@ -1,8 +1,7 @@
 
 # coding: utf-8
 
-# In[ ]:
-
+# In[1]:
 
 import numpy as np
 import dimers as dim
@@ -18,8 +17,7 @@ from time import time
 import argparse
 
 
-# In[ ]:
-
+# In[2]:
 
 def main(args):
     ### PREPARE SAVING
@@ -132,12 +130,12 @@ def main(args):
         else:
             if firstcorrelations:
                 print("Check: length of s_ijl", len(s_ijl))
-                print("Check: lengthon NN pairslist:", len(dw.NNpairs(ijl_s, s_ijl, L)))
+                print("Check: length of NN pairslist:", len(dw.NNpairs(ijl_s, s_ijl, L)))
                 print("Check: length of 2ndNN pairs list: ", len(dw.NN2pairs(ijl_s, s_ijl, L)))
-                print("Check: length of 3rdNN pairs list: ", len(dw.NN3pairs(ijl_s, s_ijl, L)))
-                print("Check: length of 4thNN pairs list: ", len(dw.NN4pairs(ijl_s, s_ijl, L)))
+                print("Check: length of 3rdparNN pairs list: ", len(dw.NN3parpairs(ijl_s, s_ijl, L)))
+                print("Check: length of 3rdstarNN pairs list: ", len(dw.NN3starpairs(ijl_s, s_ijl, L)))
                 nnlists = [dw.NNpairs(ijl_s, s_ijl, L), dw.NN2pairs(ijl_s, s_ijl, L),
-                           dw.NN3pairs(ijl_s, s_ijl, L), dw.NN4pairs(ijl_s, s_ijl, L)]
+                           dw.NN3parpairs(ijl_s, s_ijl, L), dw.NN3starpairs(ijl_s, s_ijl, L)]
                 observables.append(obs.firstcorrelations)
                 observableslist.append('FirstCorrelations')
             else:
@@ -295,8 +293,7 @@ def main(args):
     return meanstat, failedupdatesth, failedupdates
 
 
-# In[ ]:
-
+# In[3]:
 
 if __name__ == "__main__":
 
@@ -388,7 +385,6 @@ if __name__ == "__main__":
 
 
 # In[ ]:
-
 
 #    t_meanfunc = list() #for each function, for each temperature, mean of the state function
 #    t_varmeanfunc = list() #for each function, for each temperature, variance of the state function
