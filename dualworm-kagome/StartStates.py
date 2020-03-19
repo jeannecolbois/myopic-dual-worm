@@ -184,11 +184,11 @@ def J1J2Init(spinstates, nt, s_ijl, same):
         for t in range(nt):
             for s, (i, j, l) in enumerate(s_ijl):
                 if l == versions[t]:
-                    spinstate[s] = signs[t]
+                    spinstates[t][s] = signs[t]
                 if l == (versions[t] + 1)%3:
-                    spinstate[s] = -signs[t]
+                    spinstates[t][s] = -signs[t]
                 if l == (versions[t] + 2)%3:
-                    spinstate[s] = np.random.randint(0,2)*2 - 1
+                    spinstates[t][s] = np.random.randint(0,2)*2 - 1
 
 
 # In[ ]:
@@ -744,7 +744,24 @@ def LargeJ3InitOneState(spinstate, s_ijl, version, sign, shift, rot):
                         spinstate[s] = -sign
                     else:
                         spinstate[s] = sign
-              
+    if version == 1:
+        print("Warning: LargeJ3 test version!!!")
+        # for now only one version
+        for s, (i, j, l) in enumerate(s_ijl):
+            loc = (i + 2*j + shift)%3
+            if loc == 0:
+                if l == 0:
+                    spinstate[s] = np.random.randint(0, 2)*2 -1
+                else:
+                    spinstate[s] = sign
+            if loc == 1:
+                spinstate[s] = - sign
+            if loc == 2:
+                if l == 1:
+                    spinstate[s] = -sign
+                else:
+                    spinstate[s] = sign
+                
 
 
 # In[ ]:
