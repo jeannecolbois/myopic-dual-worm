@@ -3,7 +3,6 @@
 
 # In[1]:
 
-
 import matplotlib.pyplot as plt
 import numpy as np
 import pickle
@@ -12,7 +11,6 @@ import DualwormFunctions as dw
 
 
 # In[2]:
-
 
 def correlationsTester(state, latsize, d_ijl, ijl_d, L):
     # J1 #
@@ -42,7 +40,6 @@ def correlationsTester(state, latsize, d_ijl, ijl_d, L):
 
 
 # In[ ]:
-
 
 def LoadParameters(foldername, filenamelist):
     n = len(filenamelist)
@@ -76,7 +73,6 @@ def LoadParameters(foldername, filenamelist):
 
 
 # In[ ]:
-
 
 def LoadParametersFromFile(foldername, filename):
     f = open('./' + foldername + filename +'.pkl', 'rb')
@@ -118,7 +114,6 @@ def LoadParametersFromFile(foldername, filename):
 
 # In[ ]:
 
-
 def ExtractStatistics(idfunc, meanstat, nb, stat_temps, sq = 0, **kwargs):
     '''
         This function gets the statistics from a file and
@@ -146,7 +141,6 @@ def ExtractStatistics(idfunc, meanstat, nb, stat_temps, sq = 0, **kwargs):
 
 
 # In[ ]:
-
 
 def Binning(t_mean, t_varmean, stattuple, nb, stat_temps, **kwargs):
     '''
@@ -195,7 +189,6 @@ def Binning(t_mean, t_varmean, stattuple, nb, stat_temps, **kwargs):
 
 # In[ ]:
 
-
 def LoadSwaps(foldername, filenamelist, nb, num_in_bin):
     n = len(filenamelist)
     swapsth = [[] for _ in range(n)]
@@ -208,7 +201,6 @@ def LoadSwaps(foldername, filenamelist, nb, num_in_bin):
 
 
 # In[ ]:
-
 
 def LoadSwapsFromFile(foldername, filename, nb, num_in_bin):
     f = open('./' + foldername + filename +'.pkl', 'rb')
@@ -224,7 +216,6 @@ def LoadSwapsFromFile(foldername, filename, nb, num_in_bin):
 
 # In[ ]:
 
-
 def LoadFailed(foldername, filenamelist, nb, num_in_bin):
     n = len(filenamelist)
     failedth = [[] for _ in range(n)]
@@ -237,7 +228,6 @@ def LoadFailed(foldername, filenamelist, nb, num_in_bin):
 
 
 # In[ ]:
-
 
 def LoadFailedFromFile(foldername, filename, nb, num_in_bin):
     f = open('./' + foldername + filename +'.pkl', 'rb')
@@ -253,7 +243,6 @@ def LoadFailedFromFile(foldername, filename, nb, num_in_bin):
 
 
 # In[ ]:
-
 
 def LoadEnergy(foldername, filenamelist, numsites, nb, stat_temps, temperatures, listfunctions, **kwargs):
     n = len(filenamelist)
@@ -276,7 +265,6 @@ def LoadEnergy(foldername, filenamelist, numsites, nb, stat_temps, temperatures,
 
 
 # In[ ]:
-
 
 def LoadEnergyFromFile(foldername, filename, numsites, nb, stat_temps, temperatures, idfunc, **kwargs):
     f = open('./' + foldername + filename +'.pkl', 'rb')
@@ -335,7 +323,6 @@ def LoadEnergyFromFile(foldername, filename, numsites, nb, stat_temps, temperatu
 
 # In[ ]:
 
-
 def LoadMagnetisation(foldername, filenamelist, numsites, nb, stat_temps, temperatures, listfunctions, **kwargs):
     n = len(filenamelist)
     
@@ -357,7 +344,6 @@ def LoadMagnetisation(foldername, filenamelist, numsites, nb, stat_temps, temper
 
 
 # In[ ]:
-
 
 def LoadMagnetisationFromFile(foldername, filename, numsites, nb, stat_temps, temperatures, idfunc,  **kwargs):
     f = open('./' + foldername + filename +'.pkl', 'rb')
@@ -396,7 +382,6 @@ def LoadMagnetisationFromFile(foldername, filename, numsites, nb, stat_temps, te
 
 # In[ ]:
 
-
 def LoadCentralCorrelations(foldername, filenamelist, listfunctions, sref, stat_temps, nb, **kwargs):
     n = len(filenamelist)
     
@@ -425,7 +410,6 @@ def LoadCentralCorrelations(foldername, filenamelist, listfunctions, sref, stat_
 
 
 # In[ ]:
-
 
 def LoadCorrelationsFromFile(foldername, filename, idfunc, idfuncsi, sref, stat_temps, nb, **kwargs):
     f = open('./' + foldername + filename +'.pkl', 'rb')
@@ -460,7 +444,6 @@ def LoadCorrelationsFromFile(foldername, filename, idfunc, idfuncsi, sref, stat_
 
 # In[ ]:
 
-
 def CorrelErrorEstimator(meanstat, idfunc, idfuncsi, sref, stat_temps, nb):
     t_b_sisj = np.array(meanstat[idfunc][0]) # <s0sj>_b (t)
     (ntm, nb, nrefs, nsites) = t_b_sisj.shape #getting the system size
@@ -491,7 +474,6 @@ def CorrelErrorEstimator(meanstat, idfunc, idfuncsi, sref, stat_temps, nb):
 
 # In[ ]:
 
-
 def LoadSi(foldername, filenamelist, listfunctions, **kwargs):
     n = len(filenamelist)
     
@@ -510,7 +492,6 @@ def LoadSi(foldername, filenamelist, listfunctions, **kwargs):
 
 # In[ ]:
 
-
 def LoadSiFromFile(foldername, filename, idfunc, stat_temps, **kwargs):
     f = open('./' + foldername + filename +'.pkl', 'rb')
     backup = pickle.load(f) 
@@ -527,7 +508,6 @@ def LoadSiFromFile(foldername, filename, idfunc, stat_temps, **kwargs):
 
 # In[ ]:
 
-
 def SwapsAnalysis(L, n, tidmin, tidmax, temperatures, foldername, results_foldername, swaps):
     for i in range(n):
         plt.figure()
@@ -539,7 +519,6 @@ def SwapsAnalysis(L, n, tidmin, tidmax, temperatures, foldername, results_folder
 
 
 # In[ ]:
-
 
 def FailedAnalysis(L, n, tidmin, tidmax, temperatures, foldername, results_foldername, failed):
     for i in range(n):
@@ -553,6 +532,16 @@ def FailedAnalysis(L, n, tidmin, tidmax, temperatures, foldername, results_folde
 
 # In[ ]:
 
+def testPhase(energy, modelenergy):
+    if abs(energy - modelenergy) < 1e-6:
+        return True
+    elif energy < modelenergy:
+        return False
+    elif energy > modelenergy:
+        return "Problem!!"
+
+
+# In[ ]:
 
 def BasicPlotsE(L, n, tidmin, tidmax, temperatures_plots, foldername, results_foldername, filenamelist, t_MeanE, t_MeanEsq, t_varMeanE, t_varMeanEsq, C, ErrC, J1, J2, J3, J4, S0 = np.log(2)):
     t_MeanE = np.array(t_MeanE)
@@ -680,13 +669,23 @@ def BasicPlotsE(L, n, tidmin, tidmax, temperatures_plots, foldername, results_fo
     correction = list()
     for i in range(n):
         print('Verifying that the low temperatures of file ', filenamelist[i], 'correspond to the ground state.')
-        if J2[i] != 0:
-            ratios.append(J3[i]/J2[i])
-            E.append((t_MeanE[i][0] + 2/3 * J1[i])/J2[i])
-            correction.append(t_varMeanE[i][0]/J2[i])
-            #print(t_MeanE[i][0] + 2/3 * J1[i]+J3[i])
-        else:
-            print(t_MeanE[i][0] + 2/3 * J1[i]+J3[i])
+        #if J2[i] != 0:
+        #    ratios.append(J3[i]/J2[i])
+        #    E.append((t_MeanE[i][0] + 2/3 * J1[i])/J2[i])
+        #    correction.append(t_varMeanE[i][0]/J2[i])
+        #    #print(t_MeanE[i][0] + 2/3 * J1[i]+J3[i])
+        #else:
+        print("Phase 1: ",testPhase(t_MeanE[i][0],  (-2/3 * J1[i] - 2/3 * J2[i] + J3[i])))
+        print("Phase 2: ",testPhase(t_MeanE[i][0],  (-2/3 * J1[i] - 2/3 * J2[i] + 3 * J3[i])))
+        print("Phase 3: ",testPhase(t_MeanE[i][0],  (-2/3 * J1[i] - 1/3 * J3[i])))
+        print("Phase 4: ",testPhase(t_MeanE[i][0],   (-2/3 * J1[i] + 2/3 * J2[i] - J3[i])))
+        print("Phase 5: ",testPhase(t_MeanE[i][0],   (-2/3 * J1[i] + 2 * J2[i] - J3[i])))
+        print("Phase 6: ",testPhase(t_MeanE[i][0],   (-2/9 * J1[i] - 2/3 * J2[i] - 7/9 * J3[i])))
+        print("Phase 7: ",testPhase(t_MeanE[i][0],  (-2/15 * J1[i] - 2/3 * J2[i] - J3[i])))
+        print("Phase 8: ",testPhase(t_MeanE[i][0],   (2/3 * J1[i] - 2/3 * J2[i] - J3[i])))
+        print("Phase 9: ",testPhase(t_MeanE[i][0],   (2/3 * J1[i] - 2/3 * J2[i] + 1/3 * J3[i])))
+        print("Phase 10: ",testPhase(t_MeanE[i][0],   (6/7 * J1[i] - 2/7 * J2[i] - J3[i])))
+        print("Phase 11: ",testPhase(t_MeanE[i][0],   (2 * J1[i] + 2 * J2[i] + 3 * J3[i])))
         
     ratios = np.array(ratios)
     E = np.array(E)
@@ -702,7 +701,6 @@ def BasicPlotsE(L, n, tidmin, tidmax, temperatures_plots, foldername, results_fo
 
 
 # In[ ]:
-
 
 def BasicPlotsM(L, n, tidmin, tidmax, temperatures_plots, foldername, results_foldername, filenamelist, t_MeanM, t_MeanMsq, t_varMeanM, t_varMeanMsq, Chi, ErrChi, J1, J2, J3, J4):
     ## Magnetisation
