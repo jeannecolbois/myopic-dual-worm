@@ -11,6 +11,8 @@ dualworm-kagome/Plot*
 dualworm-kagome/*_folder
 dualworm-kagome/prun*
 dualworm-kagome/Profiling*
+dualworm-kagome/AnalysisCode_PSI/
+dualworm-kagome/GroundStates/
 ANALYSIS_CSCS/
 Analysis_CSCS/
 Analysis_PSI/
