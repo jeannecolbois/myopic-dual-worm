@@ -244,6 +244,34 @@ def LoadFailedFromFile(foldername, filename, nb, num_in_bin):
 
 # In[ ]:
 
+def LoadStates(foldername, filenamelist, numsites, nb, stat_temps, temperatures, listfunctions, **kwargs):
+    n = len(filenamelist)
+    
+    t_spinstates = [[] for _ in range(n)]
+    t_states = [[] for _ in range(n)]
+
+    for nf, filename in enumerate(filenamelist):
+        [t_spinstates[nf], t_states[nf]] =                 LoadStatesFromFile(foldername, filename, numsites[nf], nb[nf], stat_temps[nf], temperatures[nf], **kwargs)
+        
+    return t_spinstates, t_states
+
+
+# In[ ]:
+
+def LoadStatesFromFile(foldername, filename, numsites, nb, stat_temps, temperatures, **kwargs):
+    f = open('./' + foldername + filename +'.pkl', 'rb')
+    backup = pickle.load(f) 
+    
+    t_spinstates = backup.results.spinstates
+    t_states = backup.results.states
+    
+    f.close()
+    
+    return t_spinstates, t_states
+
+
+# In[ ]:
+
 def LoadEnergy(foldername, filenamelist, numsites, nb, stat_temps, temperatures, listfunctions, **kwargs):
     n = len(filenamelist)
     
