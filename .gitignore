@@ -10,9 +10,10 @@ dualworm-kagome/__pycache__/
 dualworm-kagome/Plot*
 dualworm-kagome/*_folder
 dualworm-kagome/prun*
-dualworm-kagome/Profiling*
-dualworm-kagome/AnalysisCode_PSI/
-dualworm-kagome/GroundStates/
+dualworm-kagome/ProfilingAndTesting/*.pkl
+dualworm-kagome/ProfilingAndTesting/*.png
+dualworm-kagome/ProfilingAndTesting/*Results/*
+dualworm-kagome/GroundStates/*
 ANALYSIS_CSCS/
 Analysis_CSCS/
 Analysis_PSI/
