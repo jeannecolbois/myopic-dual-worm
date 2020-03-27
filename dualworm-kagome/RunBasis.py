@@ -9,9 +9,11 @@ import DualwormFunctions as dw
 import RunBasisFunctions as rbf
 import StartStates as strst
 import Observables as obs
+import RunBasisFunctions as rbf
 
-import pickle
+import hickle as hkl
 from safe import safe
+import os
 
 from time import time
 
@@ -68,11 +70,61 @@ def main(args):
 
     
     #Observables to measure
+    backup = rbf.SafePreparation(args)
+    
+    print(backup+".hkl")
+    
+    ### SIMULATIONS PARAMETERS
+    loadfromfile = args.loadfromfile
+    
+    if loadfromfile:
+        loadbackup = "./" + args.filename
+        L = hkl.load(loadbackup+"/backup.hkl", path = "/parameters/L")
+        assert L == args.L, "Loaded and required lattice sizes not compatible."
+    else:
+        loadbackup = ""
+        
+    L = args.L
+    hkl.dump(L, backup+".hkl", path="/parameters/L", mode = 'r+')
+    
+    print('Lattice side size: ', L)
+    [d_ijl, ijl_d, s_ijl, ijl_s, d_2s, s2_d, d_nd, d_vd, d_wn,
+     sidlist, didlist, c_ijl, ijl_c, c2s, csign] =\
+    dw.latticeinit(L)
+    
+    [couplings, hamiltonian, ssf, alternate, s2p, temperatures,
+     betas, nt, hfields, nh] =\
+    rbf.SimulationParameters(args,backup, loadfromfile, d_ijl,
+                             ijl_d, ijl_s, s_ijl, s2_d, L)
+    
+    [walker2params, walker2ids, ids2walker] =    dw.walkerstable(betas, nt, hfields, nh)
+
+    # Saving the status:
+    
+    ## SIMULATION INITIALISATION
+    (states, energies, spinstates, ref_en_states) =    rbf.StatesAndEnergyInit(args, backup, loadbackup,hamiltonian,
+                            ids2walker, nt, nh, hfields, d_ijl,
+                            d_2s, s_ijl, couplings, L)
+    
+    # Check g.s. (if required)
+    rbf.CheckGs(args, ref_en_states, energies, nh)
+
+    # Check states consistency:
+    if not dw.statescheck(spinstates, states, d_2s):
+        mistakes = [dw.onestatecheck(spinstate, state, d_2s) for spinstate, state in zip(spinstates, states)]
+        print('Mistakes: ', mistakes)
+    
+    ### INITIALISATION FOR THE MEASUREMENTS
+    # Observables to measure
     [nnlists, observables, observableslist, magnfuncid,cfuncid]  =    rbf.ObservablesInit(args, backup, s_ijl, ijl_s, L)
     
     # Temperatures to measure
     stat_temps = rbf.Temperatures2MeasureInit(args, backup,
                                              temperatures, nt)
+
+    # Magnetic fields to measure
+    stat_hfields = rbf.MagneticFields2MeasureInit(args, backup,
+                                                 hfields, nh)
 
     ## THERMALISATION
     #preparation
@@ -82,25 +134,37 @@ def main(args):
     print("-----------Thermalisation------------------")
     nb = 1 # only one bin, no statistics
     num_in_bin = args.nst# mcs iterations per bins
-    iterworm = nips = args.nips #number of worm iterations before considering swaps
+    iterworm = nips = args.nips # maximal number of MCS iterations
+    # before considering swaps (one iteration = one system size update)
+    nrps = args.nrps # number of replica loop iterations in a MC step
     nmaxiter = args.nmaxiter
     statsfunctions = [] #don't compute any statistics
-    check = 0 #don't turn to spins to check
+    check = False #don't turn to spins to check
     print('Number of thermalisation steps = ', num_in_bin*nb)
     backup.params.thermsteps = num_in_bin*nb
     backup.params.ncores = ncores = args.ncores
+    thermsteps = num_in_bin*nb
+    #launch thermalisation
+    thermalisation = {'ncores':ncores, 'nmaxiter':nmaxiter,
+                     'thermsteps': thermsteps}
+    hkl.dump(thermalisation,backup+".hkl",
+             path = "/parameters/thermalisation", mode = 'r+')
     
     kw = {'nb':nb,'num_in_bin':num_in_bin, 'iterworm':iterworm,
+          'nrps': nrps,
           'nitermax':nmaxiter,'check':check,
           'statsfunctions':statsfunctions,
           'nt':nt, 'hamiltonian':hamiltonian,'ncores':ncores,
           'd_nd':d_nd,'d_vd':d_vd,'d_wn':d_wn, 'd_2s':d_2s, 's2_d':s2_d,
           'sidlist':sidlist,'didlist':didlist,'s_ijl':s_ijl,'ijl_s':ijl_s,
-          'L':L, 'h':h, 's2p':s2p, 'ssf':ssf}
+          'L':L, 'nh':nh, 'hfields':hfields,
+          'walker2params':walker2params,'walker2ids':walker2ids,
+          'ids2walker':ids2walker,
+          's2p':s2p, 'ssf':ssf, 'alternate':alternate}
 
 
     t1 = time()
-    (meanstatth, swapsth, failedupdatesth) = dw.mcs_swaps(states, spinstates, energies, betas, [], **kw)
+    (statstableth, swapst_th, swapsh_th, failedupdatesth) =     dw.mcs_swaps(states, spinstates, energies, betas, [],[], **kw)
     t2 = time()
     
     print('Time for all thermalisation steps = ', t2-t1)
@@ -113,24 +177,35 @@ def main(args):
     if h == 0:
         rbf.CheckGs(args,ref_energies, energies)
     
+    thermres = {'swapst_th':swapst_th, 'swapsh_th':swapsh_th,
+               'failedupdatesth':failedupdatesth, 'totaltime':t2-t1}
+    hkl.dump(thermres,backup+".hkl",
+             path = "/results/thermres", mode = 'r+')
+    
+    
+    rbf.CheckEnergies(hamiltonian, energies, states, spinstates,
+                      hfields, nh, ids2walker, nt)
+
+    rbf.CheckGs(args,ref_en_states, energies, nh)
+    
     ## MEASUREMENT PREPARATION 
 
     print("-----------Measurements-----------------")
     # Preparation to call the method
-    backup.params.nb = nb = args.nb # number of bins
-    backup.params.num_in_bin = num_in_bin = args.nsm//nb
+    nb = args.nb # number of bins
+    num_in_bin = args.nsm//nb
     print('Number of measurement steps = ', num_in_bin*nb) # number of iterations = nb * num_in_bin 
     iterworm = nips #number of worm iterations before considering swaps and measuring the state again
     statsfunctions = observables #TODO set functions
-    backup.results.namefunctions = observableslist #TODO set functions corresponding to the above
-    print(backup.results.namefunctions)
-    check = 1 #turn to spins and check match works
-    backup.params.measperiod = measperiod = args.measperiod
+    namefunctions = observableslist #TODO set functions corresponding to the above
+    print(namefunctions)
+    check = True #turn to spins and check match works
+    measperiod = args.measperiod
     print('Measurement period:', measperiod)
-    backup.params.measupdate = measupdate = args.measupdate
+    measupdate = args.measupdate
     if measupdate:
         nnspins, s2p = dw.spin2plaquette(ijl_s, s_ijl, s2_d,L)
-        backup.params.p = p = args.p
+        p = args.p
     else:
         if not ssf:
             nnspins = []
@@ -140,9 +215,13 @@ def main(args):
             nnspins = []
             p = 0
     
-    backup.params.magnstats = magnstats = args.magnstats
-            
+    kwmeas = {'nb':nb, 'num_in_bin':num_in_bin,'nips':nips,
+              'nrps':nrps,
+             'measperiod':measperiod, 'measupdate':measupdate,
+             'nnspins':nnspins, 's2p': s2p}
+    hkl.dump(kwmeas, backup+".hkl", path = "/parameters/measurements", mode = 'r+')
     kw = {'nb':nb,'num_in_bin':num_in_bin, 'iterworm':iterworm,
+          'nrps': nrps,
           'nitermax':nmaxiter,'check':check,
           'statsfunctions':statsfunctions,
           'nt':nt, 'hamiltonian':hamiltonian,
@@ -152,12 +231,36 @@ def main(args):
           'ncores':ncores, 'measupdate': measupdate, 'nnspins': nnspins, 's2p':s2p, 
           'magnstats':magnstats,'magnfuncid':magnfuncid, 'p':p,
           'c2s':c2s, 'csign':csign, 'measperiod':measperiod, 'h':h,'ssf':ssf}
-        
-    # Run measurements
+
+    #      'ncores':ncores, 'measupdate': measupdate, 'nnspins': nnspins, 's2p':s2p,
+    #      'magnfuncid':magnfuncid, 'p':p,
+    #      'c2s':c2s, 'csign':csign, 'measperiod':measperiod,
+    #      'nh':nh, 'hfields':hfields, 'walker2params':walker2params,
+    #      'walker2ids':walker2ids,'ids2walker':ids2walker,
+    #      'ssf':ssf, 'alternate':alternate, 'randspinupdate': False,
+    #     'namefunctions': namefunctions, 'backup': backup}
+        # Run measurements
+    
     t1 = time()
-    (backup.results.meanstat, backup.results.swaps, backup.results.failedupdates) = (meanstat, swaps, failedupdates) = dw.mcs_swaps(states, spinstates, energies, betas, stat_temps,**kw)
+    (statstable, swapst, swapsh, failedupdates) =    dw.mcs_swaps(states, spinstates, energies, betas, stat_temps, stat_hfields,**kw)
+    #print("Energies = ", energies)
     t2 = time()
+    
     print('Time for all measurements steps = ', t2-t1)
+    print("Energies size: ", energies.shape)
+    
+    measurementsres = {'swapst': swapst, 'swapsh': swapsh,
+                       'failedupdates':failedupdates}
+    
+    hkl.dump(measurementsres, backup+".hkl", path = "/results/measurements", mode = 'r+')
+        
+    new_en_states = [[dim.hamiltonian(hamiltonian,
+                                     states[ids2walker[bid,hid]])
+                     -hfields[hid]*spinstates[ids2walker[bid,hid]].sum()
+                     for hid in range(nh)] for bid in range(nt)]
+    
+    rbf.CheckEnergies(hamiltonian, energies, states, spinstates,
+                      hfields, nh, ids2walker, nt)
 
     rbf.CheckEnergies(hamiltonian, energies, states, spinstates, h, nt, d_2s, True)
     
@@ -181,15 +284,14 @@ def main(args):
                 tuplevar2[resid] += ((stattuple[1][resid][b] - t_meanfunc[idtuple][1][resid]) ** 2)/(nb * (nb - 1))
         t_varmeanfunc.append((tuplevar1, tuplevar2))
 
+    rbf.CheckGs(args,ref_en_states, energies, nh)
+                
     #Save the final results
-    backup.results.t_meanfunc = t_meanfunc
-    backup.results.t_varmeanfunc = t_varmeanfunc
-    backup.results.states = states
-    backup.results.spinstates = spinstates
-    #Save the backup object in a file
-    pickle.dump(backup, open(args.output + '.pkl','wb'))
+    hkl.dump(states, backup+"_states.hkl")
+    hkl.dump(spinstates, backup+"_spinstates.hkl")
+    
     print("Job done")
-    return meanstat, failedupdatesth, failedupdates
+    return statstable, swapst, swapsh, failedupdatesth, failedupdates
 
 
 # In[ ]:
@@ -220,6 +322,8 @@ if __name__ == "__main__":
                         help = 'number of measurements steps') # number of measurement steps
     parser.add_argument('--nips', type = int, default = 10,
                         help = 'number of worm constructions per MC step')
+    parser.add_argument('--nrps', type = int, default = 1,
+                        help = 'number of replica loops per MC step')
     parser.add_argument('--measperiod', type = int, default = 1,
                         help = 'number of nips worm building + swaps between measurements')
     parser.add_argument('--nb', type = int, default = 20,
@@ -236,12 +340,19 @@ if __name__ == "__main__":
                         help = '''initialise all temperatures with the same
                         state (debug purposes)''')
     parser.add_argument('--magninit', default = False, action = 'store_true',
-                        help = '''initialise all the temperature with the maximally magnetised GS''')
+                        help = '''initialise all the temperature with
+                        one of the m=1/3 GS''')
+    parser.add_argument('--magnstripes', default = False, action = 'store_true',
+                       help = '''initialise all the temperature with
+                       m=1/3 stripes''')
+    parser.add_argument('--maxflip', default = False, action = 'store_true',
+                       help = '''initialise all the temperature with
+                       maximally flippable plateau''')
     parser.add_argument('--loadfromfile', default = False, action = 'store_true',
                        help = '''initialise all the states with
                        results from a previously performed simulations''')
-    parser.add_argument('--filename', type = str, default = "", 
-                        help = '''name of the previously performed simulation''')
+    parser.add_argument('--filename', type = str, default = "", help = '''initialise all the states with
+                       results from a previously performed simulations''')
     
     #WORM PARAMETERS
     parser.add_argument('--nmaxiter', type = int, default = 10,
@@ -250,16 +361,16 @@ if __name__ == "__main__":
                         lattice)''')
     parser.add_argument('--measupdate', default = False, action = 'store_true',
                        help = '''activate to mimic the action of the measuring tip''')
-    parser.add_argument('--p', type = float, default = 0.1, 
+    parser.add_argument('--p', type = float, default = 0.0, 
                        help = '''prob of the measuring tip flipping the spin (number between 0 and 1)''')
     parser.add_argument('--ssf', default = False, action = 'store_true',
                         help = 'activate for single spin flip update')
     parser.add_argument('--alternate', default = False, action = 'store_true',
                         help = 'activate for single spin flip update and dw update')
     parser.add_argument('--checkgs', default = False, action = 'store_true',
-                        help = 'check wether the simulation reaches the expected ground state')
+                        help = 'check wether the simulation reaches the expected ground state/check ssf')
     parser.add_argument('--checkgsid', type = int, default = 0,
-                        help = 'index of the ground state phase to check')
+                        help = 'index of the ground state phase to check') 
     
     #TEMPERATURE PARAMETERS
     parser.add_argument('--t_list', nargs = '+', type = float, default = [0.5, 15.0],
@@ -272,7 +383,14 @@ if __name__ == "__main__":
                         help = '''limiting temperatures for the various ranges of
                         measurements''') 
                         #default will be set to none, and then we can decide what to do later on.
-    
+    # MAGNETIC FIELD PARAMETERS
+    parser.add_argument('--h_list', nargs = '+', type = float,
+                        help = 'list of limiting magnetic field values')
+    parser.add_argument('--nh_list', nargs = '+', type = int, 
+                        help = 'list of number of magnetic fields in between the given limiting temperatures')
+    parser.add_argument('--stat_hfields_lims', nargs = '+', type = float,
+                    help = '''limiting magnetic fields for the various ranges of
+                    measurements''') 
     #CORRELATIONS PARAMETER
     parser.add_argument('--energy', default = False, action = 'store_true',
                         help = 'activate if you want to save the energy')
