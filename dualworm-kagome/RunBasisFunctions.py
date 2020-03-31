@@ -3,17 +3,13 @@
 
 # In[ ]:
 
-
 import numpy as np
 import dimers as dim
 import DualwormFunctions as dw
 import StartStates as strst
 import Observables as obs
 
-import pickle
 import hickle as hkl
-
-from safe import safe
 
 import os
 
@@ -25,6 +21,10 @@ import argparse
 # In[ ]:
 
 def SafePreparation(args):
+    '''
+        This function makes sure that the location input by the user to save the results is
+        available.
+    '''
     ### PREPARE SAVING
     
     #check that the folder doesn't already exist:
@@ -34,23 +34,6 @@ def SafePreparation(args):
     os.mkdir("./" + args.output+"_folder")
     
     # prepare the backup structure
-    outputname = "./" + args.output+"_folder/"+"backup"
-    
-    #if args.safemode == "hickle":
-    #    backup = "./" + args.output+"_folder/"+"backup"
-    #    hkl.dump("check", backup+".hkl")
-    #    mode = False
-    #elif args.safemode == "pickle":
-    backup = safe()
-    backup.params = safe()
-    backup.results = safe()
-    # check
-    pickle.dump(backup, open(outputname + '.pkl','wb'))
-    #mode = True
-    #else
-    #    raise Exception("The safe mode should either be pickle or hickle")
-    
-    return backup, outputname, mode
     backup = "./" + args.output+"_folder/"+"backup"
     hkl.dump("check", backup+".hkl")
     
@@ -59,31 +42,24 @@ def SafePreparation(args):
 
 # In[ ]:
 
-def SimulationParameters(args, backup, d_ijl,
+def SimulationParameters(args, backup, loadfromfile, d_ijl,
                          ijl_d, ijl_s, s_ijl, s2_d, L):
-
-    ## Energy
-    backup.params.J1 = J1 = args.J1
-    backup.params.J2 = J2 = args.J2
-    backup.params.J3 = J3 = args.J3
-    backup.params.J3st = J3st = J3
-    backup.params.J4 = J4 = args.J4
-    backup.params.h = h = args.h
-
+    
+    '''
+        This function loads the parameters for the simulation and 
+        creates the first few tables - couplings, temperatures,
+        magnetic fields
+    '''
     ## Energy
     J1 = args.J1
     J2 = args.J2
     J3 = args.J3
     J3st = J3
     J4 = args.J4
-    h = args.h
     print('J1 ', J1)
     print('J2 ', J2)
     print('J3 ', J3)
     print('J3st ', J3st)
-    print('h', h)
-    
-    
     couplings = {'J1': J1, 'J2':J2, 'J3':J3, 'J3st':J3st, 'J4':J4}
     hkl.dump(couplings,backup+".hkl", path = "/parameters/couplings", mode = 'r+')
     
@@ -99,24 +75,14 @@ def SimulationParameters(args, backup, d_ijl,
         print("single spin flip update")
     if alternate:
         print("alternating ssf and dw update")
+    
     nnspins, s2p = dw.spin2plaquette(ijl_s, s_ijl, s2_d,L)
 
-    
     assert (not ((ssf or alternate) and (J2 != 0 or J3 !=0 or J3st != 0 or J4!=0))),    "The ssf is only available with J1"
     
     updatetype = {'ssf': ssf, 'alternate': alternate,
                   'nnspins': nnspins, 's2p':s2p}
     
-    backup.params.updatedtype = updatetype
-    
-    couplings = {'J1': J1, 'J2':J2, 'J3':J3, 'J3st':J3st, 'J4':J4}
-    print("Couplings exacted")
-    hamiltonian = dw.Hamiltonian(couplings,d_ijl, ijl_d, L)
-    print("hamiltonian computed")
-    ## Temperatures to simulate
-    t_list = [t for t in args.t_list]
-    nt_list = args.nt_list
-    backup.params.loglist = loglist = args.log_tlist
     hkl.dump(updatetype,backup+".hkl", path = "/parameters/updatetype", mode = 'r+')
     
 
@@ -129,13 +95,6 @@ def SimulationParameters(args, backup, d_ijl,
     else:
         temperatures = dw.create_temperatures(nt_list, t_list)
     betas = 1/temperatures
-    backup.params.temperatures = temperatures
-    backup.params.nt = nt = len(temperatures) # total number of different temperatures
-    print('Number of temperatures: ', nt)
-
-
-    return [couplings, h, hamiltonian, ssf, alternate, s2p, temperatures,
-           betas, nt]
     # total number of different temperatures
     nt = len(temperatures)
     if args.h_list:
@@ -151,51 +110,28 @@ def SimulationParameters(args, backup, d_ijl,
                 'hfields': hfields}
     hkl.dump(physical,backup+".hkl", path = "/parameters/physical", mode = 'r+')
     
+    
     print('Number of temperatures: ', nt)
     print('Temperatures:', temperatures)
     print('Number of magnetic fields: ', nh)
     print('Magnetic fields: ', hfields)
 
+    mode = args.generatingMode
     return [couplings, hamiltonian, ssf, alternate, s2p, temperatures,
-           betas, nt, hfields, nh]
+           betas, nt, hfields, nh, mode]
 
 
 # In[ ]:
 
-def StatesAndEnergyInit(args, backup, loadbackup,hamiltonian,
-                        nt, d_ijl, d_2s, s_ijl,
-                       couplings, h, L):
-    if args.loadfromfile:
-        print("Initialisation: load from file")
-        states = loadbackup.results.states
-        spinstates = loadbackup.results.spinstates
-        energies = [dw.compute_energy(hamiltonian,states[bid])
-                 for bid in range(nt)]
-        energies = np.array(energies)
-    else:
-        ## States
-        backup.params.randominit = randominit = args.randominit    
-        print('Fully random initialisation = ', randominit)
-        backup.params.same = same = args.same
-        print('Identical initialisation = ', same)
-        backup.params.magninit = magninit = args.magninit
-        print('Magnetisation initialisation = ', magninit)
-
-
-        kwinit = {'random': randominit, 'same': same, 'magninit': magninit, 'h':h}
-        print(kwinit)
-        print('Same initialisation for all temperatures = ', same)
-        (states, energies, spinstates) =        strst.statesinit(nt, d_ijl, d_2s, s_ijl, hamiltonian, **kwinit)
-
-    CheckEnergies(hamiltonian, energies, states, spinstates, h, nt, d_2s)
-    
-    ref_energies = GSEnergies(couplings, args, L)
-    
-    return (states, energies, spinstates, ref_energies)
-
 def StatesAndEnergyInit(args, backup, loadbackup,hamiltonian, ids2walker,
                         nt, nh, hfields, d_ijl, d_2s, s_ijl,
                        couplings, L):
+    '''
+        This function initialises all the states, either by loading from a file
+        or by partially random initialisation based on the user input to the RunBasis function.
+        It initialises all the energies as well as the energies to check.
+    '''
+    
     if args.loadfromfile:
         print("Initialisation = loading from file!")
         states = hkl.load(loadbackup+"/backup_states.hkl")
@@ -227,56 +163,24 @@ def StatesAndEnergyInit(args, backup, loadbackup,hamiltonian, ids2walker,
         
     CheckEnergies(hamiltonian, energies, states, spinstates,
                  hfields, nh, ids2walker, nt)
+    
     # Energy states of reference
-    ref_en_states = np.zeros(len(hfields))
-    J1 = couplings['J1']
-    J2 = couplings['J2']
-    J3 = couplings['J3']
+    ref_energies, checkgsid = GSEnergies(args, L, couplings)
     if args.checkgs:
-        for hid, h in enumerate(hfields):
-            if h == 0:
-                if J2 == 0:
-                    ref_en_states[hid] = 9*L**2*(-2/3 * J1 - J3)
-                elif J3/J2 < 0.5:
-                    ref_en_states[hid] = 9*L**2*(-2/3 * J1 - 2/3 * J2)
-                elif J3/J2 >= 0.5 and J3/J2 < 1:
-                    ref_en_states[hid] = 9*L**2*(-2/3 * J1 - 1/3 * J3)
-                elif J3/J2 >= 1:
-                    ref_en_states[hid] = 9*L**2*(-2/3 * J1 + 2/3 * J2 - J3)
-            elif abs(h/J1) < 4:
-                ref_en_states[hid] = 9*L**2*(-2/3 * J1 - 1/3 * abs(h))
-            elif abs(h/J1) > 4:
-                ref_en_states[hid] = 9*L**2*(2*J1 - abs(h))
-        print(ref_en_states)
-    else:
-        ref_en_states = np.array([])
-        
-    return (states, energies, spinstates, ref_en_states)
+        print("Minimal energy index: ", checkgsid, " with energy per site ", ref_energies[checkgsid]/(9*L**2))
+    
+    return (states, energies, spinstates, ref_energies, checkgsid)
 
 
 # In[ ]:
 
-def CheckEnergies(hamiltonian, energies, states, spinstates, h, nt, d_2s, checkstates = True):
-    
-    ## Energies for check
-    new_en_states = [dim.hamiltonian(hamiltonian, states[t])-h*spinstates[t].sum() for t in range(nt)]
-    new_en_states = np.array(new_en_states)
-
-    for t in range(nt):
-        if np.absolute(energies[t]-new_en_states[t]) > 1.0e-5:
-            print('RunBasis: Issue at temperature index ', t)
-            print("   energies[t] = ", energies[t])
-            print("   H0[t] = ", dim.hamiltonian(hamiltonian, states[t]))
-            print("   magntot[t] ", spinstates[t].sum())
-            print("   new_E[t] = H0[t] - h*magntot[t]", dim.hamiltonian(hamiltonian, states[t]) - h*spinstates[t].sum())
-
-    if checkstates and not dw.statescheck(spinstates, states, d_2s):
-        mistakes = [dw.onestatecheck(spinstate, state, d_2s) for spinstate, state in zip(spinstates, states)]
-        print('Mistakes: ', mistakes)
-
 def CheckEnergies(hamiltonian, energies, states, spinstates,
                   hfields, nh, ids2walker, nt):
-    
+    '''
+        This function checks whether the energies computed from the current configurations
+        are consistant with the energies computed from the states evolution.
+        This is useful for debug of the updates or of the initialisation.
+    '''
     ## Energies for check
     new_en_states = [[dim.hamiltonian(hamiltonian,
                                      states[ids2walker[bid,hid]])
@@ -295,29 +199,63 @@ def CheckEnergies(hamiltonian, energies, states, spinstates,
                 print("   new_E[t,h] = H0[t,h] - h*magntot[t,h]",
                       dim.hamiltonian(hamiltonian, states[ids2walker[t,h]])
                       - hfields[h]*spinstates[ids2walker[t,h]].sum())
+                
 
 
 # In[ ]:
 
-def CheckGs(args, ref_energies, en_states):
-    if args.checkgs:
+def CheckStates(spinstates, states, d_2s):
+    '''
+        This function checks whether the given spin states and dimer states are
+        indeed compatible.
+    '''
+    if not dw.statescheck(spinstates, states, d_2s):
+        mistakes = [dw.onestatecheck(spinstate, state, d_2s) for spinstate, state in zip(spinstates, states)]
+        print('Mistakes: ', mistakes)
+
+
+# In[ ]:
+
+def CheckGs(args, nt, nh, ref_energies, en_states, checkgsid = -1):
+    '''
+        If args.checkgs is true, and if the number of hfields is 1,
+        this function checks whether the lowest temperature state
+        has the expected ground state energy. The expected ground state
+        is given by the minimum of the Kanamori index, 
+        where this index refers to the numbering
+        of the phase obtained from Kanamori's method.
+    '''
+    ok = True
+    if args.checkgs and nh == 1:
         t = 0
-        if args.checkgsid < len(ref_energies):
-            checkgsid = args.checkgsid
-            if np.absolute(ref_energies[checkgsid] - en_states[t]) > 1e-10:
-                if ref_energies[checkgsid] < en_states[t]:
-                    print('RunBasis: Away from gs at t index ', t)
-                    print("   en_states[t] = ", en_states[t])
-                    print("   ref_energy = ", ref_energies[checkgsid])
-                else:
-                    print('RunBasis: Energy lower than expected gs at temperature index ', t)
-                    print("   en_states[t] = ", en_states[t])
-                    print("   ref_energy = ", ref_energies[checkgsid])
+        for h in range(nh):
+            if checkgsid <0:
+                checkgsid = args.checkgsid
+            if checkgsid < len(ref_energies):
+                if np.absolute(ref_energies[checkgsid] - en_states[t,h]) > 1e-15:
+                    ok = False
+                    if ref_energies[checkgsid] < en_states[t,h]:
+                        print('RunBasis: Away from gs at t index ', t)
+                        print("   en_states[t] = ", en_states[t,h])
+                        print("   ref_energy = ", ref_energies[checkgsid])
+                    else:
+                        print('RunBasis: Energy lower than expected gs at temperature index ', t)
+                        print("   en_states[t] = ", en_states[t,h])
+                        print("   ref_energy = ", ref_energies[checkgsid])
+                        
+    return ok
 
 
 # In[ ]:
 
-def GSEnergies(couplings, args,L):
+def GSEnergies(args, L, couplings):
+    '''
+        If args.checkgs is true, this function computes the expected ground
+        state energy for all of the ground state phases obtained from 
+        Kanamori's method for the given system size and couplings 
+        and returns them as a list.
+        It returns as well the index of the lowest energy.
+    '''
     ref_en = np.zeros(11)
     J1 = couplings['J1']
     J2 = couplings['J2']
@@ -336,12 +274,15 @@ def GSEnergies(couplings, args,L):
         ref_en[9] = (6/7 * J1 - 2/7 * J2 - J3)*9*L**2
         ref_en[10] = (2 * J1 + 2 * J2 + 3 * J3)*9*L**2
         
-    return ref_en
+    return ref_en, np.argmin(ref_en)
 
 
 # In[ ]:
 
 def ObservablesInit(args, backup, s_ijl, ijl_s, L):
+    '''
+        This function instanciates all the observables that have to be measured.
+    '''
     nnlists = []
     observables = []
     observableslist = []
@@ -363,9 +304,6 @@ def ObservablesInit(args, backup, s_ijl, ijl_s, L):
         cfuncid = observableslist.index('Charges')
     else:
         cfuncid = -1
-    backup.params.correlations = correlations = args.correlations
-    backup.params.all_correlations = all_correlations = args.all_correlations
-    backup.params.firstcorrelations = firstcorrelations = args.firstcorrelations
     correlations = args.correlations
     all_correlations = args.all_correlations
     firstcorrelations = args.firstcorrelations
@@ -377,13 +315,14 @@ def ObservablesInit(args, backup, s_ijl, ijl_s, L):
             observableslist.append('All_Correlations')
         else:
             if firstcorrelations:
-                print("Check: length of s_ijl", len(s_ijl))
-                print("Check: length of NN pairslist:", len(dw.NNpairs(ijl_s, s_ijl, L)))
-                print("Check: length of 2ndNN pairs list: ", len(dw.NN2pairs(ijl_s, s_ijl, L)))
-                print("Check: length of 3rdparNN pairs list: ", len(dw.NN3parpairs(ijl_s, s_ijl, L)))
-                print("Check: length of 3rdstarNN pairs list: ", len(dw.NN3starpairs(ijl_s, s_ijl, L)))
                 nnlists = [dw.NNpairs(ijl_s, s_ijl, L), dw.NN2pairs(ijl_s, s_ijl, L),
                            dw.NN3parpairs(ijl_s, s_ijl, L), dw.NN3starpairs(ijl_s, s_ijl, L)]
+                print("Check: length of s_ijl", len(s_ijl))
+                print("Check: length of NN pairslist:", len(nnlists[0]))
+                print("Check: length of 2ndNN pairs list: ", len(nnlists[1]))
+                print("Check: length of 3rd//NN pairs list: ", len(nnlists[2]))
+                print("Check: length of 3rd*NN pairs list: ", len(nnlists[3]))
+               
                 observables.append(obs.firstcorrelations)
                 observableslist.append('FirstCorrelations')
             else:
@@ -405,8 +344,10 @@ def ObservablesInit(args, backup, s_ijl, ijl_s, L):
 
 # In[ ]:
 
-
 def Temperatures2MeasureInit(args, backup, temperatures, nt):
+    '''
+        Initialisation of the measurement temperatures
+    '''
     if args.stat_temps_lims is None:
         #by default, we measure all the temperatures
         stat_temps = list(range(nt))
@@ -421,8 +362,7 @@ def Temperatures2MeasureInit(args, backup, temperatures, nt):
         assert(l%2 == 0)
         for i in range(0, l, 2):
             stat_temps += list(range(vals[i], vals[i+1]+1))
-    print('List of temperature indices to measure:', stat_temps)
-    backup.params.stat_temps = stat_temps
+    
     hkl.dump(stat_temps, backup+".hkl", path = "/parameters/stat_temps", mode = 'r+')
     assert len(stat_temps) <= nt,    'The number of temperature indices to measure cannot be bigger than    the number of temperatures.'
     
@@ -431,8 +371,10 @@ def Temperatures2MeasureInit(args, backup, temperatures, nt):
 
 # In[ ]:
 
-
 def MagneticFields2MeasureInit(args, backup, hfields, nh):
+    '''
+        Initialisation of the measurement fields
+    '''
     # Magnetic fields to measure
     if args.stat_hfields_lims is None:
         #by default, we measure all the temperatures
@@ -455,17 +397,4 @@ def MagneticFields2MeasureInit(args, backup, hfields, nh):
     assert len(stat_hfields) <= nh,    'The number of field indices to measure cannot be bigger than    the number of fields.'
     
     return stat_hfields
-
-
-# In[ ]:
-
-
-def CheckGs(args, ref_en_states, new_en_states, nh):
-    if args.checkgs:
-        t = 0
-        for h in range(nh):
-            if np.absolute(ref_en_states[h]-new_en_states[t,h]) > 1.0e-12:
-                print('RunBasis: Away from gs at t index ', t, ' and h index ', h)
-                print("   new_en_states[t,h] = ", new_en_states[t,h])
-                print("   ref_en_states[h] = ", ref_en_states[h])
 

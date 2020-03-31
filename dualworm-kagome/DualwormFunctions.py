@@ -516,7 +516,6 @@ def create_temperatures(nt_list, t_list):
 
 # In[ ]:
 
-
 def create_hfields(nh_list, h_list):
     assert(len(h_list) == len(nh_list) + 1)
     nh = 0
@@ -534,7 +533,6 @@ def create_hfields(nh_list, h_list):
 
 
 # In[ ]:
-
 
 def walkerstable(betas, nt, hfields, nh):
     #walker2params = np.array(list(itertools.product(temperatures, hfields)))
@@ -563,7 +561,6 @@ def walkerstable(betas, nt, hfields, nh):
 
 
 # In[ ]:
-
 
 def create_log_temperatures(nt_list, t_list):
     assert(len(t_list) == len(nt_list) + 1)
@@ -651,7 +648,6 @@ def statescheck(spinstates, states, d_2s):
 
 # In[ ]:
 
-
 def onestate_dimers2spins(sidlist, didlist, states,
                           spinstates, tid, ncores, randspinupdate = True):
     '''
@@ -670,7 +666,6 @@ def onestate_dimers2spins(sidlist, didlist, states,
 
 
 # In[ ]:
-
 
 def states_dimers2spins(sidlist, didlist, states, spinstates,
                         nt,ncores, randspinupdate = True):
@@ -713,7 +708,6 @@ def measupdatespin(tid, sidlist, states, spinstates,nnspins, s2p, p):
 
 # In[ ]:
 
-
 def statistics(tid, resid, hid, reshid, bid, states, statesen, statstables,
                spinstates,statsfunctions, sidlist, didlist, L, s_ijl, ijl_s,
                num_in_bin, stlen, magnfuncid, ids2walker, **kwargs):
@@ -736,46 +730,43 @@ def statistics(tid, resid, hid, reshid, bid, states, statesen, statstables,
     m = 0
     
     wid = ids2walker[tid, hid]
-    if bid == 0:
-        for stat_id in range(len(statstables)): #stat_id: index of the statistical
-            #function you're currently looking at
-            func_per_site = statsfunctions[stat_id](stlen, states[wid],
-                                                    statesen[tid, hid], 
-                                                    spinstates[wid],
-                                                    s_ijl, ijl_s,m=m,
-                                                    **kwargs)
-            # c2s = c2s, csign = csign,nnlists = nnlists, m = m) 
-            #evaluation depends on the temperature index
-            if stat_id == magnfuncid:
-                m = func_per_site
+    #if bid == 0:
+    #    for stat_id in range(len(statstables)): #stat_id: index of the statistical
+    #        #function you're currently looking at
+    #        func_per_site = statsfunctions[stat_id](stlen, states[wid],
+    #                                                statesen[tid, hid], 
+    #                                                spinstates[wid],
+    #                                                s_ijl, ijl_s,m=m,
+    #                                                **kwargs)
+    #        # c2s = c2s, csign = csign,nnlists = nnlists, m = m) 
+    #        #evaluation depends on the temperature index
+    #        if stat_id == magnfuncid:
+    #            m = func_per_site
+    #
+    #        statstables[stat_id][bid][0][resid][reshid] = func_per_site / num_in_bin 
+    #        #storage depends on the result index
+    #
+    #        statstables[stat_id][bid][1][resid][reshid] = (func_per_site ** 2) / num_in_bin
+    #elif bid > 0:
+    for stat_id in range(len(statstables)): #stat_id: index of the statistical
+        #function you're currently looking at
+        func_per_site = statsfunctions[stat_id](stlen, states[wid],
+                                                statesen[tid, hid], 
+                                                spinstates[wid],
+                                                s_ijl, ijl_s,m=m,
+                                                **kwargs)
+        # c2s = c2s, csign = csign,nnlists = nnlists, m = m) 
+        #evaluation depends on the temperature index
+        if stat_id == magnfuncid:
+            m = func_per_site
 
-            statstables[stat_id][bid][0][resid][reshid] = func_per_site / num_in_bin 
-            #storage depends on the result index
+        statstables[stat_id][bid][0][resid][reshid] += func_per_site / num_in_bin 
+        #storage depends on the result index
 
-            statstables[stat_id][bid][1][resid][reshid] = (func_per_site ** 2) / num_in_bin
-    elif bid > 0:
-        for stat_id in range(len(statstables)): #stat_id: index of the statistical
-            #function you're currently looking at
-            func_per_site = statsfunctions[stat_id](stlen, states[wid],
-                                                    statesen[tid, hid], 
-                                                    spinstates[wid],
-                                                    s_ijl, ijl_s,m=m,
-                                                    **kwargs)
-            # c2s = c2s, csign = csign,nnlists = nnlists, m = m) 
-            #evaluation depends on the temperature index
-            if stat_id == magnfuncid:
-                m = func_per_site
+        statstables[stat_id][bid][1][resid][reshid] += (func_per_site ** 2) / num_in_bin
 
-            statstables[stat_id][bid][0][resid][reshid] += func_per_site / num_in_bin 
-            #storage depends on the result index
-
-            statstables[stat_id][bid][1][resid][reshid] += (func_per_site ** 2) / num_in_bin
-
-
-# In[ ]:
 
 # In[ ]:
-
 
 def replicas(it, nt, nh, statesen, betas, hfields, states, spinstates,
              swapst, swapsh,ids2walker, walker2ids, walker2params):
@@ -847,7 +838,6 @@ def replicas(it, nt, nh, statesen, betas, hfields, states, spinstates,
 
 # In[ ]:
 
-
 def swaptemps(tid, hid, statesen, betas, hfields,
               ids2walker, walker2ids, walker2params, swapst):
     '''
@@ -882,29 +872,6 @@ def swaptemps(tid, hid, statesen, betas, hfields,
 
 
 # In[ ]:
-
-def tempering(nt, statesen, betas, states, spinstates, swaps):
-    for t in range(nt-1, 0, -1):
-        #throw a dice
-        if (statesen[t] - statesen[t-1]) * (betas[t] - betas[t-1]) > 0: 
-            # if bigger than 0 flip for sure
-            #states:
-            states[[t-1 , t]] = states[[t, t-1]]
-            spinstates[[t-1 , t]] = spinstates[[t, t-1]]
-            #energy:
-            statesen[[t - 1, t]] = statesen[[t, t - 1]]
-            swaps[t] += 1
-            swaps[t-1] += 1
-        elif np.random.uniform() < np.exp((statesen[t] - statesen[t-1]) 
-                                          * (betas[t] - betas[t-1])): 
-            #else flip with a certain prob
-            #states:
-            states[[t-1 , t]] = states[[t, t-1]]
-            #energy:
-            statesen[[t - 1, t]] = statesen[[t, t - 1]]
-            spinstates[[t-1 , t]] = spinstates[[t, t-1]]
-            swaps[t] += 1
-            swaps[t-1] +=1
 
 def swapfields(tid, hid, up, statesen, betas, hfields, spinstates,
                ids2walker, walker2ids, walker2params, swapsh):
@@ -1083,28 +1050,28 @@ def mcs_swaps(states, spinstates, statesen,
         # Note that states, betas, statesen get updated
         t1 = time()
         
-        if nh == 1 and hfields[0] == 0.0 and not ssf:
-            dim.mcsevolve(hamiltonian, states, betas, statesen,
-                          failedupdates, d_nd, d_vd, d_wn,
-                          iterworm, nitermax, ncores)
-        else:
-            if (not ssf) or alternate:
-                dim.magneticmcsevolve(hamiltonian, 
-                                      states, spinstates,
-                                      d_nd, d_vd, d_wn, sidlist,
-                                      didlist, walker2params,
-                                      walker2ids, statesen,
-                                      failedupdates,
-                                      nitermax, iterworm,
-                                      ncores)
-            
-            if ssf or alternate:
-                dim.ssfsevolve(hamiltonian[0], states, spinstates,
-                               np.array(s2p, dtype = 'int32'),
-                               walker2params, walker2ids, statesen,
-                               failedupdates, ncores,
-                               iterworm)
-        
+        #if nh == 1 and hfields[0] == 0.0 and not ssf:
+        #    dim.mcsevolve(hamiltonian, states, betas, statesen,
+        #                  failedupdates, d_nd, d_vd, d_wn,
+        #                  iterworm, nitermax, ncores)
+        #else:
+        if (not ssf) or alternate:
+            dim.magneticmcsevolve(hamiltonian, 
+                                  states, spinstates,
+                                  d_nd, d_vd, d_wn, sidlist,
+                                  didlist, walker2params,
+                                  walker2ids, statesen,
+                                  failedupdates,
+                                  nitermax, iterworm,
+                                  ncores)
+
+        if ssf or alternate:
+            dim.ssfsevolve(hamiltonian[0], states, spinstates,
+                           np.array(s2p, dtype = 'int32'),
+                           walker2params, walker2ids, statesen,
+                           failedupdates, ncores,
+                           iterworm)
+
         t2 = time()
         t_join += (t2-t1)/itermcs
 
