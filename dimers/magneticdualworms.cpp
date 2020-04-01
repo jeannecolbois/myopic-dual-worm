@@ -44,49 +44,52 @@ std::tuple<double, bool> magneticdualworms(double J1,
 
         bool randspinstate = false;
         updatespinstate(state, spinstate, sidlist, didlist, nbit, randspinstate);
-        //// Compute the acceptance ratio
-        //    1- compute the difference of magnetic energy
-        int spinsold = 0;
-        int spinsnew = 0;
-        for( int spin = 0; spin < spinstatesize; spin++){
-          spinsold += savespinstate[spin];
-          spinsnew += spinstate[spin];
-        }
-        //    2- compute exp(-beta*DELTAE) (but DeltaE = -h*spinsdiff)
-        // std::cerr << "spinsold " << spinsold << endl;
-        // std::cerr << "spinsnew " << sign(h)*abs(spinsnew) << endl;
-        // note: we can choose to flip either the inside or the outside of the loop
-        // we select the one that's most favourable to us, that is, the one whose
-        // magnetisation has the same sign as h.
-        int spinsdiff =  sign(h)*abs(spinsnew) - spinsold;
 
-        double p = exp(beta*h*spinsdiff);
-        // Accept or reject by throwing a dice
-        uniform_real_distribution<double> real_distrib(0.0, 1.0);
-        double r = real_distrib(random_gen());
-        // std::cerr << "p = " << p << endl;
-        // std::cerr << " r = " << r << endl;
-        if(r<p){// accept -> change energy and choose the right spin state
-          // std::cerr << " accepted " << endl;
-          if(sign(h)*abs(spinsnew) != spinsnew){ // if the sign of the magnetisation is not correct, we flip!
-            for(int spin = 0; spin < spinstatesize; spin ++){
-                spinstate[spin] = - spinstate[spin];
-            }
-          }
-          deltaE += -h*spinsdiff;
-        }else{// reject
-          // revert state
-          for( int dim = 0; dim < statesize; dim++){
-            state[dim] = savestate[dim];
-          }
-          // revert spinstate
+        if(h != 0){ // if h is zero, we can simply accept the update.
+          //// Compute the acceptance ratio
+          //    1- compute the difference of magnetic energy
+          int spinsold = 0;
+          int spinsnew = 0;
           for( int spin = 0; spin < spinstatesize; spin++){
-            spinstate[spin] = savespinstate[spin];
+            spinsold += savespinstate[spin];
+            spinsnew += spinstate[spin];
           }
-          // revert energy change
-          deltaE = 0;
-          // state that there was no update
-          updated = false;
+          //    2- compute exp(-beta*DELTAE) (but DeltaE = -h*spinsdiff)
+          // std::cerr << "spinsold " << spinsold << endl;
+          // std::cerr << "spinsnew " << sign(h)*abs(spinsnew) << endl;
+          // note: we can choose to flip either the inside or the outside of the loop
+          // we select the one that's most favourable to us, that is, the one whose
+          // magnetisation has the same sign as h.
+          int spinsdiff =  sign(h)*abs(spinsnew) - spinsold;
+
+          double p = exp(beta*h*spinsdiff);
+          // Accept or reject by throwing a dice
+          uniform_real_distribution<double> real_distrib(0.0, 1.0);
+          double r = real_distrib(random_gen());
+          // std::cerr << "p = " << p << endl;
+          // std::cerr << " r = " << r << endl;
+          if(r<p){// accept -> change energy and choose the right spin state
+            // std::cerr << " accepted " << endl;
+            if(sign(h)*abs(spinsnew) != spinsnew){ // if the sign of the magnetisation is not correct, we flip!
+              for(int spin = 0; spin < spinstatesize; spin ++){
+                  spinstate[spin] = - spinstate[spin];
+              }
+            }
+            deltaE += -h*spinsdiff;
+          }else{// reject
+            // revert state
+            for( int dim = 0; dim < statesize; dim++){
+              state[dim] = savestate[dim];
+            }
+            // revert spinstate
+            for( int spin = 0; spin < spinstatesize; spin++){
+              spinstate[spin] = savespinstate[spin];
+            }
+            // revert energy change
+            deltaE = 0;
+            // state that there was no update
+            updated = false;
+          }
         }
         //clean up
         delete[] savestate;

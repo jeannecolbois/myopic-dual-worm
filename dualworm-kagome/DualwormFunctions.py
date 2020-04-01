@@ -591,7 +591,7 @@ def statesinit(nt, d_ijl, d_2s, s_ijl, hamiltonian, same = False):
         the initial energy
     '''
     #initialize the dimers
-    states = [np.array([1 for i in range(len(d_ijl))], dtype='int32') 
+    states = [np.array([1 for i in range(len(d_ijl))], dtype='int8') 
               for ignored in range(nt)]
 
     #initialize the spins randomly
@@ -730,24 +730,6 @@ def statistics(tid, resid, hid, reshid, bid, states, statesen, statstables,
     m = 0
     
     wid = ids2walker[tid, hid]
-    #if bid == 0:
-    #    for stat_id in range(len(statstables)): #stat_id: index of the statistical
-    #        #function you're currently looking at
-    #        func_per_site = statsfunctions[stat_id](stlen, states[wid],
-    #                                                statesen[tid, hid], 
-    #                                                spinstates[wid],
-    #                                                s_ijl, ijl_s,m=m,
-    #                                                **kwargs)
-    #        # c2s = c2s, csign = csign,nnlists = nnlists, m = m) 
-    #        #evaluation depends on the temperature index
-    #        if stat_id == magnfuncid:
-    #            m = func_per_site
-    #
-    #        statstables[stat_id][bid][0][resid][reshid] = func_per_site / num_in_bin 
-    #        #storage depends on the result index
-    #
-    #        statstables[stat_id][bid][1][resid][reshid] = (func_per_site ** 2) / num_in_bin
-    #elif bid > 0:
     for stat_id in range(len(statstables)): #stat_id: index of the statistical
         #function you're currently looking at
         func_per_site = statsfunctions[stat_id](stlen, states[wid],
@@ -1003,6 +985,7 @@ def mcs_swaps(states, spinstates, statesen,
     walker2ids = kwargs.get('walker2ids', [])
     ids2walker = kwargs.get('ids2walker', [])
     ssf = kwargs.get('ssf', False)
+    ssffurther = kwargs.get('ssffurther', False)
     alternate = kwargs.get('alternate', False)
     
     #save
@@ -1031,6 +1014,7 @@ def mcs_swaps(states, spinstates, statesen,
     print("iterreplicas = ", nrps)
     print("ssf = ", ssf)
     print("alternate = ", alternate)
+    print("ssffurther = ", ssffurther)
     swapst = np.array([0 for tid in range(nt)], dtype='int32')
     swapsh = np.array([0 for hid in range(nh)], dtype='int32')
     
@@ -1050,11 +1034,6 @@ def mcs_swaps(states, spinstates, statesen,
         # Note that states, betas, statesen get updated
         t1 = time()
         
-        #if nh == 1 and hfields[0] == 0.0 and not ssf:
-        #    dim.mcsevolve(hamiltonian, states, betas, statesen,
-        #                  failedupdates, d_nd, d_vd, d_wn,
-        #                  iterworm, nitermax, ncores)
-        #else:
         if (not ssf) or alternate:
             dim.magneticmcsevolve(hamiltonian, 
                                   states, spinstates,
@@ -1066,11 +1045,17 @@ def mcs_swaps(states, spinstates, statesen,
                                   ncores)
 
         if ssf or alternate:
-            dim.ssfsevolve(hamiltonian[0], states, spinstates,
-                           np.array(s2p, dtype = 'int32'),
-                           walker2params, walker2ids, statesen,
-                           failedupdates, ncores,
-                           iterworm)
+            if not ssffurther:
+                dim.ssfsevolve(hamiltonian[0], states, spinstates,
+                               np.array(s2p, dtype = 'int32'),
+                               walker2params, walker2ids, statesen,
+                               failedupdates, ncores,
+                               iterworm)
+            else:
+                dim.genssfsevolve(hamiltonian, states, spinstates,
+                                 np.array(s2p, dtype = 'int32'),
+                                 walker2params, walker2ids, statesen,
+                                 failedupdates, ncores,iterworm)
 
         t2 = time()
         t_join += (t2-t1)/itermcs

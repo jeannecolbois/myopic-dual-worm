@@ -11,6 +11,7 @@
 #include "updatespinstates.h"
 #include "measupdate.h"
 #include "ssfsevolve.h"
+#include "genssfsevolve.h"
 
 
 
@@ -57,6 +58,8 @@ static char magneticmcsevolve_docstring[] =
   	"From a set of states and spinstates, performs a myopic worm update of the set of dimer states taking into account the dimers interactions and the temperature associated with each state, accepts or rejects based on magnetic field. Returns 0 if success ";
 static char ssfsevolve_docstring[] =
       	"From a set of states and spinstates, performs a single spin flip update of the set of dimer states taking into account the dimers interactions and the temperature associated with each state, accepts or rejects based on magnetic field and J1 interaction. Returns 0 if success ";
+static char genssfsevolve_docstring[] =
+      	"From a set of states and spinstates, performs a single spin flip update of the set of dimer states taking into account the dimers interactions and the temperature associated with each state, accepts or rejects based on magnetic field and full interactions. Returns 0 if success ";
 static char updatespinstates_docstring[] =
 	"From a set of states, updates the spinstates given the connectivity ";
 static char measupdates_docstring[] =
@@ -71,6 +74,7 @@ static PyObject* dimers_hamiltonian(PyObject *self, PyObject *args);
 static PyObject* dimers_mcsevolve(PyObject *self, PyObject *args);
 static PyObject* dimers_magneticmcsevolve(PyObject *self, PyObject *args);
 static PyObject* dimers_ssfsevolve(PyObject *self, PyObject *args);
+static PyObject* dimers_genssfsevolve(PyObject *self, PyObject *args);
 static PyObject* dimers_updatespinstates(PyObject *self, PyObject *args);
 static PyObject* dimers_measupdates(PyObject *self, PyObject *args);
 /* Module specifications */
@@ -79,6 +83,7 @@ static PyMethodDef module_methods[] = {
     {"mcsevolve", dimers_mcsevolve, METH_VARARGS, mcsevolve_docstring},
     {"magneticmcsevolve", dimers_magneticmcsevolve, METH_VARARGS, magneticmcsevolve_docstring},
     {"ssfsevolve", dimers_ssfsevolve, METH_VARARGS, ssfsevolve_docstring},
+    {"genssfsevolve", dimers_genssfsevolve, METH_VARARGS, genssfsevolve_docstring},
     {"updatespinstates", dimers_updatespinstates, METH_VARARGS, updatespinstates_docstring},
     {"measupdates", dimers_measupdates, METH_VARARGS, measupdates_docstring},
     {nullptr, nullptr, 0, nullptr}
@@ -905,6 +910,247 @@ static PyObject* dimers_ssfsevolve(PyObject *self, PyObject *args) {
     //------------------------------------//
     PyThreadState* threadState = PyEval_SaveThread(); // release the GIL
     ssfsevolve(J1, states, statesize, spinstates, spinstatesize,
+      s2p, nd, walker2params, walker2ids, energies, failedupdates, nbwalkers, nthreads, iters,
+      nt, nh); //saveloops = 0
+    PyEval_RestoreThread(threadState); // claim the GIL
+
+    // Clean up
+    if( states_array != nullptr){
+      Py_DECREF(states_array); // decrement the reference
+    }
+    if( spinstates_array != nullptr){
+      Py_DECREF(spinstates_array); // decrement the reference
+    }
+    if( s2p_array != nullptr){
+      Py_DECREF(s2p_array); // decrement the reference
+    }
+    if( walker2params_array != nullptr){
+      Py_DECREF(walker2params_array); // decrement the reference
+    }
+    if( walker2ids_array != nullptr){
+      Py_DECREF(walker2ids_array); // decrement the reference
+    }
+    if( energies_array != nullptr){
+      Py_DECREF(energies_array); // decrement the reference
+    }
+    if( failedupdates_array != nullptr){
+      Py_DECREF(failedupdates_array); // decrement the reference
+    }
+    //build output
+
+    /* Build the output */
+    PyObject *ret = Py_BuildValue("d", 0);
+    return ret;
+}
+
+//****** genssfSEVOLVE *****//
+static PyObject* dimers_genssfsevolve(PyObject *self, PyObject *args) {
+    /* What we want to get from the arguments:
+     * >> A list of interactions
+     * >> A magnetic field
+     * >> A table of state objects (numpy table) describing the current states of the systems (table of 1d numpy tables)
+     * >> A table of spinstates object
+     * >> A table of spins to plaquette dimers correspondance
+     * >> #A table of temperatures (numpy)
+     * >> A numpy table of energies
+     * >> #A table of hfields (numpy)
+     * >> A table of walker -> (temp, hfield)
+     * >> A numpy table to save the number of missed updates
+     * >> A number of cores */
+
+     //------------------------------------------------------INPUT INTERPRETATION---------------------------------------------------------------------//
+     PyObject *list_obj;
+     PyObject *states_obj, *spinstates_obj;
+     PyObject *s2p_obj;
+     PyObject *energies_obj;
+     PyObject *walker2params_obj;
+     PyObject *walker2ids_obj;
+     PyObject *failedupdates_obj; //*saveloops_obj,
+     int nthreads;
+     int iters;
+
+     // take the arguments as pointers + int
+     if(!PyArg_ParseTuple(args,"OOOOOOOOii", &list_obj,
+     &states_obj, &spinstates_obj, &s2p_obj,
+     &walker2params_obj, &walker2ids_obj,
+     &energies_obj, &failedupdates_obj,
+     &nthreads, &iters))
+     return nullptr;
+
+    //----------------------------//
+    /* Interpret the list input  */
+    //----------------------------//
+    // check that the list_obj is indeed a list
+    if(!PyList_Check(list_obj)) {
+        PyErr_Format(PyExc_ValueError,
+                         "DIMERS.cpp : Give me a list to work with, I'm line %d", \
+                         __LINE__);
+        return nullptr;
+    }
+
+    // first, get J1 which is the first element of the list
+    double J1 = getJ1(list_obj);
+    if (std::isnan(J1)) {
+        return nullptr;
+    }
+
+    // if the list is longer than only one element
+    int listsize = PyList_Size(list_obj);
+    vector<tuple<double, int*, int, int>> interactions(listsize - 1);
+    vector<PyArrayObject*> Marray_list(listsize-1);
+
+    bool ok;
+    interactions = getInteractions(list_obj, Marray_list, &ok);
+    if(ok == false) return nullptr;
+     if(!PyList_Check(list_obj)) {
+        PyErr_Format(PyExc_ValueError,
+                         "DIMERS.cpp : Give me a list to work with, I'm line %d", \
+                         __LINE__);
+        return nullptr;
+     }
+
+
+    //-------------------------------//
+    /* Interpret the table of states */
+    //-------------------------------//
+
+    PyArrayObject* states_array = nullptr;
+    tuple<int*, int, int> statestuple = parseStates(states_array, states_obj);
+    int* states = get<0>(statestuple);
+    if(states == nullptr) {
+        Py_XDECREF(states_array);
+        PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d (NPY array?)", __LINE__);
+        return nullptr;
+    }
+    int nt_states = get<1>(statestuple);
+    int statesize = get<2>(statestuple);
+
+    //-----------------------------------//
+    /* Interpret the table of spinstates */
+    //-----------------------------------//
+
+    PyArrayObject* spinstates_array = nullptr;
+    tuple<int*, int, int> spinstatestuple = parseStates(spinstates_array, spinstates_obj);
+    int* spinstates = get<0>(spinstatestuple);
+    if(spinstates == nullptr) {
+        Py_XDECREF(spinstates_array);
+        PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d (NPY array?)", __LINE__);
+        return nullptr;
+    }//int nt_spinstates = get<1>(spinstatestuple);
+    int spinstatesize = get<2>(spinstatestuple);
+    //-----------------------------------------//
+    /* Interpret the pointers to dimer tables */
+    //-----------------------------------------//
+    PyArrayObject* s2p_array = nullptr;
+    tuple<int*, int, int> s2ptuple = parseInteger2DArray(s2p_array, s2p_obj);
+    int* s2p = get<0>(s2ptuple);
+    if(s2p == nullptr) {
+        Py_XDECREF(s2p_array);
+        PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d (NPY array?)", __LINE__);
+        return nullptr;
+    }
+    int nd = get<2>(s2ptuple);
+
+    //--------------------------------------//
+    /* Interpret the table of walkers2params*/
+    //--------------------------------------//
+
+    PyArrayObject *walker2params_array = (PyArrayObject*) PyArray_FROM_OTF(walker2params_obj, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+    if(walker2params_array == nullptr) {
+        Py_XDECREF(walker2params_array);
+        PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d (NPY array?)", __LINE__);
+        return nullptr;
+    }
+
+    int nbwalkers = (int)PyArray_DIM(walker2params_array, 0);
+    //check that state has the dimensions expected
+    if(PyArray_NDIM(walker2params_array) != 2 || (int)PyArray_DIM(walker2params_array,1) != 2) {
+        PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d", __LINE__);
+        return nullptr;
+    }
+
+    if(nt_states != nbwalkers) {
+        PyErr_Format(PyExc_ValueError, "DIMERS.cpp : Non-consistent number of temperatures and states, see line %d", __LINE__);
+        return nullptr;
+    }
+    //get pointer as Ctype
+    double *walker2params = (double*)PyArray_DATA(walker2params_array);
+    //--------------------------------------//
+    /* Interpret the table of walker2ids*/
+    //--------------------------------------//
+
+    PyArrayObject *walker2ids_array = (PyArrayObject*) PyArray_FROM_OTF(walker2ids_obj, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+    if(walker2ids_array == nullptr) {
+        Py_XDECREF(walker2ids_array);
+        PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d (NPY array?)", __LINE__);
+        return nullptr;
+    }
+
+    int nbidwalkers = (int)PyArray_DIM(walker2ids_array, 0);
+    //check that state has the dimensions expected
+    if(PyArray_NDIM(walker2ids_array) != 2 || (int)PyArray_DIM(walker2ids_array,1) != 2) {
+        PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d", __LINE__);
+        return nullptr;
+    }
+
+    if(nbidwalkers != nbwalkers) {
+        PyErr_Format(PyExc_ValueError, "DIMERS.cpp : Non-consistent number of temperatures and states, see line %d", __LINE__);
+        return nullptr;
+    }
+    //get pointer as Ctype
+    double *walker2ids = (double*)PyArray_DATA(walker2ids_array);
+
+    //---------------------------------//
+    /* Interpret the table of energies */
+    //---------------------------------//
+
+    PyArrayObject *energies_array = (PyArrayObject*) PyArray_FROM_OTF(energies_obj, NPY_DOUBLE, NPY_ARRAY_INOUT_ARRAY); //INOUT: we want to update the energies
+    if(energies_array == nullptr) {
+        Py_XDECREF(energies_array);
+        PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d (NPY array?)", __LINE__);
+        return nullptr;
+    }
+
+    int nt = (int)PyArray_DIM(energies_array, 0);
+    int nh = (int)PyArray_DIM(energies_array,1);
+    //check that state has the dimensions expected
+    if(PyArray_NDIM(energies_array) != 2) {
+        PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d", __LINE__);
+        return nullptr;
+    }
+
+    if(nt*nh != nbwalkers) {
+        PyErr_Format(PyExc_ValueError, "DIMERS.cpp : Non-consistent number of energies and states, see line %d", __LINE__);
+        return nullptr;
+    }
+
+    //get pointer as Ctype
+    double *energies = (double*)PyArray_DATA(energies_array);
+
+    //---------------------------------//
+    /* Interpret the table of updates */
+    //---------------------------------//
+
+    PyArrayObject* failedupdates_array = (PyArrayObject*) PyArray_FROM_OTF(failedupdates_obj, NPY_INT32, NPY_ARRAY_INOUT_ARRAY);
+    if(failedupdates_array == nullptr) {
+        Py_XDECREF(failedupdates_array);
+        PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d (NPY array?)", __LINE__);
+        return nullptr;
+    }
+    //check that state has the dimensions expected
+    if(PyArray_NDIM(failedupdates_array) != 2) {
+        PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d", __LINE__);
+        return nullptr;
+    }
+    //get pointer as Ctype
+    int *failedupdates = (int*)PyArray_DATA(failedupdates_array);
+    //------------------------------------------------------FUNCTION CALL---------------------------------------------------------------------//
+
+    //------------------------------------//
+    /* Call the magneticmcs C function */
+    //------------------------------------//
+    PyThreadState* threadState = PyEval_SaveThread(); // release the GIL
+    genssfsevolve(J1, interactions, states, statesize, spinstates, spinstatesize,
       s2p, nd, walker2params, walker2ids, energies, failedupdates, nbwalkers, nthreads, iters,
       nt, nh); //saveloops = 0
     PyEval_RestoreThread(threadState); // claim the GIL

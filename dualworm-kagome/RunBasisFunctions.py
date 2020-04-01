@@ -75,10 +75,14 @@ def SimulationParameters(args, backup, loadfromfile, d_ijl,
         print("single spin flip update")
     if alternate:
         print("alternating ssf and dw update")
-    
+    if J2 != 0 or J3 != 0 or J4 != 0:
+        ssffurther = True
+    else:
+        ssffurther = False
     nnspins, s2p = dw.spin2plaquette(ijl_s, s_ijl, s2_d,L)
 
-    assert (not ((ssf or alternate) and (J2 != 0 or J3 !=0 or J3st != 0 or J4!=0))),    "The ssf is only available with J1"
+    #assert (not ((ssf or alternate) and (J2 != 0 or J3 !=0 or J3st != 0 or J4!=0))),\
+    #"The ssf is only available with J1"
     
     updatetype = {'ssf': ssf, 'alternate': alternate,
                   'nnspins': nnspins, 's2p':s2p}
@@ -117,7 +121,7 @@ def SimulationParameters(args, backup, loadfromfile, d_ijl,
     print('Magnetic fields: ', hfields)
 
     mode = args.generatingMode
-    return [couplings, hamiltonian, ssf, alternate, s2p, temperatures,
+    return [couplings, hamiltonian, ssf, alternate, ssffurther, s2p, temperatures,
            betas, nt, hfields, nh, mode]
 
 

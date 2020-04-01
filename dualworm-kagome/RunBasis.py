@@ -48,7 +48,7 @@ def main(args):
      sidlist, didlist, c_ijl, ijl_c, c2s, csign] =\
     dw.latticeinit(L)
 
-    [couplings, hamiltonian, ssf, alternate, s2p, temperatures,
+    [couplings, hamiltonian, ssf, alternate, ssffurther, s2p, temperatures,
      betas, nt, hfields, nh, genMode] =\
     rbf.SimulationParameters(args,backup, loadfromfile, d_ijl,
                              ijl_d, ijl_s, s_ijl, s2_d, L)
@@ -118,7 +118,8 @@ def main(args):
           'L':L, 'nh':nh, 'hfields':hfields,
           'walker2params':walker2params,'walker2ids':walker2ids,
           'ids2walker':ids2walker,
-          's2p':s2p, 'ssf':ssf, 'alternate':alternate}
+          's2p':s2p, 'ssf':ssf, 'ssffurther': ssffurther,
+          'alternate':alternate}
 
 
     t1 = time()
@@ -175,7 +176,7 @@ def main(args):
         nnspins, s2p = dw.spin2plaquette(ijl_s, s_ijl, s2_d,L)
         p = args.p
     else:
-        if not ssf:
+        if not (ssf or alternate):
             nnspins = []
             s2p = []
             p = 0
@@ -201,7 +202,8 @@ def main(args):
           'c2s':c2s, 'csign':csign, 'measperiod':measperiod,
           'nh':nh, 'hfields':hfields, 'walker2params':walker2params,
           'walker2ids':walker2ids,'ids2walker':ids2walker,
-          'ssf':ssf, 'alternate':alternate, 'randspinupdate': False,
+          'ssf':ssf, 'ssffurther': ssffurther, 
+          'alternate':alternate, 'randspinupdate': False,
          'namefunctions': namefunctions, 'backup': backup,'genMode': genMode}
         # Run measurements
 
