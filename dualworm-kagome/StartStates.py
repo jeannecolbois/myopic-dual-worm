@@ -52,7 +52,7 @@ def magnetisedInit(spinstates, nt, nh, s_ijl, hfields, same):
         print("Magnetised init")
         versions = [np.random.randint(0,2) for w in range(nt*nh)]
         
-        for t in range(nt):
+        for t in range(nt*nh):
             for h in range(nh):
                 w = t*nh+h
                 newspinstates = [(np.random.randint(0, 2, size=len(s_ijl), dtype = 'int8')*2 - 1)]
@@ -66,7 +66,8 @@ def magnetisedInit(spinstates, nt, nh, s_ijl, hfields, same):
 
 # In[ ]:
 
-def magnetisedInitStripes(spinstates, nt, nh, s_ijl, hfields, same):
+def magnetisedInitStripes(spinstates, nt, nh,
+                          s_ijl, hfields, same):
    
     if same:
         
@@ -162,69 +163,13 @@ def magnetisedInitMaxFlip(spinstates, nt, nh,
 
 # In[ ]:
 
-def magnetisedInitMaxFlip(spinstates, nt, s_ijl, h, same):
+def magnetisedInit06(spinstates, nt, nh, s_ijl, hfields, same):
    
     if same:
-        if h == 0:
+        if hfields[0] == 0:
             sign = np.random.randint(0,2, dtype = 'int8')*2-1
         else:
-            sign = np.sign(h, dtype = 'int8')
-        
-        version = np.random.randint(0,3)
-        
-        spinstate = sign*np.ones(len(s_ijl))
-        
-        for s, (i,j,l) in enumerate(s_ijl):
-            loc = (i - j + version)%3
-            if loc == 0:
-                if l == 1:
-                    spinstate[s] = -sign
-                else:
-                    spinstate[s] = sign
-            elif loc == 1:
-                spinstate[s] = sign
-            elif loc == 2:
-                if l == 1:
-                    spinstate[s] = sign
-                else:
-                    spinstate[s] = -sign
-                    
-        for t in range(nt):
-            spinstates[t] = np.copy(spinstate.astype('int8')) # to make sure that it is DIFFERENT states
-        
-    else:
-        versions = [np.random.randint(0,3, dtype = 'int8') for t in range(nt)]
-        if h == 0:
-            signs = [np.random.randint(0,2, dtype = 'int8')*2-1 for t in range(nt)]
-        else:
-            signs = [np.sign(h, dtype = 'int8') for t in range(nt)]
-        
-        for t in range(nt):
-            for s, (i,j,l) in enumerate(s_ijl):
-                loc = (i - j + versions[t])%3
-                if loc == 0:
-                    if l == 1:
-                        spinstates[t] = -signs[t]
-                    else:
-                        spinstates[t] = signs[t]
-                elif loc == 1:
-                    spinstates[t] = signs[t]
-                elif loc == 2:
-                    if l == 1:
-                        spinstates[t] = signs[t]
-                    else:
-                        spinstates[t] = -signs[t]
-
-
-# In[ ]:
-
-def magnetisedInit06(spinstates, nt, s_ijl, h, same):
-   
-    if same:
-        if h == 0:
-            sign = np.random.randint(0,2)*2-1
-        else:
-            sign = np.sign(h)
+            sign = np.sign(hfields[0], dtype = 'int8')
         
         version = np.random.randint(0,3)
         
@@ -245,37 +190,38 @@ def magnetisedInit06(spinstates, nt, s_ijl, h, same):
                 else:
                     spinstate[s] = -sign
                     
-        for t in range(nt):
-            spinstates[t] = np.copy(spinstate) # to make sure that it is DIFFERENT states
+        for t in range(nt*nh):
+            for h in range(nh):
+                w = t*nh+h
+                spinstates[w] = np.copy(spinstate) # to make sure that it is DIFFERENT states
         
     else:
-        versions = [np.random.randint(0,3) for t in range(nt)]
-        if h == 0:
-            signs = [np.random.randint(0,2)*2-1 for t in range(nt)]
-        else:
-            signs = [np.sign(h) for t in range(nt)]
+        versions = [np.random.randint(0,3) for w in range(nt*nh)]
+        signs = [np.sign(h,dtype = 'int8') for t in range(nt) for h in hfields]
         
-        for t in range(nt):
-            for s, (i,j,l) in enumerate(s_ijl):
-                loc = (i - j + versions[t])%5
+        for t in range(nt*nh):
+            for h in range(nh):
+                w = t*nh+h
+                for s, (i,j,l) in enumerate(s_ijl):
+                    loc = (i - j + versions[w])%5
 
-                if loc == 0 or loc == 2:
-                    if l == 1:
-                        spinstate[s] = -signs[t]
-                    else:
-                        spinstate[s] = signs[t]
-                elif loc == 1 or loc == 3:
-                    spinstate[s] = signs[t]
-                elif loc == 4:
-                    if l == 0:
-                        spinstate[s] = signs[t]
-                    else:
-                        spinstate[s] = -signs[t]
+                    if loc == 0 or loc == 2:
+                        if l == 1:
+                            spinstates[w][s] = -signs[w]
+                        else:
+                            spinstates[w][s] = signs[w]
+                    elif loc == 1 or loc == 3:
+                        spinstates[w][s] = signs[w]
+                    elif loc == 4:
+                        if l == 0:
+                            spinstates[w][s] = signs[w]
+                        else:
+                            spinstates[w][s] = -signs[w]
 
 
 # In[ ]:
 
-def J1J2Init(spinstates, nt, s_ijl, same):
+def J1J2Init(spinstates, nt, nh, s_ijl, same):
     if same:
         #print("In same (J1J2)")
         version = np.random.randint(0,3)
@@ -290,21 +236,25 @@ def J1J2Init(spinstates, nt, s_ijl, same):
             if l == (version+2)%3:
                 spinstate[s] = np.random.randint(0,2, dtype = 'int8')*2-1
         
-        for t in range(nt):
-            spinstates[t] = np.copy(spinstate.astype('int8'))
+        for t in range(nt*nh):
+            for h in range(nh):
+                w = t*nh+h
+                spinstates[w] = np.copy(spinstate.astype('int8'))
     else:
         #print("In Differents (J1J2)")
-        versions = [np.random.randint(0,3) for t in range(nt)]
-        signs = [np.random.randint(0,2, dtype = 'int8')*2 -1 for t in range(nt)]
+        versions = [np.random.randint(0,3) for w in range(nt*nh)]
+        signs = [np.random.randint(0,2, dtype = 'int8')*2 -1 for w in range(nt*nh)]
         #print("versions and signs generated (J1J2)")
-        for t in range(nt):
-            for s, (i, j, l) in enumerate(s_ijl):
-                if l == versions[t]:
-                    spinstates[t][s] = signs[t]
-                if l == (versions[t] + 1)%3:
-                    spinstates[t][s] = -signs[t]
-                if l == (versions[t] + 2)%3:
-                    spinstates[t][s] = np.random.randint(0,2, dtype = 'int8')*2 - 1
+        for t in range(nt*nh):
+            for h in range(nh):
+                w = t*nh+h
+                for s, (i, j, l) in enumerate(s_ijl):
+                    if l == versions[w]:
+                        spinstates[w][s] = signs[w]
+                    if l == (versions[w] + 1)%3:
+                        spinstates[w][s] = -signs[w]
+                    if l == (versions[w] + 2)%3:
+                        spinstates[w][s] = np.random.randint(0,2, dtype = 'int8')*2 - 1
 
 
 # In[ ]:
@@ -335,7 +285,7 @@ def J1J3InitOneState(spinstate, s_ijl, version, sign, shift, rot):
 
 # In[ ]:
 
-def J1J3Init(spinstates, nt, s_ijl, same):
+def J1J3Init(spinstates, nt, nh, s_ijl, same):
     if same:
         sign = np.random.randint(0,2, dtype = 'int8')*2 -1
         shift = np.random.randint(0,3)
@@ -344,14 +294,14 @@ def J1J3Init(spinstates, nt, s_ijl, same):
         rot = 0
         
         J1J3InitOneState(spinstate,s_ijl, version, sign, shift, rot)
-        spinstates[t] = [np.copy(spinstate.astype('int8')) for t in range(nt)]
+        spinstates = [np.copy(spinstate.astype('int8')) for w in range(nt*nh)]
     else:
-        versions = [0 for t in range(nt)]
-        signs = [np.random.randint(0,2, dtype = 'int8')*2-1 for t in range(nt)]
-        shifts = [np.random.randint(0,4) for t in range(nt)]
-        rots = [0 for t in range(nt)]
+        versions = [0 for w in range(nt*nh)]
+        signs = [np.random.randint(0,2, dtype = 'int8')*2-1 for w in range(nt*nh)]
+        shifts = [np.random.randint(0,4) for w in range(nt*nh)]
+        rots = [0 for w in range(nt*nh)]
         
-        for t in range(nt):
+        for t in range(nt*nh):
             J1J3InitOneState(spinstates[t], s_ijl, versions[t], signs[t], shifts[t], rots[t])
 
 
@@ -649,7 +599,7 @@ def LargeJ2InitOneState(spinstate, s_ijl, version, sign, shift, rot):
 
 # In[ ]:
 
-def LargeJ2Init(spinstates, nt, s_ijl, same):
+def LargeJ2Init(spinstates, nt, nh, s_ijl, same):
     if same:
         version = np.random.randint(0,3)
         sign = np.random.randint(0,2, dtype = 'int8')*2-1
@@ -658,14 +608,14 @@ def LargeJ2Init(spinstates, nt, s_ijl, same):
         
         spinstate = np.zeros(len(s_ijl))
         LargeJ2InitOneState(spinstate, s_ijl, version, sign, shift, rot)
-        spinstates = [np.copy(spinstate) for t in range(nt)]
+        spinstates = [np.copy(spinstate) for w in range(nt*nh)]
     else:
-        versions = [np.random.randint(0,3) for t in range(nt)]
-        signs = [np.random.randint(0,2, dtype = 'int8')*2-1 for t in range(nt)]
-        shifts = [np.random.randint(0,4) for t in range(nt)]
-        rots = [np.random.randint(0,3) for t in range(nt)]
+        versions = [np.random.randint(0,3) for w in range(nt*nh)]
+        signs = [np.random.randint(0,2, dtype = 'int8')*2-1 for w in range(nt*nh)]
+        shifts = [np.random.randint(0,4) for w in range(nt*nh)]
+        rots = [np.random.randint(0,3) for w in range(nt*nh)]
         
-        for t in range(nt):
+        for t in range(nt*nh):
             LargeJ2InitOneState(spinstates[t], s_ijl, versions[t], signs[t], shifts[t], rots[t])
 
 
@@ -784,7 +734,7 @@ def IntermediateInitOneState(spinstate, s_ijl,version, sign, shift, rot):
 
 # In[ ]:
 
-def IntermediateInit(spinstates, nt, s_ijl, same):
+def IntermediateInit(spinstates, nt, nh, s_ijl, same):
     if same:
         spinstate = np.zeros(len(s_ijl), dtype = 'int8')
         version = 0
@@ -793,14 +743,14 @@ def IntermediateInit(spinstates, nt, s_ijl, same):
         rot = 0
         IntermediateInit(spinstate, s_ijl,version, sign, shift, rot)
         
-        for t in range(nt):
+        for t in range(nt*nh):
             spinstates[t] = np.copy(spinstate.astype('int8'))
     else:
-        versions = [0 for t in range(nt)]
-        signs = [np.random.randint(0,2, dtype = 'int8')*2-1 for t in range(nt)]
-        shifts = [np.random.randint(0,6) for t in range(nt)]
-        rots = [0 for t in range(nt)]
-        for t in range(nt):
+        versions = [0 for w in range(nt*nh)]
+        signs = [np.random.randint(0,2, dtype = 'int8')*2-1 for w in range(nt*nh)]
+        shifts = [np.random.randint(0,6) for w in range(nt*nh)]
+        rots = [0 for w in range(nt*nh)]
+        for t in range(nt*nh):
             IntermediateInitOneState(spinstates[t], s_ijl,versions[t], signs[t], shifts[t], rots[t])
 
 
@@ -932,7 +882,7 @@ def LargeJ3InitOneState(spinstate, s_ijl, version, sign, shift, rot):
 
 # In[ ]:
 
-def LargeJ3Init(spinstates, nt, s_ijl, same):
+def LargeJ3Init(spinstates, nt, nh, s_ijl, same):
     if same:
         version = 0
         sign = np.random.randint(0,2, dtype = 'int8')*2-1
@@ -941,21 +891,21 @@ def LargeJ3Init(spinstates, nt, s_ijl, same):
         
         spinstate = np.zeros(len(s_ijl), dtype = 'int8')
         LargeJ3InitOneState(spinstate, s_ijl, version, sign, shift, rot)
-        spinstates = [np.copy(spinstate.astype('int8')) for t in range(nt)]
+        spinstates = [np.copy(spinstate.astype('int8')) for w in range(nt*nh)]
     else:
-        versions = [0 for t in range(nt)]
-        signs = [np.random.randint(0,2, dtype = 'int8')*2-1 for t in range(nt)]
-        shifts = [np.random.randint(0,6) for t in range(nt)]
-        rots = [np.random.randint(0,3) for t in range(nt)]
+        versions = [0 for w in range(nt*nh)]
+        signs = [np.random.randint(0,2, dtype = 'int8')*2-1 for w in range(nt*nh)]
+        shifts = [np.random.randint(0,6) for w in range(nt*nh)]
+        rots = [np.random.randint(0,3) for w in range(nt*nh)]
         
-        for t in range(nt):
+        for t in range(nt*nh):
             LargeJ3InitOneState(spinstates[t], s_ijl, versions[t], signs[t], shifts[t], rots[t])
 
 
 # In[ ]:
 
 def DipolarToJ4Init(spinstates, nt, s_ijl):
-    for t in range(nt):
+    for t in range(nt*nh):
         sign = np.random.randint(0,2, dtype = 'int8')*2-1
         for s, (i, j, l) in enumerate(s_ijl):
             jp = i + 2*j
@@ -1092,7 +1042,7 @@ def DipolarToJ4Init(spinstates, nt, s_ijl):
 
 # In[ ]:
 
-def J1Init(spinstates, nt, s_ijl, same):
+def J1Init(spinstates, nt, nh, s_ijl, same):
     #print('In J1 init')
     if same:
         #print('In J1 init same')
@@ -1103,14 +1053,16 @@ def J1Init(spinstates, nt, s_ijl, same):
             J1J3Init(spinstates, nt, s_ijl, same)
     else:
         #print('In J1 init diff')
-        for t in range(nt):
-            version = np.random.randint(0,2)
-            if version == 0:
-            #    print("version = J1J2")
-                J1J2Init([spinstates[t]],1, s_ijl, same)
-            else:
-            #    print("version = J1J3")
-                J1J3Init([spinstates[t]], 1, s_ijl, same)
+        for t in range(nt*nh):
+            for h in range(nh):
+                w = t*nh+h        
+                version = np.random.randint(0,2)
+                if version == 0:
+                #    print("version = J1J2")
+                    J1J2Init([spinstates[w]],1,1, s_ijl, same)
+                else:
+                #    print("version = J1J3")
+                    J1J3Init([spinstates[w]], 1,1, s_ijl, same)
 
 
 # In[ ]:
@@ -1195,20 +1147,21 @@ def statesinit(nt, nh, hfields, id2walker, d_ijl, d_2s, s_ijl,
             magnetisedInitStripes(spinstates, nt, nh, s_ijl, hfields, same)
         elif inittype == "J1":
             print('J1Init')
-            J1Init(spinstates, nt*nh, s_ijl, same)
+            J1Init(spinstates, nt, nh, s_ijl, same)
         elif inittype == "J1J2":
-            J1J2Init(spinstates, nt*nh, s_ijl, same)
+            J1J2Init(spinstates, nt, nh, s_ijl, same)
         elif inittype == "J1J3":
-            J1J3Init(spinstates, nt*nh, s_ijl, same)
+            J1J3Init(spinstates, nt, nh, s_ijl, same)
         elif inittype == "J1J2J3LJ2":
-            LargeJ2Init(spinstates, nt*nh, s_ijl, same)
-        elif inittype == "J1J2J3intermediate":
-            intermediateInit(spinstates, nt*nh, s_ijl, same)
+            LargeJ2Init(spinstates, nt, nh, s_ijl, same)
+        elif inittype == "J1J2J3Intermediate":
+            IntermediateInit(spinstates, nt, nh, s_ijl, same)
         elif inittype == "J1J2J3LJ3":
-            LargeJ3Init(spinstates, nt*nh, s_ijl, same)
+            LargeJ3Init(spinstates, nt,nh, s_ijl, same)
         elif inittype == "J1J2J3J4":
             DipolarToJ4Init(spinstates, nt*nh, s_ijl, same)
-            
+        else:
+            print("Something went wrong and you get something random instead")
     states = np.array(states, 'int32')
     spinstates = np.array(spinstates, 'int32')
     ##initialise the dimer state according to the spin state
