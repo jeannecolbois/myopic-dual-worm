@@ -11,6 +11,7 @@ import KagomeFunctions as kf # "library" allowing to work on Kagome
 import DualwormFunctions as dw
 import KagomeDrawing as kdraw
 import KagomeFT as kft
+import Observables as obs
 import warnings
 
 
@@ -157,11 +158,12 @@ def ExtractStatistics(backup, idfunc, name,
             for b in range(nb):
                 t_h_varmeanfunc[resid][reshid] += ((nb_stattuple[b][sq][resid][reshid] - t_h_meanfunc[resid][reshid]) ** 2)/(nb * (nb - 1))
     if binning:
+        print("Binning...")
         warnings.warn("binning not implemented for the new structure of statstable!")
         Binning(t_h_meanfunc,t_h_varmeanfunc, nb_stattuple[sq], nb,
                                 stat_temps, stat_hfields, **kwargs)
         
-    return np.array(t_h_meanfunc), np.array(t_h_varmeanfunc)
+    return t_h_meanfunc, np.array(t_h_varmeanfunc)
 
 
 # In[ ]:
@@ -170,6 +172,7 @@ def Binning(t_h_mean, t_h_varmean, stattuple, nb, stat_temps,stat_hfields, **kwa
     '''
         This function implements a binning analysis
     '''
+    raise Exception("Binning not adapted to the new statstable structure!")
     ### NAIVE IMPLEMENTATION
     nblist = []
     nbb = nb
@@ -263,27 +266,43 @@ def LoadSwapsFromFile(foldername, filename, nb, num_in_bin, nh, nt):
 
 # In[ ]:
 
-def LoadStates(foldername, filenamelist, **kwargs):
+def LoadStates(foldername, filenamelist,L,nh, **kwargs):
     n = len(filenamelist)
     
     t_spinstates = [[] for _ in range(n)]
     t_states = [[] for _ in range(n)]
-
+    t_charges = [[] for _ in range(n)]
     for nf, filename in enumerate(filenamelist):
-        [t_spinstates[nf], t_states[nf]] =                 LoadStatesFromFile(foldername, filename, **kwargs)
+        [t_spinstates[nf], t_states[nf], t_charges[nf]] =                 LoadStatesFromFile(foldername, filename, L[nf],nh[nf],**kwargs)
         
-    return t_spinstates, t_states
+    return t_spinstates, t_states, t_charges
 
 
 # In[ ]:
 
-def LoadStatesFromFile(foldername, filename, **kwargs):
+def LoadStatesFromFile(foldername, filename, L, nh, **kwargs):
+    
+    [d_ijl, ijl_d, s_ijl, ijl_s, d_2s, s2_d, d_nd, d_vd, d_wn,
+     sidlist, didlist, c_ijl, ijl_c, c2s, csign] =\
+    dw.latticeinit(L)
+    
     backup = "./"+foldername+filename
     
     t_h_spinstates = hkl.load(backup+"_spinstates.hkl")
     t_h_states = hkl.load(backup+"_states.hkl")
-    
-    return t_h_spinstates, t_h_states
+    if nh == 1:
+        t_h_charges = np.array([obs.charges(len(s_ijl),[],[],
+                                             spinstate, s_ijl, ijl_s,c2s,
+                                             csign)
+                                 for spinstate in t_h_spinstates])
+    else:
+        t_h_charges = np.array([[obs.charges(len(s_ijl),[],[],
+                                             spinstate, s_ijl, ijl_s,c2s,
+                                             csign)
+                                 for spinstate in h_spinstates]
+                                for h_spinstates in t_h_spinstates])
+        
+    return t_h_spinstates, t_h_states, t_h_charges
 
 
 # In[ ]:
@@ -323,6 +342,7 @@ def LoadEnergyFromFile(foldername, filename, numsites, nb, stat_temps,
     t_h_MeanE, t_h_varMeanE =    ExtractStatistics(backup, idfunc, name,
                       nb, stat_temps, stat_hfields, **kwargs)
     
+    print(t_h_MeanE[0])
     t_h_MeanEsq, t_h_varMeanEsq =    ExtractStatistics(backup, idfunc, name, nb,
                       stat_temps, stat_hfields, sq = 1, **kwargs)
     
