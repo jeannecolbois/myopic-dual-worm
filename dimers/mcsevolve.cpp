@@ -14,11 +14,9 @@ void mcsevolve(double J1, std::vector<std::tuple<double, int*, int, int>> intera
         // get the pointer to the tindex element it state
         int *state = &states[tindex*statesize];
         double beta = betas[tindex];
-        int saveloops = 0; // don't save loops
             //manydual worms
-            tuple<double, bool, vector<int>, vector<int>> resultworm = manydualworms(J1,
-              interactions, state, statesize, d_nd, n_nd, d_vd, n_vd, d_wn, beta,
-              saveloops, nmaxiter, niterworm);
+            tuple<double, bool> resultworm = manydualworms(J1,
+              interactions, state, statesize, d_nd, n_nd, d_vd, n_vd, d_wn, beta, nmaxiter, niterworm);
             energies[tindex] = energies[tindex] + get<0>(resultworm);
             //add things to e
             if(!get<1>(resultworm)){

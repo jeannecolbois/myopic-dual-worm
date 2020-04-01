@@ -13,11 +13,13 @@ dualworm-kagome/ProfilingAndTesting/*_folder/
 dualworm-kagome/__pycache__/*
 */*/__pycache__/
 dualworm-kagome/Plot*
-dualworm-kagome/Profiling*/Results/
+dualworm-kagome/*_folder
+dualworm-kagome/prun*
 dualworm-kagome/ProfilingAndTesting/*.pkl
-dualworm-kagome/*_folder/
-dualworm-kagome/GroundStates/*GSStates/
+dualworm-kagome/ProfilingAndTesting/*.png
+dualworm-kagome/ProfilingAndTesting/*Results/*
+dualworm-kagome/GroundStates/*
 ANALYSIS_CSCS/
 Analysis_CSCS/
 Analysis_PSI/
-Analysis_EPFL
+Analysis_EPFL/

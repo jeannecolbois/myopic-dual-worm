@@ -1,11 +1,3 @@
-
-# coding: utf-8
-
-# ### Functions representing observables
-
-# In[ ]:
-
-
 import numpy as np
 
 
@@ -53,42 +45,24 @@ def firstcorrelations(stlen, state, en_state, spinstate, s_ijl, ijl_s, nnlists =
 def charges(stlen, state, en_state, spinstate, s_ijl, ijl_s,c2s = [], csign= [], **kwargs):
     cvals = np.array([csign[c]*(spinstate[s1]+spinstate[s2]+spinstate[s3]) for c, (s1,s2,s3) in enumerate(c2s)], dtype = 'int8')
     return cvals
+
+def initstatstables(namefunctions, nb, c2s, nnlists,
+                    stat_temps, stat_fields, stlen):
+    statstables = [0 for i in range(len(namefunctions))]
+    for i, name in enumerate(namefunctions):
+        if name == "Energy" or name == "Magnetisation":
+            statstables[i]=np.zeros((nb, 2, len(stat_temps), len(stat_fields)))
+        elif name == "Charges":
+            statstables[i] = np.zeros((nb, 2, len(stat_temps),
+                                       len(stat_fields), len(c2s)))
+        elif name == "Central_Correlations":
+            statstables[i] = np.zeros((nb, 2, len(stat_temps),
+                                       len(stat_fields), 3, stlen))
+        elif name == "Si":
+            statstables[i] = np.zeros((nb, 2, len(stat_temps),
+                                       len(stat_fields),stlen))    
+        elif name == "FirstCorrelations":
+            statstables[i] = np.zeros((nb, 2, len(stat_temps),
+                                       len(stat_fields), len(nnlists)))
     
-# In[ ]:
-
-
-#def A3(stlen, state, en_state, spinstate, s_ijl, ijl_s):
-#    magn = np.array([0, 0, 0])
-#    for s, (i, j, l) in enumerate(s_ijl):
-#        magn[l] += spinstate[s]
-#    magn = (magn / (stlen/3)) ** 2
-#    A3magn = magn.sum(0) / 3
-#    return A3magn
-#
-#
-## In[ ]:
-#
-#
-#def A9(stlen, state, en_state, spinstate, s_ijl, ijl_s):
-#    magn = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0])
-#    for s, (i, j, l) in enumerate(s_ijl):
-#        subl = 3*((i + 2*j)%3) + l;
-#        magn[subl] += spinstate[s]
-#    magn = (magn / (stlen/9)) ** 2
-#    A9magn = magn.sum(0) / 9
-#    return A9magn
-#
-#
-## In[ ]:
-#
-#
-#def subkag(stlen, state, en_state, spinstate, s_ijl, ijl_s):
-#    magn = np.array([0, 0, 0])
-#    for s, (i, j, l) in enumerate(s_ijl):
-#        alpha = (i + 2 * j)%3
-#        subl = (alpha + 2 * (l%2))%3
-#        magn[subl] += spinstate[s]
-#    magn = (magn / (stlen/3)) ** 2
-#    subkag = magn.sum(0)/3
-#    return subkag
-#
+    return statstables

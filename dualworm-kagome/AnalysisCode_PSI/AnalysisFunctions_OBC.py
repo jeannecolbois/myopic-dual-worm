@@ -1,26 +1,64 @@
 
 # coding: utf-8
 
-# Last update 07.01.2020
-# 
+# Last update 23.07.2019
 # Author : Jeanne Colbois
-# 
 # Please send any comments, questions or remarks to Jeanne Colbois: jeanne.colbois@epfl.ch.
 # The author would appreciate to be cited in uses of this code, and would be very happy to hear about potential nice developments.
 
 # In[ ]:
 
-import numpy as np
+
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import numpy as np
 import KagomeFunctions_OBC as kf # "library" allowing to work on Kagome
-import KagomeDrawing as kdraw
-import KagomeFT as kft
 import itertools
 
-
 # In[ ]:
+
+
+def OtherComputeNthCorrList(NNListN, sconf, x, y, factor):
+    '''
+        Computes <sisj> instead of <(si-<si>)(sj-<sj>)>
+    '''
+
+
+    nNth = len(NNListN)
+
+    # For now, we assume that the various correlations are uncorrelated, and we work with l = 1
+
+    l = sconf[0].size
+    assert l == 1
+
+    s1 = 0
+    s2 = 0
+
+    ldist = []
+
+    for pair in NNListN:
+        s1 += sconf[pair[0]]/nNth# computing the average s1 over configurations
+        s2 += sconf[pair[1]]/nNth # computing the average s2 over configurations
+
+        distval = expdist(pair[0], pair[1], x,y, factor)
+        ldist.append(distval)
+
+    w12 = np.array([sconf[pair[0]]*sconf[pair[1]] for pair in NNListN]);
+    avgw12 = sum(w12)/nNth
+    cov12 = avgw12*nNth/(nNth-1)
+    varw12 = sum((w12-avgw12)**2)/(nNth-1)
+    varcov12 = varw12*nNth/((nNth-1)**2)
+
+    ldist = np.array(ldist)
+    avgdist = sum(ldist)/nNth
+    vardist = sum((ldist - avgdist)**2)/(nNth-1)
+
+
+    return cov12, varcov12, avgdist, vardist
+
+
+# In[1]:
+
 
 def ComputeNthCorrList(NNListN, sconf, x, y, factor):
     '''
@@ -63,7 +101,8 @@ def ComputeNthCorrList(NNListN, sconf, x, y, factor):
     return cov12, varcov12, avgdist, vardist
 
 
-# In[ ]:
+# In[1]:
+
 
 def ComputeNthCorr(firstpairs, rss, s42_realpos):
     '''
@@ -112,6 +151,7 @@ def ComputeNthCorr(firstpairs, rss, s42_realpos):
 
 # In[ ]:
 
+
 def LoadSpinConfigsLarge(foldername, spinconfigfile, imgfile, alpha = 0.3, factor = 1):
     configlist = np.loadtxt(foldername+spinconfigfile,delimiter=',')
     x = configlist[:,0]
@@ -144,326 +184,8 @@ def LoadSpinConfigsLarge(foldername, spinconfigfile, imgfile, alpha = 0.3, facto
     return configlist, x, y, sconf
 
 
-# In[ ]:
+# In[1]:
 
-def DrawClusterOnConfig(secondfoldername, L, refid, spos, LParam = (0,0,0), factor = 1, factorth = 1, doplot = False,
-                        domap = False, a = 2, **kwargs):
-    '''
-        Creates a cluster of side size L (9L^2 sites tot)
-        Maps it onto the configuration with 
-        refloc =  [(L-1, 0, 0), (L-1, 0, 1), (L-1, 0, 2), (2L-1, 0)]
-        in the usual language
-        factor : overall scaling
-        factorth: scaling in the direction orthogonal to the alignement axis.
-    
-        returns:
-        rot,tr,m1m2,ijl, ijl_sconfig
-        rot : rotation performed
-        tr: translation performed
-        m1m2: mapping s to position in tilted coordinates (tilted axis)
-        ijl[s] = (i,j,l) lattice coordinates
-        ijl_sconfig[(i,j,l)] = s : spin index
-    '''
-    
-    if LParam == (0,0,0):
-        LParam = (2*L -1,0,0)
-    ## Getting the reference positions in the lattice and in the experimental lattice
-    # exp lattice
-    numdots = len(refid)
-    refpos = np.zeros((numdots,2))
-    for i in range(numdots):
-        refpos[i,:] = spos[refid[i],:]
-    print(refpos)
-    plotSpinSites(secondfoldername, "", refpos[:,0], refpos[:,1],[i for i in range(numdots)], 
-                  putimage = False, color = "purple", alpha = 1)
-    plotSpinSites(secondfoldername, "", np.array([refpos[numdots-1,0]]),
-                  np.array([refpos[numdots-1,1]]),[0], putimage = False, color = "magenta", alpha = 1)
-    plotSpinSites(secondfoldername, "", np.array([refpos[0,0]]), np.array([refpos[0,1]]),[0],
-                  putimage = False, color = "purple", alpha = 1)    
-    
-    # actual lattice
-    s_ijl, ijl_s = kf.createspinsitetable(L)
-    sv_ijl, ijl_sv, e_2sv, pos = kf.graphkag(L,2)
-    ori = np.array([pos[ijl_sv[(L-1, 0, 0)]], pos[ijl_sv[(L-1, 0, 1)]],pos[ijl_sv[(L-1, 0, 2)]],
-                    pos[ijl_sv[LParam]]])
-    pos = np.array([pos[i] for i in range(len(pos))])
-    
-    # 0) Checking the factor
-    dist12_ori = np.linalg.norm(ori[0] - ori[3])
-    dist12_map = np.linalg.norm(refpos[0] - refpos[3])
-    
-    if not abs(dist12_ori - dist12_map) < 1e-8:
-        print("Help for factor: currently {0} and {1}".format(dist12_ori, dist12_map))
-
-    # 1) Plotting the situation (to test before doing map)
-    plotSpinSites(secondfoldername, "", np.array([ori[0,0]]), np.array([ori[0,1]]),[0],
-                  putimage = False, color = "red", alpha = 1)
-    plotSpinSites(secondfoldername, "", np.array([ori[1,0]]), np.array([ori[1,1]]),[0],
-                  putimage = False, color = "pink", alpha = 1)
-    plotSpinSites(secondfoldername, "", np.array([ori[2,0]]), np.array([ori[2,1]]),[0],
-                  putimage = False, color = "purple", alpha = 1)    
-    plotSpinSites(secondfoldername, "", np.array([ori[3,0]]), np.array([ori[3,1]]),[0],
-                  putimage = False, color = "pink", alpha = 1)    
-    plotSpinSites(secondfoldername, "", pos[:,0], pos[:,1], [i for i in range(len(pos))],
-                  putimage = False, color = "blue", alpha = 0.1)
-    
-    # 2) Performing the map
-    if domap:
-        
-        fig, ax = plt.subplots(figsize = (8,8),dpi=200)
-        # We just want one solution --- 
-        # 1) check crossing of lines 1-2:
-        # -- a) Find the angle 
-        nref = np.dot(refpos[3]-refpos[0], refpos[3]-refpos[0])
-        nori = np.dot(ori[3]-ori[0], ori[3] - ori[0])
-        cosangle = np.dot(refpos[3]-refpos[0],ori[3]-ori[0])/np.sqrt(nref*nori)
-        sinangle = np.sqrt(1-cosangle**2)
-        rot = np.array([[cosangle, sinangle],[-sinangle, cosangle]])
-        
-        rotrefpos = np.dot(rot, refpos.T).T
-        rotpos = np.dot(rot, spos.T).T
-        #      (plot to check)
-        plotSpinSites(secondfoldername, "", rotrefpos[:,0], rotrefpos[:,1],
-                      [i for i in range(len(rotrefpos))], putimage = False, color = "red", alpha = 0.5)
-        plotSpinSites(secondfoldername, "", pos[:,0], pos[:,1],
-                      [i for i in range(len(pos))], putimage = False, color = "blue")
-        # -- b) Find the translation 
-        fig, ax = plt.subplots(figsize = (8,8),dpi=200)
-        tr = ori[0]-rotrefpos[0]
-        rotrefpos = rotrefpos.T
-        rotrefpos[0,:] += tr[0]
-        rotrefpos[1,:] += tr[1]
-        rotrefpos = rotrefpos.T
-        
-        mappos = rotpos.T
-        mappos[0,:] += tr[0]
-        mappos[1,:] += tr[1]
-        
-        mappos = mappos.T
-        #      (plot to check)
-
-        plotSpinSites(secondfoldername, "", mappos[:,0], mappos[:,1],
-                      [i for i in range(len(mappos))], putimage = False, **kwargs)
-        plotSpinSites(secondfoldername, "", pos[:,0], pos[:,1],
-                      [i for i in range(len(pos))], putimage = False, color = "blue")
-        plotSpinSites(secondfoldername, "", rotrefpos[:,0], rotrefpos[:,1],
-                      [i for i in range(len(rotrefpos))], putimage = False, color = "red", alpha = 0.5)
-        
-        # -- c) Perform the orthogonal scaling
-        fig, ax = plt.subplots(figsize = (8,8),dpi=200)
-        u = (rotrefpos[-1,:] - rotrefpos[0,:])
-        print("u : --- ", u)
-        u = u / np.sqrt(np.dot(u,u))
-        print("u : --- ", u)
-        x0 = np.copy(rotrefpos[0,:])
-        
-    
-        rotrefpos = rotrefpos.T # axis 0 : (x,y), axis 1: various vectors
-        rotrefpos[0,:] += - x0[0]
-        rotrefpos[1,:] += - x0[1]
-        dotrefpos = np.dot(u,rotrefpos)
-        rotrefpos[0,:] = (1-factorth)*dotrefpos*u[0] +factorth*rotrefpos[0,:] + x0[0]
-        rotrefpos[1,:] = (1-factorth)*dotrefpos*u[1] +factorth*rotrefpos[1,:] + x0[1]
-        rotrefpos = rotrefpos.T
-        
-        mappos = mappos.T # axis 0 : (x,y), axis 1: various vectors
-        mappos[0,:] += - x0[0]
-        mappos[1,:] += - x0[1]
-        dotmappos = np.dot(u, mappos)
-        mappos[0,:] = (1-factorth)*dotmappos*u[0]+ factorth*mappos[0,:] + x0[0]
-        mappos[1,:] = (1-factorth)*dotmappos*u[1]+ factorth*mappos[1,:] + x0[1]
-        mappos = mappos.T
-        
-         #      (plot to check)
-        plotSpinSites(secondfoldername, "", mappos[:,0], mappos[:,1],
-                      [i for i in range(len(mappos))], putimage = False, **kwargs)
-        plotSpinSites(secondfoldername, "", rotrefpos[:,0], rotrefpos[:,1],
-                      [i for i in range(len(rotrefpos))], putimage = False, color = "red", alpha = 0.5)
-        plotSpinSites(secondfoldername, "", pos[:,0], pos[:,1],
-                      [i for i in range(len(pos))], putimage = False, color = "blue")
-        
-        # -- d) express the (x,y) positions in (m1, m2) coordinates (i.e. on the [a1,a2] basis)
-        m1m2 = mappos
-        m1m2[:,0] = (1/a) * (mappos[:,0] - mappos[:,1]/np.sqrt(3))
-        m1m2[:,1] = (2/a) * (mappos[:,1]/np.sqrt(3))
-        
-        # -- e) now, from m1m2, get (i,j,l)
-        m1m2[:,0] += -1/2 # translate from -1/2 a1
-        ijl, ijl_sconfig = m1m2toijl_mapping(m1m2)
-    else:
-        rot = np.array([[1,0],[0,1]])
-        tr = np.array([0,0])
-        m1m2 = np.array([])
-        ijl = np.array([])
-        ijl_sconfig = {}
-
-    
-    return rot,tr,m1m2,ijl, ijl_sconfig
-
-
-# In[ ]:
-
-def m1m2toijl_mapping(m1m2):
-    '''
-        Getting (i,j,l) coordinates from (m1, m2) tilted axis coordinates
-    '''
-
-    ijl = np.zeros((len(m1m2),3), dtype = 'int')
-    ijl_sconfig = {}
-    for s in range(len(m1m2)):
-        if abs(m1m2[s,0] - round(m1m2[s,0])) > 3e-1:
-            # then l = 1
-            i = m1m2[s,0] + 0.5
-            j = m1m2[s,1] - 0.5
-            if abs(i - round(i)) < 3e-1 and abs(j - round(j)) < 3e-1:
-                ijl[s,:] = np.array([round(i),round(j),1])
-                ijl_sconfig[(round(i), round(j), 1)] = s
-            else:
-                ijl[s,:] = np.array([0,0,-1])
-        else:
-            # then l = 0 or 2
-            if abs(m1m2[s,1] - round(m1m2[s,1])) > 3e-1:
-                # then l = 2
-                i = m1m2[s,0] + 1
-                j = m1m2[s,1] - 0.5
-                ijl_sconfig[(i,j,2)] = s
-                if abs(i - round(i)) < 3e-1 and abs(j - round(j)) < 3e-1:
-                    ijl[s,:] = np.array([round(i),round(j),2])
-                    ijl_sconfig[(round(i), round(j), 2)] = s
-                else:
-                    ijl[s,:] = np.array([0,0,-1])
-            else:
-                # then l = 0
-                i = m1m2[s,0]
-                j = m1m2[s,1]
-                if abs(i - round(i)) < 3e-1 and abs(j - round(j)) < 3e-1:
-                    ijl[s,:] = np.array([round(i),round(j),0])
-                    ijl_sconfig[(round(i), round(j), 0)] = s
-                else:
-                    ijl[s,:] = np.array([0,0,-1])
-                    
-    return ijl, ijl_sconfig
-
-
-# In[ ]:
-
-def StrctFact(ijl, ijl_sconfig, m1m2, sconf,L, periodic = True, subtractm = True, **kwargs):
-    '''
-        Analysis Function calling for kagome ft "subroutines" to
-        compute the structure factor depending on whether the BC
-        are periodic or open
-    '''
-    
-    if not periodic:
-        StrctFact, m = kft.OBCStrctFact(ijl, m1m2, sconf, L, subtractm = subtractm, **kwargs)
-    else:
-        StrctFact, m = kft.PBCStrctFact(L, sconf, ijl_sconfig, subtractm = subtractm, **kwargs)
-    
-    return StrctFact, m
-
-
-# In[ ]:
-
-def SampleCorrelations(ijl, ijl_sconfig, sconf, L, subtractm = False, centered = True, **kwargs):
-    '''
-        Analysis Function computing the centered correlations on a given sample,
-        with no averaging whatsoever
-    '''
-    if centered:
-        print("Centered")
-        # spin site table:
-        (s_ijl, ijl_s) = kf.createspinsitetable(L)
-        nspins = len(s_ijl)
-        N = np.sqrt((nspins**2)) # normalization for the FT
-
-        m = 0
-        print("subtractm = {0}".format(subtractm))
-        if subtractm:
-            for s1 in range(nspins):
-                (i1,j1,l1) = s_ijl[s1]
-                vals1 = sconf[ijl_sconfig[(i1,j1,l1)]]
-
-                m += vals1/nspins
-
-        correlations = np.zeros((3,nspins))
-        marray = np.zeros(nspins)
-        
-        for s1 in range(3):
-            (i1,j1,l1) = s_ijl[s1]
-            vals1 = sconf[ijl_sconfig[(i1,j1,l1)]]    
-            for s2 in range(nspins):
-                (i2,j2,l2) = s_ijl[s2]
-                vals2 = sconf[ijl_sconfig[(i2,j2,l2)]]
-                correlations[s1,s2] = np.asscalar(vals1*vals2 - m**2) # m is zero if not subtractm
-                if s1 == 0:
-                    marray[s2] = vals2
-    else:
-        print("Not centered")
-        correlations, m = Correlations(ijl, ijl_sconfig, sconf, L,
-                                       subtractm = subtractm)
-    return correlations, m
-
-
-# In[ ]:
-
-def Correlations(ijl, ijl_sconfig, sconf, L, subtractm = True, **kwargs):
-    '''
-        Analysis Function computing the centered correlations on a given sample,
-        averaging over the sample
-    '''
-    # spin site table:
-    (s_ijl, ijl_s) = kf.createspinsitetable(L)
-    nspins = len(s_ijl)
-    print("nspins: ", nspins)
-    #N = np.sqrt((nspins**2)) # normalization for the FT
-    
-    #s_pos, ijl_pos = kf.reducedgraphkag(L, s_ijl, ijl_s)
-    
-    # super lattice
-    #n1, n2, Leff, S = kf.superlattice(L)
-    
-    # list of neighbours:
-    listnei = [(0, 0), (0, 1), (1, 0), (-1, 1),
-               (-1, 0), (0, -1),(1, -1)]
-    
-    marray = 0
-    print("subtractm = {0}".format(subtractm))
-    
-    for s1 in range(nspins):
-        (i1,j1,l1) = s_ijl[s1]
-        vals1 = sconf[ijl_sconfig[(i1,j1,l1)]]
-
-        marray += vals1/nspins
-    m = 0
-    if subtractm:
-        m = marray
-    print("subtracted m = ",m)
-    numxtrafix = [0]
-    correlations = np.zeros((3,nspins))
-    for s1 in range(nspins):
-        # location
-        (i1,j1,l1) = s_ijl[s1]
-        # value
-        vals1 = sconf[ijl_sconfig[(i1,j1,l1)]]
-        
-        for s2 in range(s1, nspins):
-            (i2,j2,l2) = s_ijl[s2]
-            vals2 = sconf[ijl_sconfig[(i2,j2,l2)]]
-            
-            c = np.asscalar(vals1*vals2 - m**2) # m is zero if not subtractm
-            
-            (si, sj, sl) = kf.fullfixbc(i2-i1+(L-1), j2-j1+(L-1), l2, L , ijl_s, xtrafix = True, numxtrafix = numxtrafix)
-            correlations[l1,ijl_s[(si, sj, sl)]] += c/(nspins/3) # three sites per unit cell
-            
-            if s2 != s1:
-                (si, sj, sl) = kf.fullfixbc(i1-i2+(L-1), j1-j2+(L-1), l1, L , ijl_s, xtrafix = True, numxtrafix = numxtrafix)
-                correlations[l2,ijl_s[(si, sj, sl)]] += c/(nspins/3)
-
-    print("number of extra fix needed: ", numxtrafix)
-    return correlations, marray
-
-
-# In[ ]:
 
 def plotSpinSites(foldername, imgfile, x, y, listsites, putimage = True, marker = '.', color = 'blue', alpha = 0.3, linestyle='none'):
     xplot = x[listsites]
@@ -478,6 +200,7 @@ def plotSpinSites(foldername, imgfile, x, y, listsites, putimage = True, marker 
 
 # In[ ]:
 
+
 def plotSpinPairs(foldername, imgfile, x, y, listpairs, putimage = True, marker = '.', color = 'blue', alpha = 0.3):
     plotSpinSites(foldername, imgfile, x,y, list(listpairs[0]), putimage = putimage, marker = marker,color = color, alpha = alpha, linestyle = 'solid')
     for pair in listpairs:
@@ -486,11 +209,13 @@ def plotSpinPairs(foldername, imgfile, x, y, listpairs, putimage = True, marker 
 
 # In[ ]:
 
+
 def expdist(sid1, sid2, x, y, factor):
     return np.sqrt((x[sid1]-x[sid2])**2 +(y[sid1]-y[sid2])**2)/factor
 
 
 # In[ ]:
+
 
 def KagomeLatticeHistogram(x, y, factor = 20):
     nspins = len(x)
@@ -515,6 +240,7 @@ def KagomeLatticeHistogram(x, y, factor = 20):
 
 
 # In[ ]:
+
 
 def KagomeLatticeNeighboursLists(distances_s1s2, distconds):
     nn = len(distconds)
@@ -560,7 +286,6 @@ def KagomeLatticeNeighboursLists(distances_s1s2, distconds):
 
 
 # In[ ]:
-
 def KagomeLatticeTriangles(NNList,sizelatt):
     trianglelist = []
 
@@ -585,21 +310,6 @@ def KagomeLatticeTriangles(NNList,sizelatt):
                     trianglelist.append(triangle)
     return trianglelist
 
-
-# In[ ]:
-
-def LoadSpinConfigs(L,n,spinconfigfile):
-    assert(n==1)
-
-    s_ijl, ijl_s = kf.createspinsitetable(L[0])
-    s42_ijl, ijl_s42, s42_realpos, s42_pos, pos_s42, configlist = OBCmapping(L[0], s_ijl, spinconfigfile)
-
-    realspinstates = configlist[:,2:]
-    return s42_ijl, ijl_s42, s42_realpos, s42_pos, pos_s42, realspinstates
-
-
-# In[ ]:
-
 def KagomeLatticeCharges(NNList, sconf, x, y):
     trianglelist = KagomeLatticeTriangles(NNList,len(sconf))
     chargeconf = []
@@ -616,8 +326,19 @@ def KagomeLatticeCharges(NNList, sconf, x, y):
 
     return np.array(chargeconf), np.array(xc), np.array(yc), trianglelist
 
+#
+def LoadSpinConfigs(L,n,spinconfigfile):
+    assert(n==1)
+
+    s_ijl, ijl_s = kf.createspinsitetable(L[0])
+    s42_ijl, ijl_s42, s42_realpos, s42_pos, pos_s42, configlist = OBCmapping(L[0], s_ijl, spinconfigfile)
+
+    realspinstates = configlist[:,2:]
+    return s42_ijl, ijl_s42, s42_realpos, s42_pos, pos_s42, realspinstates
+
 
 # In[ ]:
+
 
 def OBCmapping(L, s_ijl, filename):
     s42_ijl = []
@@ -651,4 +372,3 @@ def OBCmapping(L, s_ijl, filename):
                 y += np.sqrt(3) / 4.0
             s42_pos.append(np.array((x,y)))
     return s42_ijl, ijl_s42, s42_realpos, s42_pos, pos_s42, configlist
-

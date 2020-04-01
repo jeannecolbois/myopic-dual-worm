@@ -4,7 +4,6 @@
 # In[ ]:
 
 import numpy as np
-import dimers as dim
 
 
 # In[ ]:
@@ -625,7 +624,7 @@ def NearestNeighboursLists(L, distmax):
     
     # getting the list of pairs that we're interested in, 
     srefs = [ijl_s[(L,L,0)], ijl_s[(L,L,1)], ijl_s[(L,L,2)]]
-    pairs, distances, distances_spins = sitepairslist(srefs, s_pos, n1,n2,Leff,distmax)
+    pairs, distances, distances_spins = sitepairslist(srefs, s_pos, n1,n2,Leff,distmax+0.01)
     
     NNList = [[[] for i in range(len(distances))] for j in range(len(srefs))]
     
@@ -636,34 +635,38 @@ def NearestNeighboursLists(L, distmax):
                     NNList[j][i].append(pair)
 
     # correct the neighbour lists elements that can cause trouble
-    
-    distances.insert(3, distances[2])
-    distances.insert(7, distances[6])
-    for j in range(len(srefs)):
-        NNList3_0 = []
-        NNList3_1 = []
-        for (s1,s2) in NNList[j][2]:
-            halfway = np.round((s_pos[s1] + s_pos[s2])/2, 4)
-            if list(halfway) in pos:
-                NNList3_0.append((s1,s2))
-            else:
-                NNList3_1.append((s1,s2))
-        
-        NNList6_0 = []
-        NNList6_1 = []
-        for (s1,s2) in NNList[j][5]:
-            halfway = np.round((s_pos[s1] + s_pos[s2])/2, 4)
-            if list(halfway) in pos:
-                NNList6_0.append((s1,s2))
-            else:
-                NNList6_1.append((s1,s2))
-        
-            # replacing in NNList
-        NNList[j][2] =  NNList3_0
-        NNList[j].insert(3, NNList3_1)
-        NNList[j][6] = NNList6_0
-        NNList[j].insert(7, NNList6_1)
-        
+    if distmax >= 2:
+        distances.insert(3, distances[2])
+    if distmax >= 3.5:
+        distances.insert(7, distances[6])
+    if distmax >= 2:
+        for j in range(len(srefs)):
+            NNList3_0 = []
+            NNList3_1 = []
+            for (s1,s2) in NNList[j][2]:
+                halfway = np.round((s_pos[s1] + s_pos[s2])/2, 4)
+                if list(halfway) in pos:
+                    NNList3_0.append((s1,s2))
+                else:
+                    NNList3_1.append((s1,s2))
+
+            if distmax >= 3.5:
+                NNList6_0 = []
+                NNList6_1 = []
+                for (s1,s2) in NNList[j][5]:
+                    halfway = np.round((s_pos[s1] + s_pos[s2])/2, 4)
+                    if list(halfway) in pos:
+                        NNList6_0.append((s1,s2))
+                    else:
+                        NNList6_1.append((s1,s2))
+
+                # replacing in NNList
+            NNList[j][2] =  NNList3_0
+            NNList[j].insert(3, NNList3_1)
+            if distmax >= 3.5:
+                NNList[j][6] = NNList6_0
+                NNList[j].insert(7, NNList6_1)
+
     return distances, distances_spins, NNList, s_pos, srefs
 
 

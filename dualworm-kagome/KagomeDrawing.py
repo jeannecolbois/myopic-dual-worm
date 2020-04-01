@@ -3,7 +3,6 @@
 
 # In[ ]:
 
-
 from functools import lru_cache
 import GraphDrawing as gdw
 import numpy as np
@@ -11,7 +10,6 @@ import matplotlib.pyplot as plt
 
 
 # In[ ]:
-
 
 def fixbc(i, j, l, L):
     '''
@@ -41,7 +39,6 @@ def fixbc(i, j, l, L):
 
 # In[ ]:
 
-
 def createspinsitetable(L):
     '''
         Creates the table of spin sites corresponding to a dice lattice 
@@ -61,7 +58,6 @@ def createspinsitetable(L):
 
 
 # In[ ]:
-
 
 @lru_cache(maxsize = None)
 def graphdice(L, a):
@@ -101,7 +97,6 @@ def graphdice(L, a):
 
 # In[ ]:
 
-
 def reducedgraphdice(L, a, d_ijl, v_ijl, ijl_v):
     #table of where to look at 
     nv = [(0, -1, 2), (0, 0, 1), (0, 0, 2), (-1, 1, 1), (-1, 0, 2), (-1, 0, 1)]
@@ -118,7 +113,6 @@ def reducedgraphdice(L, a, d_ijl, v_ijl, ijl_v):
 
 
 # In[ ]:
-
 
 @lru_cache(maxsize = None)
 def graphkag(L, a):
@@ -159,7 +153,6 @@ def graphkag(L, a):
 
 # In[ ]:
 
-
 @lru_cache(maxsize = None)
 def graphhoneycomb(L, a):
     '''
@@ -181,16 +174,15 @@ def graphhoneycomb(L, a):
         y = a * j * np.sqrt(3) / 2.0
         if l == 0:
             x += a / 2.0
-            y += a / 4.0
+            y += a / (2*np.sqrt(3))
         if l == 1:
-            y += a/ 2.0
+            y += a / np.sqrt(3)
 
         pos[cv] = (x,y)
     return cv_ijl, ijl_cv,pos
 
 
 # In[ ]:
-
 
 # FUCTION LINKING THE EDGE OF THE GRAPH TO THE CORRESPONDING DIMER STATE
 def edge2dimer(L, a, d_ijl, v_ijl, ijl_v, e_2v):
@@ -207,7 +199,6 @@ def edge2dimer(L, a, d_ijl, v_ijl, ijl_v, e_2v):
 
 
 # In[ ]:
-
 
 def plot_dice_nodes(L, a, color='black', s=1, **kargs):
     (v_ijl, ijl_v, e_2v, pos) = graphdice(L, a)
@@ -234,7 +225,6 @@ def plot_dice_dimerstate(state, d_ijl, L, a, node_color = 'black', dim_color = '
 
 # In[ ]:
 
-
 def spinvertex2spin(L,a, ijl_s, sv_ijl):
     '''
         Given a list of spin vertices, associates to each one the corresponding spin
@@ -250,6 +240,20 @@ def spinvertex2spin(L,a, ijl_s, sv_ijl):
 
 # In[ ]:
 
+def chargevertex2charge(L,a, ijl_c, cv_ijl):
+    '''
+        Given a list of spin vertices, associates to each one the corresponding spin
+    '''
+    cv_c = list()
+    for cv, (i, j, l) in enumerate(cv_ijl):
+        (ni, nj, nl) = fixbc(i, j, l, L)
+        c = ijl_c[ni, nj, nl]
+        cv_c.append(c)
+    
+    return cv_c
+
+
+# In[ ]:
 
 def plot_kag_nodes(L, a, color='blue', s=20, **kargs):
     (sv_ijl, ijl_sv, e_2sv, poskag) = graphkag(L,a)
@@ -287,28 +291,42 @@ def plot_kag_spinstate(spinstate, ijl_s, L, a, edge_color = 'lightblue', up_colo
 
 # In[ ]:
 
+def plot_honeycomb_nodes(L, a, color = 'blue', s = 20, **kargs):
+    (cv_ijl, ijl_cv, posh) = graphhoneycomb(L,a)
+    gdw.draw_nodes(posh, list(posh.keys()), c = color, s = s, **kargs)
+    
+def plot_honeycomb_charges(charges, ijl_c, L, a, color = 'red', **kargs):
+    """
+        :param spins: list of charge indices (for instance [3, 5, 2, ...])
+    """
+    (cv_ijl, ijl_cv, posh) = graphhoneycomb(L,a)
+    cv_c = chargevertex2charge(L,a, ijl_c, cv_ijl)
+    chargesthere = []
+    for cv, ijl in enumerate(cv_ijl): #for each key
+        if cv_c[cv] in charges:# look for corresponding spin in spins
+            chargesthere.append(cv) #list of keys
+    gdw.draw_nodes(posh, chargesthere, c = color, **kargs)    
 
-#def plot_honeycomb_nodes(L, a, color = 'blue', s = 20, **kargs):
-#    (cv_ijl, ijl_cv, posh) = graphhoneycomb(L,a)
-#    gdw.draw_nodes(posh, list(posh.keys()), c = color, s = s, **kargs)
-#    
-#def plot_honeycomb_chargestate(chargestate, ijl_c, L, a, edge_color = 'lightblue', **kargs):
-#    """
-#        :param spins: list of spins indices (for instance [3, 5, 2, ...])
-#    """
-#    plot_honeycomb_nodes(L, a, **kargs)
-#    c1 = [c for c, cstate in enumerate(chargestate) if cstate == 3]
-#    c2 = [c for c, cstate in enumerate(chargestate) if cstate == 1]
-#    c3 = [c for c, cstate in enumerate(chargestate) if cstate == -1]
-#    c4 = [c for c, cstate in enumerate(chargestate) if cstate == -3]
-#    if len(c1) != 0:
-#        plot_honeycomb_nodes(c1, ijl_c, L, a, color = up_color, label = 'spin up')
-#    if len(spinsdown) != 0:
-#        plot_kag_spins(spinsdown, ijl_s, L, a, color = down_color, label = 'spin down')
+def plot_honeycomb_chargestate(chargestate, ijl_c, L, a, c1_color = 'red', c2_color = 'green', c3_color = 'green', c4_color = 'red',edge_color = 'lightblue', **kargs):
+    """
+        :param spins: list of spins indices (for instance [3, 5, 2, ...])
+    """
+    plot_honeycomb_nodes(L, a, **kargs)
+    c1 = [c for c, cstate in enumerate(chargestate) if cstate == 3]
+    c2 = [c for c, cstate in enumerate(chargestate) if cstate == 1]
+    c3 = [c for c, cstate in enumerate(chargestate) if cstate == -1]
+    c4 = [c for c, cstate in enumerate(chargestate) if cstate == -3]
+    if len(c1) != 0:
+        plot_honeycomb_charges(c1, ijl_c, L, a, color = c1_color, label = '+3')
+    if len(c2) != 0:
+        plot_honeycomb_charges(c2, ijl_c, L, a, color = c2_color, label = '+1')
+    if len(c3) != 0:
+        plot_honeycomb_charges(c3, ijl_c, L, a, color = c3_color, label = '-1')
+    if len(c4) != 0:
+        plot_honeycomb_charges(c4, ijl_c, L, a, color = c4_color, label = '-3')
 
 
 # In[ ]:
-
 
 #FUNCTION ALLOWING TO PLOT THE FULL STATE
 
@@ -331,7 +349,6 @@ def plotstate(temp_id, L, d_ijl, ijl_s, sidlist, didlist, s2_d, states, spinstat
 
 
 # In[ ]:
-
 
 def plot_function_kag(f, L, a, **kargs):
     '''
@@ -364,7 +381,6 @@ def plot_function_kag(f, L, a, **kargs):
 
 
 # In[ ]:
-
 
 def KagomeSimpleReciprocal(L):
     '''
@@ -413,7 +429,6 @@ def reciprocalgraph(L, a):
 
 # In[ ]:
 
-
 def plot_reciprocal(L, a, n, color = 'blue', **kargs):
     #get the shape of the lattice
     (qv_k1k2, k1k2_qv, pos, factor) = reciprocalgraph(L, a)
@@ -438,7 +453,6 @@ def plot_reciprocal(L, a, n, color = 'blue', **kargs):
 
 
 # In[ ]:
-
 
 def plot_function_reciprocal(f, L, a, s = 400, **kargs):
     '''
