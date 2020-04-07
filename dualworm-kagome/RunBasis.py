@@ -238,7 +238,6 @@ def main(args):
     hkl.dump(states, backup+"_states.hkl")
     hkl.dump(spinstates, backup+"_spinstates.hkl")
     
-    
     print("Job done")
     return statstable, swapst, swapsh, failedupdatesth, failedupdates
 

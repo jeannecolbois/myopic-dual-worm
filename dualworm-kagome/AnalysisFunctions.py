@@ -307,6 +307,55 @@ def LoadStatesFromFile(foldername, filename, L, nh, **kwargs):
 
 # In[ ]:
 
+def LoadGroundStates(foldername, filenamelist,L,nh,iters, **kwargs):
+    n = len(filenamelist)
+    
+    t_spinstates = [[] for _ in range(n)]
+    t_states = [[] for _ in range(n)]
+    t_charges = [[] for _ in range(n)]
+    for nf, filename in enumerate(filenamelist):
+        [t_spinstates[nf], t_states[nf], t_charges[nf]] =                 LoadGroundStatesFromFile(foldername, filename, L[nf],nh[nf],iters[nf],**kwargs)
+        
+    return t_spinstates, t_states, t_charges
+
+
+# In[ ]:
+
+def LoadGroundStatesFromFile(foldername, filename, L, nh,iters, **kwargs):
+    
+    [d_ijl, ijl_d, s_ijl, ijl_s, d_2s, s2_d, d_nd, d_vd, d_wn,
+     sidlist, didlist, c_ijl, ijl_c, c2s, csign] =\
+    dw.latticeinit(L)
+    
+    backup = "./"+foldername+filename
+    
+    it_spinstates = []
+    it_states = []
+    it_charges = []
+    for it in range(iters):
+        groundspinstate = hkl.load(backup+"_groundspinstate_it{0}.hkl".format(it))
+        groundstate = hkl.load(backup+"_groundstate_it{0}.hkl".format(it))
+        if nh == 1:
+            charges = obs.charges(len(s_ijl),[],[],
+                                      groundspinstate, s_ijl, ijl_s,c2s,
+                                      csign)
+        else:
+            charges = obs.charges(len(s_ijl),[],[],
+                                  groundspinstate, s_ijl, ijl_s,c2s,
+                                  csign)
+        it_spinstates.append(groundspinstate)
+        it_states.append(groundstate)
+        it_charges.append(charges)
+        
+    it_spinstates = np.array(it_spinstates, dtype = 'int8')
+    it_states = np.array(it_states, dtype = 'int8')
+    it_charges = np.array(it_states, dtype = 'int8')
+    
+    return it_spinstates, it_states, it_charges 
+
+
+# In[ ]:
+
 def LoadEnergy(foldername, filenamelist, numsites,
                nb, stat_temps, temperatures, stat_hfields,
                listfunctions, **kwargs):

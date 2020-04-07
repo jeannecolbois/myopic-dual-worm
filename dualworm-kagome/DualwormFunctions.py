@@ -153,6 +153,22 @@ def windingtable(d_ijl, L):
 
 # In[ ]:
 
+def winding1and2(d_wn):
+     
+    # Find all the dimers contributing to winding numbers:
+    d_wn_contrib = np.transpose(np.nonzero(d_wn)) # same as np.argwhere with 1, here
+
+    # All the ones corresponding to winding number 1
+    d_w1 = d_wn_contrib[np.argwhere(d_wn_contrib[:,1]==0)][:,0,0]
+
+    # All the ones corresponding to winding number 2:
+    d_w2 = d_wn_contrib[np.nonzero(d_wn_contrib[:,1])[0]][:,0]
+    
+    return d_w1, d_w2
+
+
+# In[ ]:
+
 def latticeinit(L):
     #dual bond table and dictionary:
     (d_ijl, ijl_d) = lattice.createdualtable(L)
@@ -221,6 +237,16 @@ def compute_energy(hamiltonian, state, latsize = 1):
         (number of sites)
     '''
     return dim.hamiltonian(hamiltonian, state)/latsize
+
+
+# In[ ]:
+
+def check_energy(hamiltonian, state, modelenergy, latsize = 1):
+    energy = compute_energy(hamiltonian, state, latsize = latsize)
+    if abs(energy - modelenergy) < 1e-6:
+        return True
+    else:
+        return False
 
 
 # In[ ]:
@@ -988,6 +1014,7 @@ def mcs_swaps(states, spinstates, statesen,
     ssffurther = kwargs.get('ssffurther', False)
     alternate = kwargs.get('alternate', False)
     
+    genMode = kwargs.get('genMode', False)
     #save
     backup = kwargs.get('backup', "")
     ################################
@@ -1015,6 +1042,7 @@ def mcs_swaps(states, spinstates, statesen,
     print("ssf = ", ssf)
     print("alternate = ", alternate)
     print("ssffurther = ", ssffurther)
+    print("genMode = ", genMode)
     swapst = np.array([0 for tid in range(nt)], dtype='int32')
     swapsh = np.array([0 for hid in range(nh)], dtype='int32')
     
@@ -1109,6 +1137,10 @@ def mcs_swaps(states, spinstates, statesen,
                                    num_in_bin, stlen,
                                    magnfuncid, ids2walker,\
                                    c2s = c2s, csign = csign,nnlists = nnlists)
+                if genMode:
+                    wid = ids2walker[0, 0]
+                    hkl.dump(states[wid], backup+"_groundstate_it{0}.hkl".format(it//measperiod))
+                    hkl.dump(spinstates[wid], backup+"_groundspinstate_it{0}.hkl".format(it//measperiod))
                 # it would probably be worth it to parallelise this in c++
                 # ideally I should do it before the spins update, then 
                 # perform the spin update and possibly the replicas in c++.
@@ -1125,6 +1157,7 @@ def mcs_swaps(states, spinstates, statesen,
                                 backup+"_"+namefunctions[funcid]+".hkl",
                                  path = "/binid{0}".format(binid),
                                 mode = 'r+')
+            
         t4 = time()
         t_spins += (t4-t3)/itermcs
 
