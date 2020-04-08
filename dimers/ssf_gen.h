@@ -11,5 +11,6 @@ std::tuple<double, int> genssfs(double J1,
   std::vector<std::tuple<double, int*, int, int>> interactions,
   double h,
   int* state, int* spinstate, int spinstatesize,
-  int* s2p, int nd, double beta, int iters) ;
+  int* s2p, int nd, double beta, int iters,
+  bool fullstateupdate) ;
 #endif // ssf_gen_H

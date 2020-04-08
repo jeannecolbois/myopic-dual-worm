@@ -45,6 +45,7 @@ def StatesCompare(state1, state2, ratio, d_w1, d_w2, d_ijl, **kwargs):
         if df.size/len(d_ijl) > ratio:
             samefamily = False
         else:
+            print("Need detailed comparison")
             # 3.3 find the dimers contributing to the winding numbers: 
             w1array = np.intersect1d(df, d_w1)
             w2array = np.intersect1d(df, d_w2)
@@ -106,15 +107,19 @@ def FamiliesFromStates(hamiltonian,liststates,
                 index = 0
                 
                 # first round: check if it's the same state as one in an existing family
-                while notyet:
-                    if index < len(families):
-                        diffstate = state-liststates[families[index][0]]
-                        if np.all(diffstate==0):
-                            same = True
-                            notyet = False
+                print("First round")
+                while notyet and index < len(families):    
+                    diffstate = state-liststates[families[index][0]]
+                    if np.all(diffstate==0):
+                        same = True
+                        notyet = False
+                    index += 1
+                        
                 
                 # second round: if not, check more carefully what's going on
                 index = 0
+                if notyet:
+                    print("Second round")
                 while notyet:
                     print("Index: ", index)
                     if index < len(families):
@@ -133,7 +138,8 @@ def FamiliesFromStates(hamiltonian,liststates,
                         notyet = False
             else: # if families is empty
                 families.append([stateid])
-    
+        else:
+            print("Not in the gs")
     # 3 - Return the families
     spinfamilies = []
     for family in families:

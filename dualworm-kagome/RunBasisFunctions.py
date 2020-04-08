@@ -69,8 +69,8 @@ def SimulationParameters(args, backup, loadfromfile, d_ijl,
 
     ssf = args.ssf
     alternate = args.alternate
+    fullssf = not args.notfullssfupdate
 
-    s2p = dw.spin2plaquette(ijl_s, s_ijl, s2_d,L)
     if ssf:
         print("single spin flip update")
     if alternate:
@@ -122,7 +122,7 @@ def SimulationParameters(args, backup, loadfromfile, d_ijl,
 
     mode = args.generatingMode
     return [couplings, hamiltonian, ssf, alternate, ssffurther, s2p, temperatures,
-           betas, nt, hfields, nh, mode]
+           betas, nt, hfields, nh, mode, fullssf]
 
 
 # In[ ]:

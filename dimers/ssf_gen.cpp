@@ -9,7 +9,7 @@ std::tuple<double, int> genssfs(double J1,
   std::vector<std::tuple<double, int*, int, int>> interactions,
   double h,
   int* state, int* spinstate, int spinstatesize,
-  int* s2p, int nd, double beta, int iters) {
+  int* s2p, int nd, double beta, int iters, bool fullstateupdate) {
     // // save the state and spinstate
     // int *savestate = new int[statesize];
     // for( int dim = 0; dim < statesize; dim++){
@@ -37,7 +37,13 @@ std::tuple<double, int> genssfs(double J1,
     int num_paths = get<2>(couplings); // number of paths
     int num_nei = get<3>(couplings); // number of dimers/paths
 
-    for(int ssfiter = 0; ssfiter < spinstatesize*iters; ssfiter++) {
+    int ssfitermax = 0;
+    if(fullstateupdate){
+      ssfitermax = spinstatesize;
+    }else{
+      ssfitermax = 1;
+    }
+    for(int ssfiter = 0; ssfiter < ssfitermax*iters; ssfiter++) {
 
       // select a spin at random
       int spinid = int_distrib(random_gen());

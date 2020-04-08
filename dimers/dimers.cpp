@@ -956,7 +956,8 @@ static PyObject* dimers_genssfsevolve(PyObject *self, PyObject *args) {
      * >> #A table of hfields (numpy)
      * >> A table of walker -> (temp, hfield)
      * >> A numpy table to save the number of missed updates
-     * >> A number of cores */
+     * >> A number of cores
+     * >> A python boolean whether we want a full state update */
 
      //------------------------------------------------------INPUT INTERPRETATION---------------------------------------------------------------------//
      PyObject *list_obj;
@@ -968,13 +969,14 @@ static PyObject* dimers_genssfsevolve(PyObject *self, PyObject *args) {
      PyObject *failedupdates_obj; //*saveloops_obj,
      int nthreads;
      int iters;
+     int fullstateupdate;
 
      // take the arguments as pointers + int
-     if(!PyArg_ParseTuple(args,"OOOOOOOOii", &list_obj,
+     if(!PyArg_ParseTuple(args,"OOOOOOOOiii", &list_obj,
      &states_obj, &spinstates_obj, &s2p_obj,
      &walker2params_obj, &walker2ids_obj,
      &energies_obj, &failedupdates_obj,
-     &nthreads, &iters))
+     &nthreads, &iters, &fullstateupdate))
      return nullptr;
 
     //----------------------------//
@@ -1152,7 +1154,7 @@ static PyObject* dimers_genssfsevolve(PyObject *self, PyObject *args) {
     PyThreadState* threadState = PyEval_SaveThread(); // release the GIL
     genssfsevolve(J1, interactions, states, statesize, spinstates, spinstatesize,
       s2p, nd, walker2params, walker2ids, energies, failedupdates, nbwalkers, nthreads, iters,
-      nt, nh); //saveloops = 0
+      nt, nh, fullstateupdate); //saveloops = 0
     PyEval_RestoreThread(threadState); // claim the GIL
 
     // Clean up

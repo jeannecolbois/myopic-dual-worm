@@ -49,7 +49,7 @@ def main(args):
     dw.latticeinit(L)
 
     [couplings, hamiltonian, ssf, alternate, ssffurther, s2p, temperatures,
-     betas, nt, hfields, nh, genMode] =\
+     betas, nt, hfields, nh, genMode, fullssf] =\
     rbf.SimulationParameters(args,backup, loadfromfile, d_ijl,
                              ijl_d, ijl_s, s_ijl, s2_d, L)
 
@@ -119,7 +119,7 @@ def main(args):
           'walker2params':walker2params,'walker2ids':walker2ids,
           'ids2walker':ids2walker,
           's2p':s2p, 'ssf':ssf, 'ssffurther': ssffurther,
-          'alternate':alternate}
+          'alternate':alternate, 'fullstateupdate': True}
 
 
     t1 = time()
@@ -204,7 +204,8 @@ def main(args):
           'walker2ids':walker2ids,'ids2walker':ids2walker,
           'ssf':ssf, 'ssffurther': ssffurther, 
           'alternate':alternate, 'randspinupdate': False,
-         'namefunctions': namefunctions, 'backup': backup,'genMode': genMode}
+         'namefunctions': namefunctions, 'backup': backup,
+          'genMode': genMode, 'fullstateupdate': fullssf}
         # Run measurements
 
     t1 = time()
@@ -311,6 +312,8 @@ if __name__ == "__main__":
                        help = '''prob of the measuring tip flipping the spin (number between 0 and 1)''')
     parser.add_argument('--ssf', default = False, action = 'store_true',
                         help = 'activate for single spin flip update')
+    parser.add_argument('--notfullssfupdate', default = False, action = 'store_ftrue',
+                        help = 'whether to fully update the state or not at each ssf step *during the measurement phase*')
     parser.add_argument('--alternate', default = False, action = 'store_true',
                         help = 'activate for single spin flip update and dw update')
     parser.add_argument('--checkgs', default = False, action = 'store_true',

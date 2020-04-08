@@ -1015,6 +1015,7 @@ def mcs_swaps(states, spinstates, statesen,
     alternate = kwargs.get('alternate', False)
     
     genMode = kwargs.get('genMode', False)
+    fullstateupdate = kwargs.get('fullstateupdate', True) # by default, the ssf updates the whole state.
     #save
     backup = kwargs.get('backup', "")
     ################################
@@ -1043,6 +1044,7 @@ def mcs_swaps(states, spinstates, statesen,
     print("alternate = ", alternate)
     print("ssffurther = ", ssffurther)
     print("genMode = ", genMode)
+    print("fullstateupdate = ", fullstateupdate)
     swapst = np.array([0 for tid in range(nt)], dtype='int32')
     swapsh = np.array([0 for hid in range(nh)], dtype='int32')
     
@@ -1081,9 +1083,10 @@ def mcs_swaps(states, spinstates, statesen,
                                iterworm)
             else:
                 dim.genssfsevolve(hamiltonian, states, spinstates,
-                                 np.array(s2p, dtype = 'int32'),
-                                 walker2params, walker2ids, statesen,
-                                 failedupdates, ncores,iterworm)
+                                  np.array(s2p, dtype = 'int32'),
+                                  walker2params, walker2ids, statesen,
+                                  failedupdates, ncores,iterworm,
+                                  fullstateupdate)
 
         t2 = time()
         t_join += (t2-t1)/itermcs
