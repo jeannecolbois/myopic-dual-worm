@@ -312,7 +312,7 @@ if __name__ == "__main__":
                        help = '''prob of the measuring tip flipping the spin (number between 0 and 1)''')
     parser.add_argument('--ssf', default = False, action = 'store_true',
                         help = 'activate for single spin flip update')
-    parser.add_argument('--notfullssfupdate', default = False, action = 'store_ftrue',
+    parser.add_argument('--notfullssfupdate', default = False, action = 'store_true',
                         help = 'whether to fully update the state or not at each ssf step *during the measurement phase*')
     parser.add_argument('--alternate', default = False, action = 'store_true',
                         help = 'activate for single spin flip update and dw update')
