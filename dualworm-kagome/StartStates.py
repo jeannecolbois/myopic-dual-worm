@@ -625,20 +625,21 @@ def IntermediateInitOneState(spinstate, s_ijl,version, sign, shift, rot):
     # Prepare cells to flip
     L = int(np.sqrt(len(s_ijl)//9))
     listtoflip = []
-    for flipid in range(len(s_ijl)//(9*3)):
+    for flipid in range(L):
         sid = np.random.randint(0,len(s_ijl))
         (i,j,l) = s_ijl[sid]
         (i,j,l) = (i,j,2);
-        if not listtoflip: # only if no flip
-            if version == 0:
-                if rot == 0:
-                    k = (i + 2*j +shift)
-                    m = (i - j+shift)
-                    if k%6 ==5 and m%6 == 5:
-                        localflip = [fixbc(i,j,2,L), fixbc(i-2, j+1,0,L), fixbc(i-2, j, 1,L),
-                                     fixbc(i-1, j-1,2,L), fixbc(i-1,j-1,0,L), fixbc(i,j-1, 1,L)]
-                        listtoflip.append(localflip)
-                        
+        if i>2 and i < 2*L-1 and j > 2 and j < 2*L - 1:
+            if not listtoflip: # only if no flip
+                if version == 0:
+                    if rot == 0:
+                        k = (i + 2*j +shift)
+                        m = (i - j+shift)
+                        if k%6 ==5 and m%6 == 5:
+                            localflip = [fixbc(i,j,2,L), fixbc(i-2, j+1,0,L), fixbc(i-2, j, 1,L),
+                                         fixbc(i-1, j-1,2,L), fixbc(i-1,j-1,0,L), fixbc(i,j-1, 1,L)]
+                            listtoflip.append(localflip)
+
     print("List to flip:", listtoflip)
     for s, (i, j, l) in enumerate(s_ijl):
         if not listtoflip:
@@ -741,7 +742,7 @@ def IntermediateInit(spinstates, nt, nh, s_ijl, same):
         sign = np.random.randint(0,2, dtype = 'int8')*2-1
         shift = np.random.randint(0,6)
         rot = 0
-        IntermediateInit(spinstate, s_ijl,version, sign, shift, rot)
+        IntermediateInitOneState(spinstate, s_ijl,version, sign, shift, rot)
         
         for t in range(nt*nh):
             spinstates[t] = np.copy(spinstate.astype('int8'))
@@ -895,7 +896,7 @@ def LargeJ3Init(spinstates, nt, nh, s_ijl, same):
     else:
         versions = [0 for w in range(nt*nh)]
         signs = [np.random.randint(0,2, dtype = 'int8')*2-1 for w in range(nt*nh)]
-        shifts = [np.random.randint(0,6) for w in range(nt*nh)]
+        shifts = [w%6 for w in range(nt*nh)]
         rots = [np.random.randint(0,3) for w in range(nt*nh)]
         
         for t in range(nt*nh):

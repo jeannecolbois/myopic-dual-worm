@@ -236,7 +236,7 @@ def CheckGs(args, nt, nh, ref_energies, en_states, checkgsid = -1):
             if checkgsid <0:
                 checkgsid = args.checkgsid
             if checkgsid < len(ref_energies):
-                if np.absolute(ref_energies[checkgsid] - en_states[t,h]) > 1e-10:
+                if np.absolute(ref_energies[checkgsid] - en_states[t,h]) > 1e-8:
                     ok = False
                     if ref_energies[checkgsid] < en_states[t,h]:
                         print('RunBasis: Away from gs at t index ', t)

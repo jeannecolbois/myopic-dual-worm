@@ -18,7 +18,8 @@ dualworm-kagome/prun*
 dualworm-kagome/ProfilingAndTesting/*.pkl
 dualworm-kagome/ProfilingAndTesting/*.png
 dualworm-kagome/ProfilingAndTesting/*Results/*
-dualworm-kagome/GroundStates/*
+dualworm-kagome/GroundStates/*/
+dualworm-kagome/GroundStates/*.mat
 ANALYSIS_CSCS/
 Analysis_CSCS/
 Analysis_PSI/

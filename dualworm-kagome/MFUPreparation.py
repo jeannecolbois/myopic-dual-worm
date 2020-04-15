@@ -57,6 +57,8 @@ def StatesCompare(state1, state2, ratio, d_w1, d_w2, d_ijl, **kwargs):
                 samefamily = True
             else: # if some of it is non-zero, then we do need to check.
                 samefamily = False
+                
+            print("Detailed comparison result: samefamily = ", samefamily)
             # FOR NOW WE DO IT SUPER SIMPLE; PROPER WAY WOULD BE:
             
             #if len(w1array) % 2 == 1 or len(w2array) % 2 == 1:
@@ -151,4 +153,104 @@ def FamiliesFromStates(hamiltonian,liststates,
     print("Done!")
     return families, spinfamilies
         
+
+
+# In[ ]:
+
+def getKagomeMap(L,s_ijl):
+    '''
+        getKagomeMap(L,s_ijl)
+        Returns a mapping from the (i,j,l) notation for the kagome structure
+        to the (x,y) notation. In the (x,y) notation, sites with
+        both x odd and y odd don't exist.
+        
+        Inputs:
+        - L: the linear size of the triangular sub-lattice
+        - s_ijl:  the mapping between the linear
+        indexing and the ijl indexing
+        
+        Outputs:
+        - xyarray : s-> x,y
+        - ijl_xy (dict)
+        - xy_ijl (dict)
+        - xy_s (dict)
+    '''
+    xyarray = np.zeros((len(s_ijl), 2), dtype = "int32")
+    ijl_xy = {}
+    xy_ijl = {}
+    xy_s = {}
+    for s, (i,j,l) in enumerate(s_ijl):
+        # shifting to get reasonable results for x,y
+        i = i-L;
+        j = j-L;
+        # computing xy
+        if l == 0:
+            x = 2*(i+j)
+            y = 2*j - 1
+        elif l == 1:
+            x = 2*(i+j)
+            y = 2*j
+        elif l == 2:
+            x = 2*(i+j)-1
+            y = 2*j
+        # building the maps
+        xyarray[s,:] = np.array([x,y])
+        ijl_xy[(i,j,l)] = np.array([x,y])
+        xy_ijl[(x,y)] = np.array((i,j,l))
+        xy_s[(x,y)] = s
+    return xyarray, ijl_xy, xy_ijl, xy_s
+
+
+# In[ ]:
+
+def mapStateToMatrix(L,s_ijl, spinstate):
+    '''
+        mapStateToMatrix(L,s_ijl, spinstate)
+        Returns the spin state in the form of a matrix
+        
+        Inputs:
+        - L: the linear size of the triangular sub-lattice
+        - s_ijl:  the mapping between the linear
+        indexing and the ijl indexing
+        - spinstate: the spin configuration to translate
+        
+        Outputs:
+        - matrix form of the state;
+        the odd (x,y) indices are padded with zeros
+    '''
+    xyarray, ijl_xy, xy_ijl, xy_s = getKagomeMap(L,s_ijl)
+    
+    xyarray[:,0] = xyarray[:,0] - (min(xyarray[:,0])-1)
+    xyarray[:,1] = xyarray[:,1] - (min(xyarray[:,1])-1)
+    
+    xystate = np.zeros((max(xyarray[:,0])+1, max(xyarray[:,1])+1),dtype = "int8")
+    for sid, s in enumerate(spinstate):
+        [x,y] = xyarray[sid]
+        xystate[x,y] = s
+    
+    return xystate
+
+
+# In[ ]:
+
+def mapStatesToMatrices(L, s_ijl, spinstates):
+    '''
+        mapStatesToMatrices(L,s_ijl, spinstates)
+        Returns the spin states in the form of matrices
+        
+        Inputs:
+        - L: the linear size of the triangular sub-lattice
+        - s_ijl:  the mapping between the linear
+        indexing and the ijl indexing
+        - spinstates: a list of spin configurations to translate
+        
+        Outputs:
+        - list of matrix forms of the states;
+        the odd (x,y) indices are padded with zeros
+    '''
+    mlist = []
+    for i in range(len(spinstates)):
+        mlist.append(mapStateToMatrix(L, s_ijl, spinstates[i]))
+    
+    return mlist
 
