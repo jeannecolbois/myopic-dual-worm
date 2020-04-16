@@ -194,7 +194,7 @@ def CheckEnergies(hamiltonian, energies, states, spinstates,
 
     for t in range(nt):
         for h in range(nh):
-            if np.absolute(energies[t,h]-new_en_states[t,h]) > 1.0e-09:
+            if np.absolute(energies[t,h]-new_en_states[t,h]) > 1.0e-08*np.absolute(new_en_states[t,h]):
                 print('RunBasis: Issue at temperature index ', t, ' and h index ', h)
                 print("   energies[t,h] = ", energies[t,h])
                 print("   H0[t,h] = ", dim.hamiltonian(hamiltonian,
@@ -236,7 +236,7 @@ def CheckGs(args, nt, nh, ref_energies, en_states, checkgsid = -1):
             if checkgsid <0:
                 checkgsid = args.checkgsid
             if checkgsid < len(ref_energies):
-                if np.absolute(ref_energies[checkgsid] - en_states[t,h]) > 1e-8:
+                if np.absolute(ref_energies[checkgsid] - en_states[t,h]) > 1e-8*np.absolute(ref_energies[checkgsid]):
                     ok = False
                     if ref_energies[checkgsid] < en_states[t,h]:
                         print('RunBasis: Away from gs at t index ', t)
