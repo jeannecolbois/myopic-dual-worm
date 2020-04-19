@@ -54,9 +54,20 @@ def main(args):
                              ijl_d, ijl_s, s_ijl, s2_d, L)
 
     if loadfromfile:
-        walker2params = hkl.load(loadbackup+"/backup_walker2params.hkl")
-        walker2ids = hkl.load(loadbackup+"/backup_walker2ids.hkl")
-        ids2walker = hkl.load(loadbackup+"/backup_ids2walker.hkl")
+        try:
+            walker2params = hkl.load(loadbackup+"/backup_walker2params.hkl")
+        except OSError:
+            pass
+        
+        try:
+            walker2ids = hkl.load(loadbackup+"/backup_walker2ids.hkl")
+        except OSError:
+            pass
+        
+        try:
+            ids2walker = hkl.load(loadbackup+"/backup_ids2walker.hkl")
+        except OSError:
+            [walker2params, walker2ids, ids2walker] =            dw.walkerstable(betas, nt, hfields, nh)
     else:
         [walker2params, walker2ids, ids2walker] =        dw.walkerstable(betas, nt, hfields, nh)
     # Saving the status:
@@ -149,7 +160,9 @@ def main(args):
         # save status and throw an error
         hkl.dump(states, backup+"_states.hkl")
         hkl.dump(spinstates, backup+"_spinstates.hkl")
-        
+        hkl.dump(walker2params, backup+"_walker2params.hkl")
+        hkl.dump(walker2ids, backup+"_walker2ids.hkl")
+        hkl.dump(ids2walker, backup+"_ids2walker.hkl")
         print("/!\ Problem with generating mode ...States and spinstates saved")
         raise Exception('''The generating Mode is activated
         but the states are not in the ground state after thermalisation.
