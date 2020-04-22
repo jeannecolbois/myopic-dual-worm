@@ -349,7 +349,7 @@ def LoadGroundStatesFromFile(foldername, filename, L, nh,iters, **kwargs):
         
     it_spinstates = np.array(it_spinstates, dtype = 'int8')
     it_states = np.array(it_states, dtype = 'int8')
-    it_charges = np.array(it_states, dtype = 'int8')
+    it_charges = np.array(it_charges, dtype = 'int8')
     
     return it_spinstates, it_states, it_charges 
 

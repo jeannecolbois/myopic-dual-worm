@@ -19,11 +19,12 @@ import DualwormFunctions as dw
 
 # In[ ]:
 
-def StatesCompare(state1, state2, ratio, d_w1, d_w2, d_ijl, **kwargs):
+def StatesCompare(state1, state2, ratio, d_w1, d_w2, d_ijl, verbose = False):
     '''
         This function compares two states and decides whether they belong to the same family
     '''
-    print("Comparing...")
+    if verbose:
+        print("Comparing...")
     # 1 - Make the difference between the two dimer states
     diffstate = state1-state2
     
@@ -37,28 +38,28 @@ def StatesCompare(state1, state2, ratio, d_w1, d_w2, d_ijl, **kwargs):
         # 3.1 - Find all the dual bonds where the state has flipped
         df = np.nonzero(diffstate)
         df = df[0]
-        
-        print("length of df = ", df.size)
+        if verbose:
+            print("length of df = ", df.size)
         # 3.2 - If the number of flipped dimers is high as compared to d_ijl,
         # then we consider the move to be non-local (to avoid spending too much time
         # finding out the winding number)
         if df.size/len(d_ijl) > ratio:
             samefamily = False
         else:
-            print("Need detailed comparison")
             # 3.3 find the dimers contributing to the winding numbers: 
             w1array = np.intersect1d(df, d_w1)
             w2array = np.intersect1d(df, d_w2)
-            
-            print("w1 array:", w1array)
-            print("w2 array:", w2array)
             
             if w1array.size == 0 and w2array.size == 0:
                 samefamily = True
             else: # if some of it is non-zero, then we do need to check.
                 samefamily = False
                 
-            print("Detailed comparison result: samefamily = ", samefamily)
+            if verbose:
+                print("Need detailed comparison")
+                print("w1 array:", w1array)
+                print("w2 array:", w2array)
+                print("Detailed comparison result: samefamily = ", samefamily)
             # FOR NOW WE DO IT SUPER SIMPLE; PROPER WAY WOULD BE:
             
             #if len(w1array) % 2 == 1 or len(w2array) % 2 == 1:
@@ -84,6 +85,7 @@ def StatesCompare(state1, state2, ratio, d_w1, d_w2, d_ijl, **kwargs):
 def FamiliesFromStates(hamiltonian,liststates,
                        gsenergy, listspinstates,
                        d_wn, latsize, ratio, d_ijl,
+                       verbose = False,
                        **kwargs):
     '''
         From a list of states, this function creates families of similar state
@@ -109,7 +111,8 @@ def FamiliesFromStates(hamiltonian,liststates,
                 index = 0
                 
                 # first round: check if it's the same state as one in an existing family
-                print("First round")
+                if verbose:
+                    print("First round")
                 while notyet and index < len(families):    
                     diffstate = state-liststates[families[index][0]]
                     if np.all(diffstate==0):
@@ -120,15 +123,17 @@ def FamiliesFromStates(hamiltonian,liststates,
                 
                 # second round: if not, check more carefully what's going on
                 index = 0
-                if notyet:
+                if notyet and verbose:
                     print("Second round")
                 while notyet:
-                    print("Index: ", index)
+                    if verbose:
+                        print("Index: ", index)
                     if index < len(families):
                         [same, samefamily] =                        StatesCompare(state, liststates[families[index][0]], ratio,
-                                      d_w1, d_w2, d_ijl, **kwargs)
+                                      d_w1, d_w2, d_ijl, verbose = verbose, **kwargs)
                         if same:
-                            print("Somehow missed that it's the same the first time...")
+                            if verbose:
+                                print("Somehow missed that it's the same the first time...")
                         elif (not same) and samefamily:
                             families[index].append(stateid)
                             notyet = False
