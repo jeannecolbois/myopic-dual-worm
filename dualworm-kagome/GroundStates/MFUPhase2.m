@@ -13,14 +13,15 @@ sites=[1   0;
        2   2;
        2   3;
        3   2];
+
+
 basis=[2 0;
-       0 2];
-   
+    0 2];
+
 unit.sites=sites; unit.basis=basis;
 
-
-foldername = "./J1J3FamiliesCluster/Results/";
+foldername = "./Phase2Families/Results/";
 
 [MFUFamConfigs, MFUConfigs] = RequiredConfigurations(unit,foldername);
 
-save("J1J3MFUfromMC_Cluster.mat", 'unit','foldername','MFUFamConfigs','MFUConfigs');
+save("Phase2MFUfromMC.mat", 'unit','foldername','MFUFamConfigs','MFUConfigs');
