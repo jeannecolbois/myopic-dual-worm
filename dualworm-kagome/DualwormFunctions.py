@@ -951,6 +951,7 @@ def mcs_swaps(states, spinstates, statesen,
                 'hfields':hfields
                 'walker2params': walker2params
                 'walker2ids': walker index -> parameters indices
+                'verbose': verbose
         < states, spins states = tables that will be updated as the new 
         states and spinstates get computed
         < statesen : energy of the states
@@ -1018,6 +1019,8 @@ def mcs_swaps(states, spinstates, statesen,
     fullstateupdate = kwargs.get('fullstateupdate', True) # by default, the ssf updates the whole state.
     #save
     backup = kwargs.get('backup', "")
+    
+    verbose = kwargs.get('verbose', False)
     ################################
     # actual code
     ################################
@@ -1062,9 +1065,14 @@ def mcs_swaps(states, spinstates, statesen,
         #### EVOLVE using the mcsevolve function of the dimer
         #### module (C)
         # Note that states, betas, statesen get updated
+        if verbose:
+            print("Iteration: ", it)
+            
         t1 = time()
         
         if (not ssf) or alternate:
+            if verbose:
+                print("   magnetic mcs")
             dim.magneticmcsevolve(hamiltonian, 
                                   states, spinstates,
                                   d_nd, d_vd, d_wn, sidlist,
@@ -1076,12 +1084,16 @@ def mcs_swaps(states, spinstates, statesen,
 
         if ssf or alternate:
             if not ssffurther:
+                if verbose:
+                    print("   ssf")
                 dim.ssfsevolve(hamiltonian[0], states, spinstates,
                                np.array(s2p, dtype = 'int32'),
                                walker2params, walker2ids, statesen,
                                failedupdates, ncores,
                                iterworm)
             else:
+                if verbose:
+                    print("   ssf")
                 dim.genssfsevolve(hamiltonian, states, spinstates,
                                   np.array(s2p, dtype = 'int32'),
                                   walker2params, walker2ids, statesen,

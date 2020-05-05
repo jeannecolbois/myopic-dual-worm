@@ -39,7 +39,6 @@ def correlationsTester(state, latsize, d_ijl, ijl_d, L):
     EJ4 = dw.compute_energy(hamiltonian, state, latsize)
     
     config = {'J1':EJ1, 'J2': EJ2, 'J3':EJ3, 'J4': EJ4}
-    print('J1 :', EJ1, '\nJ2 :', EJ2, '\nJ3 :', EJ3, '\nJ4 :', EJ4)
     
     return config
 
@@ -74,14 +73,15 @@ def LoadParameters(foldername, filenamelist):
     listfunctions = [[] for _ in range(n)]
     
     sref = [[] for _ in range(n)]
+    ids2walker = [0 for _ in range(n)]
     
     for nf, filename in enumerate(filenamelist):
         [L[nf], numsites[nf], J1[nf], J2[nf], J3[nf], J3st[nf], J4[nf], nb[nf], 
          num_in_bin[nf], temperatures[nf], nt[nf], stat_temps[nf], temperatures_plots[nf],
          hfields[nf], nh[nf], stat_hfields[nf], hfields_plots[nf],
-         listfunctions[nf], sref[nf]] = LoadParametersFromFile(foldername, filename)
+         listfunctions[nf], sref[nf], ids2walker[nf]] = LoadParametersFromFile(foldername, filename)
     
-    return L, numsites, J1, J2, J3, J3st, J4, nb, num_in_bin, temperatures, nt,             stat_temps, temperatures_plots, hfields, nh,             stat_hfields, hfields_plots, listfunctions, sref
+    return L, numsites, J1, J2, J3, J3st, J4, nb, num_in_bin, temperatures, nt,             stat_temps, temperatures_plots, hfields, nh,             stat_hfields, hfields_plots, listfunctions, sref, ids2walker
 
 
 # In[ ]:
@@ -129,8 +129,9 @@ def LoadParametersFromFile(foldername, filename):
     s2 = ijl_s[L, L, 2]
     
     sref = [s0, s1, s2]
+    ids2walker = hkl.load("./"+foldername+filename+"_ids2walker.hkl")
     
-    return L, numsites, J1, J2, J3, J3st, J4, nb, num_in_bin, temperatures, nt,             stat_temps, temperatures_plots, hfields, nh,             stat_hfields, hfields_plots, listfunctions, sref
+    return L, numsites, J1, J2, J3, J3st, J4, nb, num_in_bin, temperatures, nt,             stat_temps, temperatures_plots, hfields, nh,             stat_hfields, hfields_plots, listfunctions, sref, ids2walker
 
 
 # In[ ]:

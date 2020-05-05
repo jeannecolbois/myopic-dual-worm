@@ -130,7 +130,9 @@ def main(args):
           'walker2params':walker2params,'walker2ids':walker2ids,
           'ids2walker':ids2walker,
           's2p':s2p, 'ssf':ssf, 'ssffurther': ssffurther,
-          'alternate':alternate, 'fullstateupdate': True}
+          'alternate':alternate, 'fullstateupdate': True,
+          'verbose':args.verbose
+         }
 
 
     t1 = time()
@@ -375,6 +377,7 @@ if __name__ == "__main__":
                         help = 'activate if you want to save first correlations, otherwise will save central')
     #SAVE
     parser.add_argument('--output', type = str, default = "randomoutput.dat", help = 'saving filename (.pkl will be added)')
+    parser.add_argument('--verbose', default = False, action = 'store_true', help = 'verbose')
     args = parser.parse_args()
     
     main(args)
