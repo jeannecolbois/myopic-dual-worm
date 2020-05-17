@@ -9,3 +9,6 @@ dualworm-kagome/__pycache__/
 ANALYSIS_CSCS/
 Analysis_CSCS/
 Analysis_PSI/
+Analysis_MFUs/
+dualworm-kagome/GroundStates/*
+dualworm-kagome/ProfilingAndTesting/*
