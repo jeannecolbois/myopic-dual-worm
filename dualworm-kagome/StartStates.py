@@ -1,13 +1,15 @@
-
+#!/usr/bin/env python
 # coding: utf-8
 
 # In[ ]:
+
 
 from DualwormFunctions import compute_energy
 import numpy as np
 
 
 # In[ ]:
+
 
 def fixbc(i, j, l, L):
     '''
@@ -37,6 +39,7 @@ def fixbc(i, j, l, L):
 
 # In[ ]:
 
+
 def magnetisedInit(spinstates, nt, nh, s_ijl, hfields, same):
    
     if same:
@@ -65,6 +68,7 @@ def magnetisedInit(spinstates, nt, nh, s_ijl, hfields, same):
 
 
 # In[ ]:
+
 
 def magnetisedInitStripes(spinstates, nt, nh,
                           s_ijl, hfields, same):
@@ -104,6 +108,7 @@ def magnetisedInitStripes(spinstates, nt, nh,
 
 
 # In[ ]:
+
 
 def magnetisedInitMaxFlip(spinstates, nt, nh,
                           s_ijl, hfields, same):
@@ -163,6 +168,7 @@ def magnetisedInitMaxFlip(spinstates, nt, nh,
 
 # In[ ]:
 
+
 def magnetisedInit06(spinstates, nt, nh, s_ijl, hfields, same):
    
     if same:
@@ -221,6 +227,7 @@ def magnetisedInit06(spinstates, nt, nh, s_ijl, hfields, same):
 
 # In[ ]:
 
+
 def J1J2Init(spinstates, nt, nh, s_ijl, same):
     if same:
         #print("In same (J1J2)")
@@ -259,6 +266,7 @@ def J1J2Init(spinstates, nt, nh, s_ijl, same):
 
 # In[ ]:
 
+
 def J1J3InitOneState(spinstate, s_ijl, version, sign, shift, rot):
     if version == 0:
         if rot == 0:
@@ -285,6 +293,7 @@ def J1J3InitOneState(spinstate, s_ijl, version, sign, shift, rot):
 
 # In[ ]:
 
+
 def J1J3Init(spinstates, nt, nh, s_ijl, same):
     if same:
         sign = np.random.randint(0,2, dtype = 'int8')*2 -1
@@ -306,6 +315,7 @@ def J1J3Init(spinstates, nt, nh, s_ijl, same):
 
 
 # In[ ]:
+
 
 def LargeJ2InitOneState(spinstate, s_ijl, version, sign, shift, rot):
     if version == 0:
@@ -599,6 +609,7 @@ def LargeJ2InitOneState(spinstate, s_ijl, version, sign, shift, rot):
 
 # In[ ]:
 
+
 def LargeJ2Init(spinstates, nt, nh, s_ijl, same):
     if same:
         version = np.random.randint(0,3)
@@ -620,6 +631,7 @@ def LargeJ2Init(spinstates, nt, nh, s_ijl, same):
 
 
 # In[ ]:
+
 
 def IntermediateInitOneState(spinstate, s_ijl,version, sign, shift, rot):
     # Prepare cells to flip
@@ -735,6 +747,7 @@ def IntermediateInitOneState(spinstate, s_ijl,version, sign, shift, rot):
 
 # In[ ]:
 
+
 def IntermediateInit(spinstates, nt, nh, s_ijl, same):
     if same:
         spinstate = np.zeros(len(s_ijl), dtype = 'int8')
@@ -756,6 +769,7 @@ def IntermediateInit(spinstates, nt, nh, s_ijl, same):
 
 
 # In[ ]:
+
 
 def LargeJ3InitOneState(spinstate, s_ijl, version, sign, shift, rot):
     if version == 0:
@@ -862,30 +876,30 @@ def LargeJ3InitOneState(spinstate, s_ijl, version, sign, shift, rot):
                     else:
                         spinstate[s] = sign
     if version == 1:
-        print("Warning: LargeJ3 test version!!!")
         # for now only one version
         for s, (i, j, l) in enumerate(s_ijl):
-            loc = (i + 2*j + shift)%3
+            loc = j % 2
             if loc == 0:
-                if l == 0:
-                    spinstate[s] = np.random.randint(0, 2)*2 -1
-                else:
+                if l == 2:
                     spinstate[s] = sign
+                else:
+                    spinstate[s] = -sign
             if loc == 1:
-                spinstate[s] = - sign
-            if loc == 2:
-                if l == 1:
+                if l == 2:
                     spinstate[s] = -sign
                 else:
                     spinstate[s] = sign
-    spinstate = spinstate.astype('int8')         
 
 
 # In[ ]:
 
-def LargeJ3Init(spinstates, nt, nh, s_ijl, same):
+
+def LargeJ3Init(spinstates, nt, nh, s_ijl, same, **kwargs):
+    test = kwargs.get('test', False)
     if same:
         version = 0
+        if test:
+            version = 1
         sign = np.random.randint(0,2, dtype = 'int8')*2-1
         shift = np.random.randint(0,6)
         rot = np.random.randint(0,3)
@@ -895,15 +909,18 @@ def LargeJ3Init(spinstates, nt, nh, s_ijl, same):
         spinstates = [np.copy(spinstate.astype('int8')) for w in range(nt*nh)]
     else:
         versions = [0 for w in range(nt*nh)]
+        if test:
+            versions = [1 for w in range(nt*nh)]
         signs = [np.random.randint(0,2, dtype = 'int8')*2-1 for w in range(nt*nh)]
         shifts = [w%6 for w in range(nt*nh)]
         rots = [np.random.randint(0,3) for w in range(nt*nh)]
-        
+        print("versions = ", versions)
         for t in range(nt*nh):
             LargeJ3InitOneState(spinstates[t], s_ijl, versions[t], signs[t], shifts[t], rots[t])
 
 
 # In[ ]:
+
 
 def DipolarToJ4Init(spinstates, nt, s_ijl):
     for t in range(nt*nh):
@@ -1043,6 +1060,7 @@ def DipolarToJ4Init(spinstates, nt, s_ijl):
 
 # In[ ]:
 
+
 def J1Init(spinstates, nt, nh, s_ijl, same):
     #print('In J1 init')
     if same:
@@ -1067,6 +1085,7 @@ def J1Init(spinstates, nt, nh, s_ijl, same):
 
 
 # In[ ]:
+
 
 def determine_init(hamiltonian, magninit, **kwargs):
     '''
@@ -1122,6 +1141,7 @@ def determine_init(hamiltonian, magninit, **kwargs):
 
 # In[ ]:
 
+
 def statesinit(nt, nh, hfields, id2walker, d_ijl, d_2s, s_ijl,
                hamiltonian, random = True, same = False,\
                magninit = False, **kwargs):
@@ -1139,6 +1159,7 @@ def statesinit(nt, nh, hfields, id2walker, d_ijl, d_2s, s_ijl,
     spinstates = [(np.random.randint(0, 2, size=len(s_ijl), dtype = 'int8')*2 - 1) for i in range(nt*nh)]
     if not random:
         inittype = determine_init(hamiltonian, magninit, **kwargs) 
+        spinstates = [np.zeros(len(s_ijl), dtype = 'int8') for i in range(nt*nh)]
         print("Initialisation type: ", inittype)
         if inittype == "magninit":
             magnetisedInit(spinstates, nt, nh, s_ijl, hfields, same)
@@ -1158,7 +1179,7 @@ def statesinit(nt, nh, hfields, id2walker, d_ijl, d_2s, s_ijl,
         elif inittype == "J1J2J3Intermediate":
             IntermediateInit(spinstates, nt, nh, s_ijl, same)
         elif inittype == "J1J2J3LJ3":
-            LargeJ3Init(spinstates, nt,nh, s_ijl, same)
+            LargeJ3Init(spinstates, nt,nh, s_ijl, same, **kwargs)
         elif inittype == "J1J2J3J4":
             DipolarToJ4Init(spinstates, nt*nh, s_ijl, same)
         else:

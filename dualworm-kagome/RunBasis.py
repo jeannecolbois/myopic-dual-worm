@@ -1,7 +1,8 @@
-
+#!/usr/bin/env python
 # coding: utf-8
 
 # In[ ]:
+
 
 import numpy as np
 import dimers as dim
@@ -21,6 +22,7 @@ import argparse
 
 
 # In[ ]:
+
 
 def main(args):
     
@@ -260,6 +262,7 @@ def main(args):
 
 # In[ ]:
 
+
 if __name__ == "__main__":
 
     ### PARSING
@@ -301,6 +304,8 @@ if __name__ == "__main__":
     parser.add_argument('--same', default = False, action = 'store_true',
                         help = '''initialise all temperatures with the same
                         state (debug purposes)''')
+    parser.add_argument('--testinit', default = False, action = 'store_true',
+                        help = '''test some given initialisation''')
     parser.add_argument('--magninit', default = False, action = 'store_true',
                         help = '''initialise all the temperature with
                         one of the m=1/3 GS''')

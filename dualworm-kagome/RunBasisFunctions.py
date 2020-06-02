@@ -1,7 +1,8 @@
-
+#!/usr/bin/env python
 # coding: utf-8
 
 # In[ ]:
+
 
 import numpy as np
 import dimers as dim
@@ -19,6 +20,7 @@ import argparse
 
 
 # In[ ]:
+
 
 def SafePreparation(args):
     '''
@@ -41,6 +43,7 @@ def SafePreparation(args):
 
 
 # In[ ]:
+
 
 def SimulationParameters(args, backup, loadfromfile, d_ijl,
                          ijl_d, ijl_s, s_ijl, s2_d, L):
@@ -127,6 +130,7 @@ def SimulationParameters(args, backup, loadfromfile, d_ijl,
 
 # In[ ]:
 
+
 def StatesAndEnergyInit(args, backup, loadbackup,hamiltonian, ids2walker,
                         nt, nh, hfields, d_ijl, d_2s, s_ijl,
                        couplings, L):
@@ -155,10 +159,11 @@ def StatesAndEnergyInit(args, backup, loadbackup,hamiltonian, ids2walker,
         print('Magnetisation initialisation = ', magninit)
         maxflip = args.maxflip
         magnstripes = args.magnstripes
+        testinit = args.testinit
 
         kwinit = {'random': randominit, 'same': same, 
                   'magninit': magninit, 'maxflip':maxflip,
-                 'magnstripes': magnstripes}
+                 'magnstripes': magnstripes, 'test': testinit}
 
         hkl.dump(kwinit, backup+".hkl", path = "/parameters/kwinit", mode = 'r+')
         
@@ -177,6 +182,7 @@ def StatesAndEnergyInit(args, backup, loadbackup,hamiltonian, ids2walker,
 
 
 # In[ ]:
+
 
 def CheckEnergies(hamiltonian, energies, states, spinstates,
                   hfields, nh, ids2walker, nt):
@@ -208,6 +214,7 @@ def CheckEnergies(hamiltonian, energies, states, spinstates,
 
 # In[ ]:
 
+
 def CheckStates(spinstates, states, d_2s):
     '''
         This function checks whether the given spin states and dimer states are
@@ -219,6 +226,7 @@ def CheckStates(spinstates, states, d_2s):
 
 
 # In[ ]:
+
 
 def CheckGs(args, nt, nh, ref_energies, en_states, checkgsid = -1):
     '''
@@ -252,6 +260,7 @@ def CheckGs(args, nt, nh, ref_energies, en_states, checkgsid = -1):
 
 # In[ ]:
 
+
 def GSEnergies(args, L, couplings):
     '''
         If args.checkgs is true, this function computes the expected ground
@@ -282,6 +291,7 @@ def GSEnergies(args, L, couplings):
 
 
 # In[ ]:
+
 
 def ObservablesInit(args, backup, s_ijl, ijl_s, L):
     '''
@@ -348,6 +358,7 @@ def ObservablesInit(args, backup, s_ijl, ijl_s, L):
 
 # In[ ]:
 
+
 def Temperatures2MeasureInit(args, backup, temperatures, nt):
     '''
         Initialisation of the measurement temperatures
@@ -374,6 +385,7 @@ def Temperatures2MeasureInit(args, backup, temperatures, nt):
 
 
 # In[ ]:
+
 
 def MagneticFields2MeasureInit(args, backup, hfields, nh):
     '''
