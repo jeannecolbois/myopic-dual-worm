@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+
 # coding: utf-8
 
 # In[ ]:
@@ -14,6 +14,7 @@ import KagomeDrawing as kdraw
 import KagomeFT as kft
 import Observables as obs
 import warnings
+import os
 
 
 # In[ ]:
@@ -133,8 +134,12 @@ def LoadParametersFromFile(foldername, filename):
     s2 = ijl_s[L, L, 2]
     
     sref = [s0, s1, s2]
-    ids2walker = hkl.load("./"+foldername+filename+"_ids2walker.hkl")
-    
+    if os.path.isfile("./"+foldername+filename+"_ids2walker.hkl"):
+        ids2walker = hkl.load("./"+foldername+filename+"_ids2walker.hkl")
+    else:
+        ids2walker = []
+        warnings.warn("ids2walker not found, not loaded!")
+        
     return L, numsites, J1, J2, J3, J3st, J4, nb, num_in_bin, temperatures, nt,             stat_temps, temperatures_plots, hfields, nh,             stat_hfields, hfields_plots, listfunctions, sref, ids2walker
 
 
@@ -522,6 +527,58 @@ def LoadMagnetisationFromFile(foldername, filename, numsites, nb, stat_temps,
         ErrChi.append(ErrChih)
     
     return  t_h_MeanM,  t_h_MeanMsq, t_h_varMeanM, t_h_varMeanMsq, Chi, ErrChi
+
+
+# In[ ]:
+
+
+def LoadFirstCorrelations(foldername, filenamelist, listfunctions, sref, stat_temps, stat_hfields, nb, **kwargs):
+    n = len(filenamelist)
+    
+    ## "First Correlations" (check!!)
+    t_h_MeanFc = [[] for _ in range(n)]
+    t_h_varMeanFc = [[] for _ in range(n)]
+    
+    ## Local spin average
+    t_h_MeanSi = [[] for _ in range(n)]
+    t_h_varMeanSi = [[] for _ in range(n)]
+    
+    for nf, filename in enumerate(filenamelist):
+        if ('FirstCorrelations' in listfunctions[nf] 
+            and 'Si' in listfunctions[nf]):
+            # This will be improved when we will work with a more
+            # general way of handling the correlations
+            idfunc = listfunctions[nf].index('FirstCorrelations')
+            idfuncsi = listfunctions[nf].index('Si')
+
+            [t_h_MeanFc[nf], t_h_varMeanFc[nf], t_h_MeanSi[nf],
+             t_h_varMeanSi[nf]] =\
+            LoadFirstCorrelationsFromFile(foldername, filename, idfunc,
+                                     idfuncsi, sref[nf], stat_temps[nf],
+                                     stat_hfields[nf], nb[nf], **kwargs)
+        else:
+            [t_h_MeanFc[nf], t_h_varMeanFc[nf], t_h_MeanSi[nf], t_h_varMeanSi[nf]] = [[],[],[],[]]
+    return t_h_MeanFc, t_h_varMeanFc, t_h_MeanSi, t_h_varMeanSi
+
+
+# In[ ]:
+
+
+def LoadFirstCorrelationsFromFile(foldername, filename, idfunc, idfuncsi, sref, stat_temps, stat_hfields, nb, **kwargs):
+    
+    backup = "./"+foldername+filename
+    name = "FirstCorrelations"
+    namesi = "Si"
+    
+    # Averages and corresponding variances
+    t_h_MeanSi, t_h_varMeanSi =    ExtractStatistics(backup, idfuncsi, namesi, nb, stat_temps,
+                      stat_hfields, **kwargs)
+    
+    t_h_MeanFc, t_h_varMeanFc =    ExtractStatistics(backup, idfunc, name, nb, stat_temps,
+                      stat_hfields, **kwargs)
+    
+         
+    return t_h_MeanFc, t_h_varMeanFc, t_h_MeanSi, t_h_varMeanSi
 
 
 # In[ ]:

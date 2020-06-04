@@ -3,6 +3,7 @@ tests/
 test_random/
 dimers/*.txt
 dualworm-kagome/ProfilingAndTesting/PlotsResults/
+dualworm-kagome/Profiling_Folder/
 dualworm-kagome/prun*
 dualworm-kagome/*.png
 dualworm-kagome/*.out
