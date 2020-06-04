@@ -1051,7 +1051,7 @@ def BasicPlotsCorrelations2D(foldername, results_foldername, rid,
                 plt.title('L = {0}; h = {1}'.format(L[i], h))
                 plt.clim(-1,1)
                 plt.savefig('./' + foldername  +                            results_foldername+                            '/Correlations0_L{0}_h={1}.png'.format(L[i], h))
-                plt.savefig('./' + foldername  +                            results_foldername+                            '/Correlations0_L{0}_h={1}}.pgf'.format(L[i],h))
+                plt.savefig('./' + foldername  +                            results_foldername+                            '/Correlations0_L{0}_h={1}.pgf'.format(L[i],h))
                 plt.show()
 
 
