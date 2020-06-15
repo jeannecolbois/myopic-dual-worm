@@ -46,6 +46,19 @@ def charges(stlen, state, en_state, spinstate, s_ijl, ijl_s,c2s = [], csign= [],
     cvals = np.array([csign[c]*(spinstate[s1]+spinstate[s2]+spinstate[s3]) for c, (s1,s2,s3) in enumerate(c2s)], dtype = 'int8')
     return cvals
 
+def dweasyphase(stlen, state, en_state, spinstate, s_ijl, ijl_s, **kwargs):
+    L = np.sqrt(stlen/9)
+    n = int(state.shape[0]/6)
+    print(n)
+    patterns = np.array([[-1, 1, 1, -1, 1, 1],
+                         [ 1, -1, 1, 1,-1, 1],
+                         [1, 1,-1, 1, 1, -1]])
+    dws = np.zeros(n, dtype='int8');
+    for ij in range(n):
+        if np.any(~np.any(patterns-state[ij*6:(ij+1)*6], axis=1)):
+            dws[ij] = 1
+    return dws
+
 def initstatstables(namefunctions, nb, c2s, nnlists,
                     stat_temps, stat_fields, stlen):
     statstables = [0 for i in range(len(namefunctions))]
