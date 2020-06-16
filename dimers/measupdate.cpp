@@ -25,7 +25,7 @@ void  measupdates(int* states, int* spinstates, int* stat_temps,
       for(int it = 0; it < nbit; it++){
         int sid = sidlist[it+1];
         int s = spinstate[sid];
-        if(s == 1){//if the spin is down, we get a chance at flipping it
+        if(s == -1){//if the spin is down, we get a chance at flipping it
           int sum = 0;
           for(int sneiid = 0; sneiid < nn; sneiid++){
             int snei = nnspins[nn*sid + sneiid];
@@ -35,7 +35,7 @@ void  measupdates(int* states, int* spinstates, int* stat_temps,
             if(sum == 0){// then flip with prob p
               double r = real_distrib(random_gen());
               if(r<p){
-                spinstate[sid] = -1;
+                spinstate[sid] = 1;
                 for(int pid = 0; pid < ndims; pid++){//and flip the corresponding dimers
                   int did = s2p[sid*ndims + pid];
                   state[did]*=-1;
@@ -44,14 +44,14 @@ void  measupdates(int* states, int* spinstates, int* stat_temps,
             }
           }
           if(version == 1){
-            if(sum <= 0){// then flip with prob p
-              double r = real_distrib(random_gen());
-              if(r<p){
-                spinstate[sid] = -1;
-                for(int pid = 0; pid < ndims; pid++){//and flip the corresponding dimers
-                  int did = s2p[sid*ndims + pid];
-                  state[did]*=-1;
-                }
+            // in this case, p is interpreted as htip/Jtip
+            //dE = -2*p+2*sum
+            //dE <0 <> 2*sum < 2*p
+            if(sum <= p){// then flip
+              spinstate[sid] = 1;
+              for(int pid = 0; pid < ndims; pid++){//and flip the corresponding dimers
+                int did = s2p[sid*ndims + pid];
+                state[did]*=-1;
               }
             }
           }
