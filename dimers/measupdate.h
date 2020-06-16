@@ -4,7 +4,7 @@
 
 void  measupdates(int* states, int* spinstates, int* stat_temps,
   int* sidlist, int* didlist, int* nnspins, int* s2p, int nbstat, int statesize,
-  int spinstatesize, int nthreads, int nbit, int nn, int ndims, double p);
+  int spinstatesize, int nthreads, int nbit, int nn, int ndims, double p, int version);
 void  measupdate(int* state, int* spinstate, int* sidlist,
-  int* didlist, int* nnspins, int* s2p, int nbit, int nn, int ndims, double p) ;
+  int* didlist, int* nnspins, int* s2p, int nbit, int nn, int ndims, double p, int version) ;
 #endif //MEASUPDATE_H

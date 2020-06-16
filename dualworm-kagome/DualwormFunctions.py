@@ -3,6 +3,7 @@
 
 # In[ ]:
 
+
 import numpy as np
 import dimers as dim
 import KagomeFunctions as lattice
@@ -15,6 +16,7 @@ import hickle as hkl
 
 # In[ ]:
 
+
 def NearestNeighboursList(L,distmax):
     '''
         Returns a list of distances between sites (smaller than distmax) with respect to the 3 reference sites, a dictionary of pairs of sites at a given distance and a list of the nearest neighbour pairs associated with a given site and distance.
@@ -23,6 +25,7 @@ def NearestNeighboursList(L,distmax):
 
 
 # In[ ]:
+
 
 def createdualtable(L):
     '''
@@ -40,6 +43,7 @@ def createdualtable(L):
 
 # In[ ]:
 
+
 def createspinsitetable(L):
     '''
         Creates the table of spin sites corresponding to a real space 
@@ -56,6 +60,7 @@ def createspinsitetable(L):
 
 # In[ ]:
 
+
 def dualbondspinsitelinks(d_ijl, ijl_s, L):
     '''
         For a lattice with side size L, this function  returns two tables:
@@ -68,6 +73,7 @@ def dualbondspinsitelinks(d_ijl, ijl_s, L):
 
 # In[ ]:
 
+
 def spin2plaquette(ijl_s, s_ijl, s2_d,L):
     '''
         For a lattice with side size L, this function  returns a table giving the
@@ -78,6 +84,7 @@ def spin2plaquette(ijl_s, s_ijl, s2_d,L):
 
 
 # In[ ]:
+
 
 def createchargesitestable(L):
     '''
@@ -94,6 +101,7 @@ def createchargesitestable(L):
 
 # In[ ]:
 
+
 def charge2spins(c_ijl, ijl_s, L):
     '''
         Returns the three spin sites associated with each charge site,
@@ -103,6 +111,7 @@ def charge2spins(c_ijl, ijl_s, L):
 
 
 # In[ ]:
+
 
 def spins_dimers_for_update(s_ijl, ijl_s, s2_d, L):
     '''
@@ -118,6 +127,7 @@ def spins_dimers_for_update(s_ijl, ijl_s, s2_d, L):
 
 # In[ ]:
 
+
 def nsitesconnections(d_ijl, ijl_d, L):
     '''
         For each dual bond, which are the other dual bonds which are 
@@ -129,6 +139,7 @@ def nsitesconnections(d_ijl, ijl_d, L):
 
 
 # In[ ]:
+
 
 def vsitesconnections(d_ijl, ijl_d, L):
     '''
@@ -142,6 +153,7 @@ def vsitesconnections(d_ijl, ijl_d, L):
 
 # In[ ]:
 
+
 def windingtable(d_ijl, L):
     '''
         For each dual bond, is it on one of the two lines which are used 
@@ -152,6 +164,7 @@ def windingtable(d_ijl, L):
 
 
 # In[ ]:
+
 
 def winding1and2(d_wn):
      
@@ -168,6 +181,7 @@ def winding1and2(d_wn):
 
 
 # In[ ]:
+
 
 def latticeinit(L):
     #dual bond table and dictionary:
@@ -193,6 +207,7 @@ def latticeinit(L):
 
 
 # In[ ]:
+
 
 def Hamiltonian(couplings, d_ijl, ijl_d, L):
     '''
@@ -230,6 +245,7 @@ def Hamiltonian(couplings, d_ijl, ijl_d, L):
 
 # In[ ]:
 
+
 def compute_energy(hamiltonian, state, latsize = 1):
     '''
         Computes the energy of the state state given the hamiltonian 
@@ -241,6 +257,7 @@ def compute_energy(hamiltonian, state, latsize = 1):
 
 # In[ ]:
 
+
 def check_energy(hamiltonian, state, modelenergy, latsize = 1):
     energy = compute_energy(hamiltonian, state, latsize = latsize)
     if abs(energy - modelenergy) < 1e-6:
@@ -250,6 +267,7 @@ def check_energy(hamiltonian, state, modelenergy, latsize = 1):
 
 
 # In[ ]:
+
 
 def GivenNeiNrj(state, power, D, J1supp, nei, distances, distances_spins):
     nrj = 0
@@ -264,6 +282,7 @@ def GivenNeiNrj(state, power, D, J1supp, nei, distances, distances_spins):
 
 # In[ ]:
 
+
 def NeiFromNeiToNrj(state, power, D, J1supp, neimin, neimax, distances, 
                     distances_spins):
     nrj = 0
@@ -273,6 +292,7 @@ def NeiFromNeiToNrj(state, power, D, J1supp, neimin, neimax, distances,
 
 
 # In[ ]:
+
 
 def FiniteDistNrj(state, power, D, J1supp, neimax, distances, distances_spins):
     '''
@@ -287,6 +307,7 @@ def FiniteDistNrj(state, power, D, J1supp, neimax, distances, distances_spins):
 
 
 # In[ ]:
+
 
 def TruncatedNrj(state, n1, n2, Leff, power, s_pos, D, J1supp):
     '''
@@ -308,6 +329,7 @@ def TruncatedNrj(state, n1, n2, Leff, power, s_pos, D, J1supp):
 
 
 # In[ ]:
+
 
 def EwaldSum(state, pairslist, s_pos, klat, D, alpha, S, J1supp):
     '''
@@ -361,10 +383,12 @@ def EwaldSum(state, pairslist, s_pos, klat, D, alpha, S, J1supp):
 
 # In[ ]:
 
+
 ############### Neighbour pairs #####################
 
 
 # In[ ]:
+
 
 def NNpairs(ijl_s, s_ijl, L):
     return lattice.NNpairs(ijl_s, s_ijl, L)
@@ -372,11 +396,13 @@ def NNpairs(ijl_s, s_ijl, L):
 
 # In[ ]:
 
+
 def NN2pairs(ijl_s, s_ijl, L):
     return lattice.NN2pairs(ijl_s, s_ijl, L)
 
 
 # In[ ]:
+
 
 def NN3parpairs(ijl_s, s_ijl, L):
     return lattice.NN3parpairs(ijl_s, s_ijl, L)
@@ -384,11 +410,13 @@ def NN3parpairs(ijl_s, s_ijl, L):
 
 # In[ ]:
 
+
 def NN3starpairs(ijl_s, s_ijl, L):
     return lattice.NN3starpairs(ijl_s, s_ijl, L)
 
 
 # In[ ]:
+
 
 def reducedgraph(L, s_ijl, ijl_s):
     '''
@@ -398,6 +426,7 @@ def reducedgraph(L, s_ijl, ijl_s):
 
 
 # In[ ]:
+
 
 def sitepairslist(srefs, s_pos, n1, n2, Leff, distmax):
     '''
@@ -443,6 +472,7 @@ def sitepairslist(srefs, s_pos, n1, n2, Leff, distmax):
 
 # In[ ]:
 
+
 def dist_sitepairs(s_pos,  n1, n2, Leff):
     '''
         Using sitepairslist, this function returns a list of (sorted) distances and 
@@ -466,6 +496,7 @@ def dist_sitepairs(s_pos,  n1, n2, Leff):
 
 
 # In[ ]:
+
 
 def NeighboursList(L, distmax):
     '''
@@ -519,10 +550,12 @@ def NeighboursList(L, distmax):
 
 # In[ ]:
 
+
 ############## STATES INIT ##############################3
 
 
 # In[ ]:
+
 
 def create_temperatures(nt_list, t_list):
     assert(len(t_list) == len(nt_list) + 1)
@@ -542,6 +575,7 @@ def create_temperatures(nt_list, t_list):
 
 # In[ ]:
 
+
 def create_hfields(nh_list, h_list):
     assert(len(h_list) == len(nh_list) + 1)
     nh = 0
@@ -559,6 +593,7 @@ def create_hfields(nh_list, h_list):
 
 
 # In[ ]:
+
 
 def walkerstable(betas, nt, hfields, nh):
     #walker2params = np.array(list(itertools.product(temperatures, hfields)))
@@ -588,6 +623,7 @@ def walkerstable(betas, nt, hfields, nh):
 
 # In[ ]:
 
+
 def create_log_temperatures(nt_list, t_list):
     assert(len(t_list) == len(nt_list) + 1)
     nt = 0
@@ -610,6 +646,7 @@ def create_log_temperatures(nt_list, t_list):
 
 
 # In[ ]:
+
 
 def statesinit(nt, d_ijl, d_2s, s_ijl, hamiltonian, same = False):
     '''
@@ -642,6 +679,7 @@ def statesinit(nt, d_ijl, d_2s, s_ijl, hamiltonian, same = False):
 
 # In[ ]:
 
+
 def onestatecheck(spinstate, state, d_2s):
     '''
         This function checks whether the dimer state and the spin 
@@ -661,6 +699,7 @@ def onestatecheck(spinstate, state, d_2s):
 
 # In[ ]:
 
+
 def statescheck(spinstates, states, d_2s):
     '''
         This function checks whether the dimer stateS and the spin 
@@ -673,6 +712,7 @@ def statescheck(spinstates, states, d_2s):
 
 
 # In[ ]:
+
 
 def onestate_dimers2spins(sidlist, didlist, states,
                           spinstates, tid, ncores, randspinupdate = True):
@@ -693,6 +733,7 @@ def onestate_dimers2spins(sidlist, didlist, states,
 
 # In[ ]:
 
+
 def states_dimers2spins(sidlist, didlist, states, spinstates,
                         nt,ncores, randspinupdate = True):
     stat_temps = list(range(nt))
@@ -707,32 +748,35 @@ def states_dimers2spins(sidlist, didlist, states, spinstates,
 
 # In[ ]:
 
+
 ############ EVOLUTION ############
 
 
 # In[ ]:
 
-def measupdatespin(tid, sidlist, states, spinstates,nnspins, s2p, p):
-    spinstate = spinstates[tid]
-    for sid in range(len(spinstate)):
-        s = spinstate[sid]
-        if s == 1 :
-            #if the spin is down, check if we can flip it
-            neispinstates = np.array([spinstate[snei] for snei in nnspins[sid]])
-            #if it costs no energy:
-            if neispinstates.sum() == 0:
-                if np.random.random_sample() < p:
-                    #flip the spin
-                    spinstates[tid][sid] = -1
-                    for did in s2p[sid]:
-                        # and flip the corresponding dimers
-                        states[tid][did] *= -1
-            #endif
-        #endif
-    #endfor
+
+#def measupdatespin(tid, sidlist, states, spinstates,nnspins, s2p, p):
+#    spinstate = spinstates[tid]
+#    for sid in range(len(spinstate)):
+#        s = spinstate[sid]
+#        if s == 1 :
+#            #if the spin is down, check if we can flip it
+#            neispinstates = np.array([spinstate[snei] for snei in nnspins[sid]])
+#            #if it costs no energy:
+#            if neispinstates.sum() == 0:
+#                if np.random.random_sample() < p:
+#                    #flip the spin
+#                    spinstates[tid][sid] = -1
+#                    for did in s2p[sid]:
+#                        # and flip the corresponding dimers
+#                        states[tid][did] *= -1
+#            #endif
+#        #endif
+#    #endfor
 
 
 # In[ ]:
+
 
 def statistics(tid, resid, hid, reshid, bid, states, statesen, statstables,
                spinstates,statsfunctions, sidlist, didlist, L, s_ijl, ijl_s,
@@ -775,6 +819,7 @@ def statistics(tid, resid, hid, reshid, bid, states, statesen, statstables,
 
 
 # In[ ]:
+
 
 def replicas(it, nt, nh, statesen, betas, hfields, states, spinstates,
              swapst, swapsh,ids2walker, walker2ids, walker2params):
@@ -846,6 +891,7 @@ def replicas(it, nt, nh, statesen, betas, hfields, states, spinstates,
 
 # In[ ]:
 
+
 def swaptemps(tid, hid, statesen, betas, hfields,
               ids2walker, walker2ids, walker2params, swapst):
     '''
@@ -880,6 +926,7 @@ def swaptemps(tid, hid, statesen, betas, hfields,
 
 
 # In[ ]:
+
 
 def swapfields(tid, hid, up, statesen, betas, hfields, spinstates,
                ids2walker, walker2ids, walker2params, swapsh):
@@ -919,6 +966,7 @@ def swapfields(tid, hid, up, statesen, betas, hfields, spinstates,
 
 
 # In[ ]:
+
 
 def mcs_swaps(states, spinstates, statesen, 
               betas, stat_temps, stat_fields, **kwargs):
@@ -997,9 +1045,11 @@ def mcs_swaps(states, spinstates, statesen,
     statsfunctions = kwargs.get('statsfunctions',[])
     magnfuncid = kwargs.get('magnfuncid', -1)
     measupdate = kwargs.get('measupdate', False)
+    measupdatev = kwargs.get('measupdatev', 0)
     p = kwargs.get('p', 1)
     if p == 0:
         measupdate = False
+    measupdatesave = kwargs.get('measupdatesave', False)
     nnspins = kwargs.get('nnspins',None)
     s2p = kwargs.get('s2p', None)
     nt = kwargs.get('nt',None)
@@ -1048,6 +1098,14 @@ def mcs_swaps(states, spinstates, statesen,
     print("ssffurther = ", ssffurther)
     print("genMode = ", genMode)
     print("fullstateupdate = ", fullstateupdate)
+    print("measupdate = ", measupdate)
+    if measupdate:
+        print("p = ", p)
+        print("v = ", measupdatev)
+        print("save = ", measupdatesave)
+        #if measupdatesave:
+        #    savestates = np.zeros(states.shape)
+        #    savespinstates = np.zeros(spinstates.shape)
     swapst = np.array([0 for tid in range(nt)], dtype='int32')
     swapsh = np.array([0 for hid in range(nh)], dtype='int32')
     
@@ -1134,14 +1192,19 @@ def mcs_swaps(states, spinstates, statesen,
             binid = (it//measperiod)//num_in_bin
             if len(statsfunctions) != 0 or check:
                 #print(bid)
-                if measupdate:                
+                if measupdate:
+                    if measupdatesave:
+                        savestates = np.copy(states)
+                        savespinstates = np.copy(spinstates)
+                    # note that the states energy is not updated here, so it only is affected
+                    # in the statistics
                     dim.measupdates(states, spinstates,
                                     np.array(stat_temps, dtype='int32'),
                                     np.array(sidlist, dtype = 'int32'),
                                     np.array(didlist, dtype='int32'),
                                     np.array(nnspins,dtype = 'int32'), 
                                     np.array(s2p, dtype = 'int32'), 
-                                    ncores, p);
+                                    ncores, p, measupdatev);
 
 
                 for resid,tid in enumerate(stat_temps):
@@ -1159,6 +1222,11 @@ def mcs_swaps(states, spinstates, statesen,
                 # it would probably be worth it to parallelise this in c++
                 # ideally I should do it before the spins update, then 
                 # perform the spin update and possibly the replicas in c++.
+                if measupdate and measupdatesave:
+                    #return states to before measurement
+                    states = np.copy(savestates)
+                    spinstates = np.copy(savespinstates)
+ 
             if backup and (it//measperiod)/num_in_bin == binid:
                 if binid == 0:
                     for funcid in range(len(statsfunctions)):
@@ -1172,6 +1240,7 @@ def mcs_swaps(states, spinstates, statesen,
                                 backup+"_"+namefunctions[funcid]+".hkl",
                                  path = "/binid{0}".format(binid),
                                 mode = 'r+')
+                        
             
         t4 = time()
         t_spins += (t4-t3)/itermcs

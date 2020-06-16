@@ -3,6 +3,7 @@
 
 # In[ ]:
 
+
 import numpy as np
 import dimers as dim
 import DualwormFunctions as dw
@@ -21,6 +22,7 @@ import argparse
 
 
 # In[ ]:
+
 
 def main(args):
     
@@ -187,21 +189,29 @@ def main(args):
     measperiod = args.measperiod
     print('Measurement period:', measperiod)
     measupdate = args.measupdate
+    
     if measupdate:
         nnspins, s2p = dw.spin2plaquette(ijl_s, s_ijl, s2_d,L)
         p = args.p
+        measupdatev = args.measupdatev
+        measupdatesave = args.measupdatesave
     else:
         if not (ssf or alternate):
             nnspins = []
             s2p = []
             p = 0
+            measupdatev = 0
+            measupdatesave = False
         else:
             nnspins = []
             p = 0
+            measupdatev = 0
+            measupdatesave = False
 
     kwmeas = {'nb':nb, 'num_in_bin':num_in_bin,'nips':nips,
               'nrps':nrps,
              'measperiod':measperiod, 'measupdate':measupdate,
+              'measupdatev' : measupdatev, 'measupdatesave': measupdatesave,
              'nnspins':nnspins, 's2p': s2p}
     hkl.dump(kwmeas, backup+".hkl", path = "/parameters/measurements", mode = 'r+')
     kw = {'nb':nb,'num_in_bin':num_in_bin, 'iterworm':iterworm,
@@ -212,14 +222,16 @@ def main(args):
           'nnlists':nnlists,
           'd_nd':d_nd,'d_vd':d_vd,'d_wn':d_wn, 'd_2s':d_2s, 's2_d':s2_d,
           'sidlist':sidlist,'didlist':didlist,'s_ijl':s_ijl,'ijl_s':ijl_s,'L':L,
-          'ncores':ncores, 'measupdate': measupdate, 'nnspins': nnspins, 's2p':s2p,
+          'ncores':ncores, 
+          'measupdate': measupdate, 'measupdatev' : measupdatev, 'measupdatesave': measupdatesave,
+          'nnspins': nnspins, 's2p':s2p,
           'magnfuncid':magnfuncid, 'p':p,
           'c2s':c2s, 'csign':csign, 'measperiod':measperiod,
           'nh':nh, 'hfields':hfields, 'walker2params':walker2params,
           'walker2ids':walker2ids,'ids2walker':ids2walker,
           'ssf':ssf, 'ssffurther': ssffurther, 
           'alternate':alternate, 'randspinupdate': False,
-         'namefunctions': namefunctions, 'backup': backup,
+          'namefunctions': namefunctions, 'backup': backup,
           'genMode': genMode, 'fullstateupdate': fullssf}
         # Run measurements
 
@@ -259,6 +271,7 @@ def main(args):
 
 
 # In[ ]:
+
 
 if __name__ == "__main__":
 
@@ -323,6 +336,10 @@ if __name__ == "__main__":
                         lattice)''')
     parser.add_argument('--measupdate', default = False, action = 'store_true',
                        help = '''activate to mimic the action of the measuring tip''')
+    parser.add_argument('--measupdatev', type = int, default = 0,
+                       help = '''select the version of measupdate''')
+    parser.add_argument('--measupdatesave', default = False, action = 'store_true',
+                       help = '''activate to cancel measurement update before continuing''')
     parser.add_argument('--p', type = float, default = 0.0, 
                        help = '''prob of the measuring tip flipping the spin (number between 0 and 1)''')
     parser.add_argument('--ssf', default = False, action = 'store_true',

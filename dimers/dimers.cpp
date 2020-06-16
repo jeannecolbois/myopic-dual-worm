@@ -1324,8 +1324,9 @@ static PyObject* dimers_measupdates(PyObject *self, PyObject *args) {
      PyObject *sidlist_obj, *didlist_obj, *nnspins_obj, *s2p_obj; //*saveloops_obj,
      int nthreads;
      double p;
+     int version;
      // take the arguments as pointers + int
-     if(!PyArg_ParseTuple(args,"OOOOOOOid", &states_obj, &spinstates_obj, &stat_temps_obj, &sidlist_obj, &didlist_obj, &nnspins_obj, &s2p_obj, &nthreads, &p))
+     if(!PyArg_ParseTuple(args,"OOOOOOOidi", &states_obj, &spinstates_obj, &stat_temps_obj, &sidlist_obj, &didlist_obj, &nnspins_obj, &s2p_obj, &nthreads, &p, &version))
 	   return nullptr;
 
     // //-------------------------------//
@@ -1422,7 +1423,7 @@ static PyObject* dimers_measupdates(PyObject *self, PyObject *args) {
     //------------------------------------//
     PyThreadState* threadState = PyEval_SaveThread(); // release the GIL
     measupdates(states, spinstates, stat_temps, sidlist, didlist, nnspins, s2p,
-       nbstat, statesize, spinstatesize, nthreads, nbit, nn, ndims, p);
+       nbstat, statesize, spinstatesize, nthreads, nbit, nn, ndims, p, version);
     PyEval_RestoreThread(threadState); // claim the GIL
 
     // Clean up
