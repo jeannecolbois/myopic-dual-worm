@@ -614,7 +614,7 @@ static PyObject* dimers_magneticmcsevolve(PyObject *self, PyObject *args) {
     /* Interpret the table of walker2ids*/
     //--------------------------------------//
 
-    PyArrayObject *walker2ids_array = (PyArrayObject*) PyArray_FROM_OTF(walker2ids_obj, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+    PyArrayObject *walker2ids_array = (PyArrayObject*) PyArray_FROM_OTF(walker2ids_obj, NPY_INT32, NPY_ARRAY_IN_ARRAY);
     if(walker2ids_array == nullptr) {
         Py_XDECREF(walker2ids_array);
         PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d (NPY array?)", __LINE__);
@@ -633,7 +633,7 @@ static PyObject* dimers_magneticmcsevolve(PyObject *self, PyObject *args) {
         return nullptr;
     }
     //get pointer as Ctype
-    double *walker2ids = (double*)PyArray_DATA(walker2ids_array);
+    int *walker2ids = (int*)PyArray_DATA(walker2ids_array);
 
     //---------------------------------//
     /* Interpret the table of energies */
@@ -838,7 +838,7 @@ static PyObject* dimers_ssfsevolve(PyObject *self, PyObject *args) {
     /* Interpret the table of walker2ids*/
     //--------------------------------------//
 
-    PyArrayObject *walker2ids_array = (PyArrayObject*) PyArray_FROM_OTF(walker2ids_obj, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+    PyArrayObject *walker2ids_array = (PyArrayObject*) PyArray_FROM_OTF(walker2ids_obj, NPY_INT32, NPY_ARRAY_IN_ARRAY);
     if(walker2ids_array == nullptr) {
         Py_XDECREF(walker2ids_array);
         PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d (NPY array?)", __LINE__);
@@ -857,7 +857,7 @@ static PyObject* dimers_ssfsevolve(PyObject *self, PyObject *args) {
         return nullptr;
     }
     //get pointer as Ctype
-    double *walker2ids = (double*)PyArray_DATA(walker2ids_array);
+    int *walker2ids = (int*)PyArray_DATA(walker2ids_array);
 
     //---------------------------------//
     /* Interpret the table of energies */
@@ -1081,7 +1081,7 @@ static PyObject* dimers_genssfsevolve(PyObject *self, PyObject *args) {
     /* Interpret the table of walker2ids*/
     //--------------------------------------//
 
-    PyArrayObject *walker2ids_array = (PyArrayObject*) PyArray_FROM_OTF(walker2ids_obj, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+    PyArrayObject *walker2ids_array = (PyArrayObject*) PyArray_FROM_OTF(walker2ids_obj, NPY_INT32, NPY_ARRAY_IN_ARRAY);
     if(walker2ids_array == nullptr) {
         Py_XDECREF(walker2ids_array);
         PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d (NPY array?)", __LINE__);
@@ -1100,7 +1100,7 @@ static PyObject* dimers_genssfsevolve(PyObject *self, PyObject *args) {
         return nullptr;
     }
     //get pointer as Ctype
-    double *walker2ids = (double*)PyArray_DATA(walker2ids_array);
+    int *walker2ids = (int*)PyArray_DATA(walker2ids_array);
 
     //---------------------------------//
     /* Interpret the table of energies */
@@ -1295,9 +1295,6 @@ static PyObject* dimers_updatespinstates(PyObject *self, PyObject *args) {
     if( didlist_array != nullptr){
       Py_DECREF(didlist_array); // decrement the reference
     }
-    if( stat_walkers_array != nullptr){
-      Py_DECREF(stat_walkers_array); // decrement the reference
-    }
       //build output
 
     /* Build the output */
@@ -1320,13 +1317,18 @@ static PyObject* dimers_measupdates(PyObject *self, PyObject *args) {
      */
 
      //------------------------------------------------------INPUT INTERPRETATION---------------------------------------------------------------------//
-     PyObject *states_obj, *spinstates_obj, *stat_temps_obj;
-     PyObject *sidlist_obj, *didlist_obj, *nnspins_obj, *s2p_obj; //*saveloops_obj,
-     int nthreads;
      double p;
+     double J1;
      int version;
+     PyObject *states_obj, *spinstates_obj, *energies_obj, *walker2ids_obj;
+     PyObject *sidlist_obj, *nnspins_obj, *s2p_obj; //*saveloops_obj,
+     int nthreads;
+
      // take the arguments as pointers + int
-     if(!PyArg_ParseTuple(args,"OOOOOOOidi", &states_obj, &spinstates_obj, &stat_temps_obj, &sidlist_obj, &didlist_obj, &nnspins_obj, &s2p_obj, &nthreads, &p, &version))
+     if(!PyArg_ParseTuple(args,"ddiOOOOOOOi", &p, &J1, &version,
+     &states_obj, &spinstates_obj, &energies_obj,
+     &walker2ids_obj, &sidlist_obj,
+     &nnspins_obj, &s2p_obj, &nthreads))
 	   return nullptr;
 
     // //-------------------------------//
@@ -1340,8 +1342,9 @@ static PyObject* dimers_measupdates(PyObject *self, PyObject *args) {
         PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d (NPY array?)", __LINE__);
         return nullptr;
     }
-    //int nt_states = get<1>(statestuple);
+    int nbstates = get<1>(statestuple);
     int statesize = get<2>(statestuple);
+
     //-------------------------------//
     /* Interpret the table of spins */
     //-------------------------------//
@@ -1353,21 +1356,67 @@ static PyObject* dimers_measupdates(PyObject *self, PyObject *args) {
         PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d (NPY array?)", __LINE__);
         return nullptr;
     }
-    //int nt_spinstates = get<1>(spinstatestuple);
+    //int nbspinstates = nbstates;
+    int nbspinstates = get<1>(spinstatestuple);
     int spinstatesize = get<2>(spinstatestuple);
-    //--------------------------------------//
-    /* Interpret the table of stats_temperatures*/
-    //--------------------------------------//
 
-    PyArrayObject* stat_temps_array = nullptr;
-    tuple<int*, int> stat_tempstuple = parseInteger1DArray(stat_temps_array, stat_temps_obj);
-    int* stat_temps = get<0>(stat_tempstuple);
-    if(stat_temps == nullptr) {
-        Py_XDECREF(stat_temps_array);
+    if(nbstates != nbspinstates){
+      Py_XDECREF(states_array);
+      Py_XDECREF(spinstates_array);
+      PyErr_Format(PyExc_ValueError, "DIMERS.cpp : nbstates != nb spinstates %d", nbspinstates);
+      return nullptr;
+    }
+    //---------------------------------//
+    /* Interpret the table of energies */
+    //---------------------------------//
+
+    PyArrayObject *energies_array = (PyArrayObject*) PyArray_FROM_OTF(energies_obj, NPY_DOUBLE, NPY_ARRAY_INOUT_ARRAY); //INOUT: we want to update the energies
+    if(energies_array == nullptr) {
+        Py_XDECREF(energies_array);
         PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d (NPY array?)", __LINE__);
         return nullptr;
     }
-    int nbstat = get<1>(stat_tempstuple);
+    //check that state has the dimensions expected
+    if(PyArray_NDIM(energies_array) != 2) {
+        Py_XDECREF(states_array);
+        Py_XDECREF(spinstates_array);
+        Py_XDECREF(energies_array);
+        PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d", __LINE__);
+        return nullptr;
+    }
+
+    int nt = (int)PyArray_DIM(energies_array, 0);
+    int nh = (int)PyArray_DIM(energies_array,1);
+
+    if(nbstates != nt*nh){
+      Py_XDECREF(states_array);
+      Py_XDECREF(spinstates_array);
+      Py_XDECREF(energies_array);
+      PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d - number of states and energy slot not compatible", __LINE__);
+      return nullptr;
+    }
+    //get pointer as Ctype
+    double *energies = (double*)PyArray_DATA(energies_array);
+
+    //--------------------------------------//
+    /* Interpret the table of walker2ids*/
+    //--------------------------------------//
+
+    PyArrayObject *walker2ids_array = (PyArrayObject*) PyArray_FROM_OTF(walker2ids_obj, NPY_INT32, NPY_ARRAY_IN_ARRAY);
+    if(walker2ids_array == nullptr) {
+        Py_XDECREF(walker2ids_array);
+        PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d (NPY array?)", __LINE__);
+        return nullptr;
+    }
+
+    int nbwalkers = (int)PyArray_DIM(walker2ids_array, 0);
+
+    if(nt*nh != nbwalkers) {
+        PyErr_Format(PyExc_ValueError, "DIMERS.cpp : Non-consistent number of energies and walkers, see line %d", __LINE__);
+        return nullptr;
+    }
+    //get pointer as Ctype
+    int *walker2ids = (int*)PyArray_DATA(walker2ids_array);
 
     //--------------------------------------//
     /* Interpret the table of sidlist */
@@ -1380,19 +1429,13 @@ static PyObject* dimers_measupdates(PyObject *self, PyObject *args) {
         PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d (NPY array?)", __LINE__);
         return nullptr;
     }
-    //--------------------------------------//
-    /* Interpret the table of didlist */
-    //--------------------------------------//
-    PyArrayObject* didlist_array = nullptr;
-    tuple<int*, int> didlisttuple = parseInteger1DArray(didlist_array, didlist_obj);
-    int* didlist = get<0>(didlisttuple);
-    if(didlist == nullptr) {
-        Py_XDECREF(didlist_array);
-        PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d (NPY array?)", __LINE__);
-        return nullptr;
-    }
-    int nbit = get<1>(didlisttuple);
+    int nbitscan = get<1>(sidlisttuple);
+    if(nbitscan != spinstatesize){
+      Py_XDECREF(sidlist_array);
+      PyErr_Format(PyExc_ValueError, "DIMERS.cpp : Inconsistent sidlist size and statesize at line %d", __LINE__);
+      return nullptr;
 
+    }
     //--------------------------------------//
     /*      Interpret the table of nnspins   */
     //--------------------------------------//
@@ -1416,14 +1459,18 @@ static PyObject* dimers_measupdates(PyObject *self, PyObject *args) {
         PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d (NPY array?)", __LINE__);
         return nullptr;
     }
-    int ndims = get<2>(s2ptuple);
+    int ndimers = get<2>(s2ptuple);
     //-----------------------------FUNCTION CALL---------------------------------------------------------------------//
     //------------------------------------//
     /* Call the updatespinstates C function */
     //------------------------------------//
     PyThreadState* threadState = PyEval_SaveThread(); // release the GIL
-    measupdates(states, spinstates, stat_temps, sidlist, didlist, nnspins, s2p,
-       nbstat, statesize, spinstatesize, nthreads, nbit, nn, ndims, p, version);
+    measupdates(p, J1, version,
+      states, spinstates, energies,
+      walker2ids, nbwalkers, nh,
+      sidlist,  nnspins, s2p,
+      statesize, spinstatesize,
+      nthreads, nbitscan, nn, ndimers);
     PyEval_RestoreThread(threadState); // claim the GIL
 
     // Clean up
@@ -1433,16 +1480,14 @@ static PyObject* dimers_measupdates(PyObject *self, PyObject *args) {
     if( spinstates_array != nullptr){
       Py_DECREF(spinstates_array); // decrement the reference
     }
-    //Py_DECREF(saveloops_array);
-
+    if( energies_array != nullptr){
+      Py_DECREF(energies_array); // decrement the reference
+    }
+    if( walker2ids_array != nullptr){
+      Py_DECREF(walker2ids_array); // decrement the reference
+    }
     if( sidlist_array != nullptr){
       Py_DECREF(sidlist_array); // decrement the reference
-    }
-    if( didlist_array != nullptr){
-      Py_DECREF(didlist_array); // decrement the reference
-    }
-    if( stat_temps_array != nullptr){
-      Py_DECREF(stat_temps_array); // decrement the reference
     }
     if( nnspins_array != nullptr){
       Py_DECREF(nnspins_array); // decrement the reference

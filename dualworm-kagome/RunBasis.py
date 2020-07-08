@@ -1,4 +1,4 @@
-
+#!/usr/bin/env python
 # coding: utf-8
 
 # In[ ]:
@@ -232,7 +232,8 @@ def main(args):
           'ssf':ssf, 'ssffurther': ssffurther, 
           'alternate':alternate, 'randspinupdate': False,
           'namefunctions': namefunctions, 'backup': backup,
-          'genMode': genMode, 'fullstateupdate': fullssf}
+          'genMode': genMode, 'fullstateupdate': fullssf,
+         'verbose':args.verbose}
         # Run measurements
 
     t1 = time()

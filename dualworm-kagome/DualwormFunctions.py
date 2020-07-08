@@ -1,4 +1,4 @@
-
+#!/usr/bin/env python
 # coding: utf-8
 
 # In[ ]:
@@ -1117,8 +1117,9 @@ def mcs_swaps(states, spinstates, statesen,
     t_stat = 0
     
     print("statsfunctions", statsfunctions)
-
-
+    
+    if(verbose):
+        print("starting iterations")
     for it in range(itermcs):
         #### EVOLVE using the mcsevolve function of the dimer
         #### module (C)
@@ -1160,7 +1161,7 @@ def mcs_swaps(states, spinstates, statesen,
 
         t2 = time()
         t_join += (t2-t1)/itermcs
-
+        
 
         #### TEMPERING perform "parallel" tempering ( actually, replicas)
         # if nh == 1, we only do replica in temperature
@@ -1181,30 +1182,35 @@ def mcs_swaps(states, spinstates, statesen,
             
             stat_walkers = np.array(list(map(mapids2walker, stat_paramsid)))
             
-            dim.updatespinstates(states, spinstates,
-                                 np.array(stat_walkers, dtype='int32'), 
-                                 np.array(sidlist, dtype='int32'),
-                                 np.array(didlist, dtype='int32'), 
-                                 ncores, randspinupdate)
+            #dim.updatespinstates(states, spinstates,
+            #                     np.array(stat_walkers, dtype='int32'), 
+            #                     np.array(sidlist, dtype='int32'),
+            #                     np.array(didlist, dtype='int32'), 
+            #                     ncores, randspinupdate)
         
 
         if measperiod == 1 or it%measperiod == 0:
             binid = (it//measperiod)//num_in_bin
             if len(statsfunctions) != 0 or check:
+                if verbose:
+                        print("   measurement - bin{0}".format(binid))
                 #print(bid)
                 if measupdate:
                     if measupdatesave:
                         savestates = np.copy(states)
                         savespinstates = np.copy(spinstates)
-                    # note that the states energy is not updated here, so it only is affected
-                    # in the statistics
-                    dim.measupdates(states, spinstates,
-                                    np.array(stat_temps, dtype='int32'),
+                        savestatesen = np.copy(statesen)
+                    
+                    print("   measupdate")
+                    print(states.shape)
+                    print(spinstates.shape)
+                    dim.measupdates(p, hamiltonian[0], measupdatev,
+                                    states, spinstates, statesen,
+                                    np.array(walker2ids, dtype='int32'),
                                     np.array(sidlist, dtype = 'int32'),
-                                    np.array(didlist, dtype='int32'),
                                     np.array(nnspins,dtype = 'int32'), 
                                     np.array(s2p, dtype = 'int32'), 
-                                    ncores, p, measupdatev);
+                                    ncores);
 
 
                 for resid,tid in enumerate(stat_temps):
@@ -1226,7 +1232,9 @@ def mcs_swaps(states, spinstates, statesen,
                     #return states to before measurement
                     states = np.copy(savestates)
                     spinstates = np.copy(savespinstates)
- 
+                    statesen = np.copy(savestatesen)
+                    
+                    
             if backup and (it//measperiod)/num_in_bin == binid:
                 if binid == 0:
                     for funcid in range(len(statsfunctions)):
