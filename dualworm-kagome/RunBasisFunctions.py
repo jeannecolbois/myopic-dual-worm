@@ -1,7 +1,8 @@
-
+#!/usr/bin/env python
 # coding: utf-8
 
 # In[ ]:
+
 
 import numpy as np
 import dimers as dim
@@ -19,6 +20,7 @@ import argparse
 
 
 # In[ ]:
+
 
 def SafePreparation(args):
     '''
@@ -41,6 +43,7 @@ def SafePreparation(args):
 
 
 # In[ ]:
+
 
 def SimulationParameters(args, backup, loadfromfile, d_ijl,
                          ijl_d, ijl_s, s_ijl, s2_d, L):
@@ -127,6 +130,7 @@ def SimulationParameters(args, backup, loadfromfile, d_ijl,
 
 # In[ ]:
 
+
 def StatesAndEnergyInit(args, backup, loadbackup,hamiltonian, ids2walker,
                         nt, nh, hfields, d_ijl, d_2s, s_ijl,
                        couplings, L):
@@ -178,6 +182,7 @@ def StatesAndEnergyInit(args, backup, loadbackup,hamiltonian, ids2walker,
 
 # In[ ]:
 
+
 def CheckEnergies(hamiltonian, energies, states, spinstates,
                   hfields, nh, ids2walker, nt):
     '''
@@ -208,6 +213,7 @@ def CheckEnergies(hamiltonian, energies, states, spinstates,
 
 # In[ ]:
 
+
 def CheckStates(spinstates, states, d_2s):
     '''
         This function checks whether the given spin states and dimer states are
@@ -219,6 +225,7 @@ def CheckStates(spinstates, states, d_2s):
 
 
 # In[ ]:
+
 
 def CheckGs(args, nt, nh, ref_energies, en_states, checkgsid = -1):
     '''
@@ -252,6 +259,7 @@ def CheckGs(args, nt, nh, ref_energies, en_states, checkgsid = -1):
 
 # In[ ]:
 
+
 def GSEnergies(args, L, couplings):
     '''
         If args.checkgs is true, this function computes the expected ground
@@ -283,6 +291,7 @@ def GSEnergies(args, L, couplings):
 
 # In[ ]:
 
+
 def ObservablesInit(args, backup, s_ijl, ijl_s, L):
     '''
         This function instanciates all the observables that have to be measured.
@@ -309,36 +318,33 @@ def ObservablesInit(args, backup, s_ijl, ijl_s, L):
     else:
         cfuncid = -1
     correlations = args.correlations
-    all_correlations = args.all_correlations
     firstcorrelations = args.firstcorrelations
+    both = args.both
     if correlations:
         observables.append(obs.si)
         observableslist.append('Si')
-        if all_correlations:
-            observables.append(obs.allcorrelations)
-            observableslist.append('All_Correlations')
-        else:
-            if firstcorrelations:
-                nnlists = [dw.NNpairs(ijl_s, s_ijl, L), dw.NN2pairs(ijl_s, s_ijl, L),
-                           dw.NN3parpairs(ijl_s, s_ijl, L), dw.NN3starpairs(ijl_s, s_ijl, L)]
-                print("Check: length of s_ijl", len(s_ijl))
-                print("Check: length of NN pairslist:", len(nnlists[0]))
-                print("Check: length of 2ndNN pairs list: ", len(nnlists[1]))
-                print("Check: length of 3rd//NN pairs list: ", len(nnlists[2]))
-                print("Check: length of 3rd*NN pairs list: ", len(nnlists[3]))
-               
-                observables.append(obs.firstcorrelations)
-                observableslist.append('FirstCorrelations')
-            else:
-                observables.append(obs.centralcorrelations)
-                observableslist.append('Central_Correlations')
+
+        if firstcorrelations or both:
+            nnlists = [dw.NNpairs(ijl_s, s_ijl, L), dw.NN2pairs(ijl_s, s_ijl, L),
+                       dw.NN3parpairs(ijl_s, s_ijl, L), dw.NN3starpairs(ijl_s, s_ijl, L)]
+            print("Check: length of s_ijl", len(s_ijl))
+            print("Check: length of NN pairslist:", len(nnlists[0]))
+            print("Check: length of 2ndNN pairs list: ", len(nnlists[1]))
+            print("Check: length of 3rd//NN pairs list: ", len(nnlists[2]))
+            print("Check: length of 3rd*NN pairs list: ", len(nnlists[3]))
+
+            observables.append(obs.firstcorrelations)
+            observableslist.append('FirstCorrelations')
+        if (not firstcorrelations) or both:
+            observables.append(obs.centralcorrelations)
+            observableslist.append('Central_Correlations')
 
     print('List of measurements to be performed:', observableslist)
-    
+    x = (not firstcorrelations) or both;
     obsparams = {'energy':energy, 'magnetisation':magnetisation,
                 'charges':charges, 'correlations':correlations,
-                'all_correlations':all_correlations,
                  'firstcorrelations':firstcorrelations,
+                 'central_correlations':x,
                 'observableslist': observableslist}
     hkl.dump(obsparams, backup+".hkl", path = "/parameters/obsparams", mode = 'r+')
     
@@ -347,6 +353,7 @@ def ObservablesInit(args, backup, s_ijl, ijl_s, L):
 
 
 # In[ ]:
+
 
 def Temperatures2MeasureInit(args, backup, temperatures, nt):
     '''
@@ -374,6 +381,7 @@ def Temperatures2MeasureInit(args, backup, temperatures, nt):
 
 
 # In[ ]:
+
 
 def MagneticFields2MeasureInit(args, backup, hfields, nh):
     '''

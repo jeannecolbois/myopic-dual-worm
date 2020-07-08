@@ -6,11 +6,11 @@ from numpy.distutils.core import Extension
 
 cext = Extension(name = "dimers",
                 sources=["hamiltonian.cpp", 
-		"updatespinstates.cpp", "measupdate.cpp",
+		"updatespinstates.cpp", "measupdates.cpp",
 		"magneticmcsevolve.cpp","magneticdualworms.cpp",
 		"ssf.cpp", "ssfsevolve.cpp",
 		"ssf_gen.cpp","genssfsevolve.cpp",
-		"mcsevolve.cpp", "manydualworms.cpp",
+		"manydualworms.cpp",
                 "dimers.cpp"],
                 extra_compile_args=['-std=c++11', '-fopenmp'],
                 include_dirs = [np.get_include()],

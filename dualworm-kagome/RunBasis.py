@@ -1,4 +1,4 @@
-
+#!/usr/bin/env python
 # coding: utf-8
 
 # In[ ]:
@@ -387,9 +387,8 @@ if __name__ == "__main__":
                         help = 'activate if you want to save the charges')
     parser.add_argument('--correlations', default = False, action = 'store_true',
                         help = 'activate if you want to save either central or all correlations')
-    parser.add_argument('--all_correlations', default = False, action = 'store_true',
-                        help = '''activate if you want to save the correlations for all non-equivalent
-                        pairs of sites. Otherwise, will save central correlations.''')
+    parser.add_argument('--both', default = False, action = 'store_true',
+                        help = '''activate if you want to save both''')
     parser.add_argument('--firstcorrelations', default = False, action = 'store_true',
                         help = 'activate if you want to save first correlations, otherwise will save central')
     #SAVE

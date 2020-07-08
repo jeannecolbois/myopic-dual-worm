@@ -1,4 +1,4 @@
-
+#!/usr/bin/env python
 # coding: utf-8
 
 # In[ ]:
@@ -1172,13 +1172,14 @@ def mcs_swaps(states, spinstates, statesen,
         t3 = time()
         t_tempering +=(t3-t2)/itermcs
         
-        #### STATS update the spin states
-        # if h !=0 the spinstates have been updated already
-        if (len(statsfunctions) != 0 or check) and nh == 1 and hfields[0] == 0:
-            # update the mapids2walker function
+        #### STATS 
+        # note that the spin states have been updated already
+        if randspinupdate:
+            # update the mapids2walker function;
+            # note that it is only needed here because we don't update ALL
+            # the spin states, only the measured ones.
             def mapids2walker(x):
                 return ids2walker[x[0],x[1]]
-            
             stat_walkers = np.array(list(map(mapids2walker, stat_paramsid)))
             
             dim.updatespinstates(states, spinstates,
@@ -1193,18 +1194,14 @@ def mcs_swaps(states, spinstates, statesen,
             if len(statsfunctions) != 0 or check:
                 #print(bid)
                 if measupdate:
-                    if measupdatesave:
-                        savestates = np.copy(states)
-                        savespinstates = np.copy(spinstates)
+                    
                     # note that the states energy is not updated here, so it only is affected
                     # in the statistics
-                    dim.measupdates(states, spinstates,
-                                    np.array(stat_temps, dtype='int32'),
-                                    np.array(sidlist, dtype = 'int32'),
-                                    np.array(didlist, dtype='int32'),
-                                    np.array(nnspins,dtype = 'int32'), 
-                                    np.array(s2p, dtype = 'int32'), 
-                                    ncores, p, measupdatev);
+                    dim.measupdates(hamiltonian[0], p,
+                                    states, spinstates, statesen,
+                                    np.array(s2p, dtype='int32'),
+                                    np.array(sidlist, dtype='int32'),
+                                    walker2ids, ncores);
 
 
                 for resid,tid in enumerate(stat_temps):
@@ -1222,10 +1219,10 @@ def mcs_swaps(states, spinstates, statesen,
                 # it would probably be worth it to parallelise this in c++
                 # ideally I should do it before the spins update, then 
                 # perform the spin update and possibly the replicas in c++.
-                if measupdate and measupdatesave:
-                    #return states to before measurement
-                    states = np.copy(savestates)
-                    spinstates = np.copy(savespinstates)
+                
+                #states = np.copy(states)
+                #spinstates = np.copy(spinstates)
+                
  
             if backup and (it//measperiod)/num_in_bin == binid:
                 if binid == 0:
