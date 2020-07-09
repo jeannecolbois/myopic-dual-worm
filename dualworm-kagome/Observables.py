@@ -16,23 +16,12 @@ def centralcorrelations(stlen, state, en_state, spinstate, s_ijl, ijl_s,**kwargs
     
     return np.array(central_corr) 
 
-def allcorrelations(stlen, state, en_state, spinstate, s_ijl, ijl_s,**kwargs):
-    
-    L = np.sqrt(stlen/9)
-    
-    ref_spin = [spinstate[ijl_s[(L, L, 0)]], spinstate[ijl_s[(L, L, 1)]], spinstate[ijl_s[(L, L, 2)]]]
-    central_corr = [ref_spin[0]*spinstate, ref_spin[1]*spinstate, ref_spin[2]*spinstate]
-    
-    return np.array(central_corr) 
 
 def si(stlen, state, en_state, spinstate, s_ijl, ijl_s,**kwargs):
     return np.array(spinstate, dtype = 'int8')
 
 def firstcorrelations(stlen, state, en_state, spinstate, s_ijl, ijl_s, nnlists = [], m = 0, **kwargs):
-    mnow = [[sum([spinstate[s1] for (s1, s2) in nnlist])/len(nnlist),
-             sum([spinstate[s2] for (s1, s2) in nnlist])/len(nnlist)]
-            for nnlist in nnlists]
-    firstcorr = [sum([spinstate[s1]*spinstate[s2] for (s1,s2) in nnlist])/len(nnlist) - mnow[index][0]*mnow[index][1] for index, nnlist in enumerate(nnlists)]
+    firstcorr = [sum([spinstate[s1]*spinstate[s2] for (s1,s2) in nnlist])/len(nnlist) for nnlist in nnlists]
     #print(firstcorr)
     return np.array(firstcorr)
 

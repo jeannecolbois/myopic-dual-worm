@@ -1,12 +1,15 @@
-
+#!/usr/bin/env python
 # coding: utf-8
 
 # In[ ]:
 
+
 import numpy as np
+import dimers as dim
 
 
 # In[ ]:
+
 
 def createdualtable(L):
     '''
@@ -27,6 +30,7 @@ def createdualtable(L):
 
 # In[ ]:
 
+
 def createspinsitetable(L):
     '''
         Creates the table of spin sites corresponding to a dice lattice 
@@ -46,6 +50,7 @@ def createspinsitetable(L):
 
 
 # In[ ]:
+
 
 def fixbc(i, j, l, L):
     '''
@@ -77,6 +82,7 @@ def fixbc(i, j, l, L):
 
 # In[ ]:
 
+
 def fullfixbc(i,j,l,L, ijl_s):
     '''
         For a lattice side size L, this function handles the periodic 
@@ -100,6 +106,7 @@ def fullfixbc(i,j,l,L, ijl_s):
 
 
 # In[ ]:
+
 
 def dualbondspinsitelinks(d_ijl, ijl_s, L):
     '''
@@ -129,6 +136,7 @@ def dualbondspinsitelinks(d_ijl, ijl_s, L):
 
 # In[ ]:
 
+
 def createchargesitestable(L):
     '''
         Creates the table of charge sites corresponding to a dice lattice 
@@ -149,6 +157,7 @@ def createchargesitestable(L):
 
 # In[ ]:
 
+
 def charge2spins(c_ijl, ijl_s, L):
     '''
         Returns the three spin sites associated with each charge site,
@@ -156,7 +165,7 @@ def charge2spins(c_ijl, ijl_s, L):
     '''
     relspins = [[(0,0,0),(0,0,1),(1,0,2)],[(0,0,1),(0,0,2),(-1,1,0)]]
     # without worrying about periodic BC:
-    c2s = [[(ci+relspins[cl][u][0], cj++relspins[cl][u][1], relspins[cl][u][2])
+    c2s = [[(ci+relspins[cl][u][0], cj+relspins[cl][u][1], relspins[cl][u][2])
                       for u in range(3)] for (ci,cj,cl) in c_ijl]
     csign = [2*cl -1 for (ci,cj,cl) in c_ijl]
     # fix the periodic boundary conditions
@@ -166,6 +175,7 @@ def charge2spins(c_ijl, ijl_s, L):
 
 
 # In[ ]:
+
 
 def spin2plaquette(ijl_s, s_ijl, s2_d, L):
     '''
@@ -189,6 +199,7 @@ def spin2plaquette(ijl_s, s_ijl, s2_d, L):
 
 
 # In[ ]:
+
 
 def spins_dimers_for_update(s_ijl, ijl_s, s2_d, L):
     '''
@@ -245,6 +256,7 @@ def spins_dimers_for_update(s_ijl, ijl_s, s2_d, L):
 
 # In[ ]:
 
+
 def nsitesconnections(d_ijl, ijl_d, L):
     '''
         For each dual bond, which are the other dual bonds which are touching 
@@ -259,6 +271,7 @@ def nsitesconnections(d_ijl, ijl_d, L):
 
 
 # In[ ]:
+
 
 def vsitesconnections(d_ijl, ijl_d, L):
     '''
@@ -284,12 +297,13 @@ def vsitesconnections(d_ijl, ijl_d, L):
 
 # In[ ]:
 
+
 def windingtable(d_ijl, L):
     '''
         For each dual bond, is it on one of the two lines which are used to 
         count the winding numbers?
     '''
-    d_wn = np.zeros((len(d_ijl), 2), dtype = 'int32')
+    d_wn = np.zeros((len(d_ijl), 2), dtype = 'int8')
     for d, (i, j, l) in enumerate(d_ijl) :
         # First winding number
         if i == 0:
@@ -336,6 +350,7 @@ def windingtable(d_ijl, L):
 
 # In[ ]:
 
+
 ################## NEIGHBOURS STRUCTURE #################
 def NNpairs(ijl_s, s_ijl, L):
     nnpairslist = [[(0,0,0),(0,0,1)],[(0,0,0),(1,0,2)],[(0,0,0),(1,-1,1)],[(0,0,0),(1,-1,2)],
@@ -350,6 +365,7 @@ def NNpairs(ijl_s, s_ijl, L):
 
 # In[ ]:
 
+
 def NN2pairs(ijl_s, s_ijl, L):
     nnpairslist = [[(0,0,0),(1,0,1)],[(0,0,0),(0,0,2)],[(0,0,1),(1,-1,2)],[(0,0,1),(0,1,0)],
                    [(1,0,2),(1,-1,1)],[(1,0,2),(-1,1,0)]]
@@ -363,6 +379,7 @@ def NN2pairs(ijl_s, s_ijl, L):
 
 
 # In[ ]:
+
 
 def NN3parpairs(ijl_s, s_ijl, L):
     '''
@@ -381,6 +398,7 @@ def NN3parpairs(ijl_s, s_ijl, L):
 
 # In[ ]:
 
+
 def NN3starpairs(ijl_s, s_ijl, L):
     '''
         For later use, this is NN3star
@@ -397,10 +415,12 @@ def NN3starpairs(ijl_s, s_ijl, L):
 
 # In[ ]:
 
+
 ################### ENERGY ##############################
 
 
 # In[ ]:
+
 
 def d_J2d(d_ijl, ijl_d, L):
     d_J2d = np.array([[[ijl_d[(i, j, nl)]] for nl in [(l-1)%6, (l+1)%6]]
@@ -409,6 +429,7 @@ def d_J2d(d_ijl, ijl_d, L):
 
 
 # In[ ]:
+
 
 def d_J3d(d_ijl, ijl_d, L):
     nextj3dualbonds = [[(0, -1, 3), (1, -1, 3)],
@@ -429,6 +450,7 @@ def d_J3d(d_ijl, ijl_d, L):
 
 # In[ ]:
 
+
 def d_J3std(d_ijl, ijl_d, L):
     d_J3std = np.array([[[ijl_d[(i, j, nl)]  for nl in [(nc-1)%6, nc, (nc+1)%6]
                            if nl != l] for nc in [(l-1)%6, l, (l+1)%6]]
@@ -438,6 +460,7 @@ def d_J3std(d_ijl, ijl_d, L):
 
 
 # In[ ]:
+
 
 def d_J4d(d_ijl, ijl_d, L):
     #list of the surrounding centers (i', j') in the order Left, Bottom Left, Bottom Right, Right
@@ -471,10 +494,12 @@ def d_J4d(d_ijl, ijl_d, L):
 
 # In[ ]:
 
+
 ###### DISTANCES #####
 
 
 # In[ ]:
+
 
 def pairseparation(s1, s2, s_pos, n1, n2, Leff, distmax):
     '''
@@ -505,6 +530,7 @@ def pairseparation(s1, s2, s_pos, n1, n2, Leff, distmax):
 
 
 # In[ ]:
+
 
 def sitepairslist(srefs, s_pos, n1, n2, Leff, distmax):
     '''
@@ -548,6 +574,7 @@ def sitepairslist(srefs, s_pos, n1, n2, Leff, distmax):
 
 # In[ ]:
 
+
 def reducedgraphkag(L, s_ijl, ijl_s):
     '''
         For the kagome lattice:
@@ -574,6 +601,7 @@ def reducedgraphkag(L, s_ijl, ijl_s):
 
 # In[ ]:
 
+
 def superlattice(L):
     n1 = np.array([np.sqrt(3)/2, -1/2])
     n2 = np.array([np.sqrt(3)/2, 1/2])
@@ -585,6 +613,7 @@ def superlattice(L):
 
 # In[ ]:
 
+
 def referenceSpins(L, ijl_s):
     '''
         Returns the basic unit cell
@@ -594,6 +623,7 @@ def referenceSpins(L, ijl_s):
 
 
 # In[ ]:
+
 
 def NearestNeighboursLists(L, distmax):
     '''
@@ -671,6 +701,7 @@ def NearestNeighboursLists(L, distmax):
 
 
 # In[ ]:
+
 
 def reducedgraph(L, s_ijl, ijl_s):
     '''

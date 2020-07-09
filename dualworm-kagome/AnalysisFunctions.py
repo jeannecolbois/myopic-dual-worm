@@ -1,4 +1,4 @@
-
+#!/usr/bin/env python
 # coding: utf-8
 
 # In[ ]:
@@ -532,7 +532,7 @@ def LoadMagnetisationFromFile(foldername, filename, numsites, nb, stat_temps,
 # In[ ]:
 
 
-def LoadFirstCorrelations(foldername, filenamelist, listfunctions, sref, stat_temps, stat_hfields, nb, **kwargs):
+def LoadFirstCorrelations(foldername, filenamelist, listfunctions, stat_temps, stat_hfields, nb, **kwargs):
     n = len(filenamelist)
     
     ## "First Correlations" (check!!)
@@ -554,7 +554,7 @@ def LoadFirstCorrelations(foldername, filenamelist, listfunctions, sref, stat_te
             [t_h_MeanFc[nf], t_h_varMeanFc[nf], t_h_MeanSi[nf],
              t_h_varMeanSi[nf]] =\
             LoadFirstCorrelationsFromFile(foldername, filename, idfunc,
-                                     idfuncsi, sref[nf], stat_temps[nf],
+                                     idfuncsi, stat_temps[nf],
                                      stat_hfields[nf], nb[nf], **kwargs)
         else:
             [t_h_MeanFc[nf], t_h_varMeanFc[nf], t_h_MeanSi[nf], t_h_varMeanSi[nf]] = [[],[],[],[]]
@@ -564,20 +564,28 @@ def LoadFirstCorrelations(foldername, filenamelist, listfunctions, sref, stat_te
 # In[ ]:
 
 
-def LoadFirstCorrelationsFromFile(foldername, filename, idfunc, idfuncsi, sref, stat_temps, stat_hfields, nb, **kwargs):
+def LoadFirstCorrelationsFromFile(foldername, filename, idfunc, idfuncsi, stat_temps, stat_hfields, nb, **kwargs):
     
     backup = "./"+foldername+filename
     name = "FirstCorrelations"
     namesi = "Si"
+    rmmag = kwargs.get('rmmag', False)
     
     # Averages and corresponding variances
     t_h_MeanSi, t_h_varMeanSi =    ExtractStatistics(backup, idfuncsi, namesi, nb, stat_temps,
                       stat_hfields, **kwargs)
     
-    t_h_MeanFc, t_h_varMeanFc =    ExtractStatistics(backup, idfunc, name, nb, stat_temps,
+    t_h_MeanFv, t_h_varMeanFc =    ExtractStatistics(backup, idfunc, name, nb, stat_temps,
                       stat_hfields, **kwargs)
     
-         
+    t_h_MeanFc = np.copy(t_h_MeanFv);
+    print(t_h_MeanFc.shape)
+    print(t_h_MeanSi.shape)
+    if rmmag:
+        m = t_h_MeanSi.sum(2)/t_h_MeanSi.shape[2]
+        for nni in range(t_h_MeanFc.shape[2]):
+            t_h_MeanFc[:,:,nni] = (t_h_MeanFv[:,:,nni] - m**2) #<si sj> - <si> <sj> for j in lattice. /!\ this is ELEMENTWISE
+            
     return t_h_MeanFc, t_h_varMeanFc, t_h_MeanSi, t_h_varMeanSi
 
 
@@ -625,6 +633,7 @@ def LoadCorrelationsFromFile(foldername, filename, idfunc, idfuncsi, sref, stat_
     backup = "./"+foldername+filename
     name = "Central_Correlations"
     namesi = "Si"
+    rmmag = kwargs.get('rmmag', False)
     
     # Averages and corresponding variances
     t_h_MeanSi, t_h_varMeanSi =    ExtractStatistics(backup, idfuncsi, namesi, nb, stat_temps,
@@ -637,8 +646,11 @@ def LoadCorrelationsFromFile(foldername, filename, idfunc, idfuncsi, sref, stat_
     for i in range(len(sref)):
         column = t_h_MeanSi[:, :, sref[i]]
         column = column[:,:,np.newaxis]
-        t_h_MeanCorr.append(t_h_MeanSs[:,:,i,:] - t_h_MeanSi*column) #<si sj> - <si> <sj> for j in lattice. /!\ this is ELEMENTWISE
-        
+        if rmmag:
+            t_h_MeanCorr.append(t_h_MeanSs[:,:,i,:] - t_h_MeanSi*column) #<si sj> - <si> <sj> for j in lattice. /!\ this is ELEMENTWISE
+        else:
+            t_h_MeanCorr.append(t_h_MeanSs[:,:,i,:])
+            
     # Estimating the error on <si sj> - <si><sj>
     t_h_errCorrEstim = CorrelErrorEstimator(backup, idfunc,
                                             idfuncsi, sref,
@@ -1264,8 +1276,12 @@ def PlotStrctFact(StrctFact, foldername, results_foldername, tid,
 
 
 def dist_corr(L, findex, corr, errcorr,distmax):
+    # for now, doing this:
     distances, distances_spins, NNList, s_pos, srefs = kf.NearestNeighboursLists(L, distmax)
+    # instead, consider using the same NNlist as given to FirstCorrelations
     
+    # 
+    print(srefs)
     C = [[0 for i in range(len(NNList[0]))] for j in range(len(srefs))]
     ErrC = [[0 for i in range(len(NNList[0]))] for j in range(len(srefs))]
     for j in range(len(srefs)):
@@ -1299,11 +1315,11 @@ def dist_corr(L, findex, corr, errcorr,distmax):
 
 
 def PlotFirstCorrelations(n, L, foldername, results_foldername,hfields_plots, temperatures_plots,
-                         t_h_MeanCorr, t_h_errCorrEstim, distmax = 3.5, ploth = False):
+                         t_h_MeanCorr, t_h_errCorrEstim, distmax = 3.5, ploth = False, **kwargs):
 
     distmax = min(3.5, distmax)
     nlistnames = ['1', '2', '3', '3star', '4', '5', '6', '6star']
-
+    rmmag = kwargs.get('rmmag', False)
     if not ploth:
         for i in range(n):
             for hid, h in enumerate(hfields_plots[i]):
@@ -1320,7 +1336,7 @@ def PlotFirstCorrelations(n, L, foldername, results_foldername,hfields_plots, te
                     (resr, rescorr, reserrcorr) =                    dist_corr(L[i],0 ,corr, errcorr, distmax)
                     
                     if t == 1:
-                            print(rescorr)
+                        print(rescorr)
                     
                     plt.gca().set_prop_cycle(None)
                     alpha = 0.5
@@ -1341,7 +1357,11 @@ def PlotFirstCorrelations(n, L, foldername, results_foldername,hfields_plots, te
                                          alpha = alpha)
 
                 plt.xlabel(r'$T/J_1$')
-                plt.ylabel(r'$<\sigma_i \sigma_j> - <\sigma_i> <\sigma_j> $')
+                if rmmag:
+                    plt.ylabel(r'$<\sigma_i \sigma_j> - <\sigma_i> <\sigma_j> $')
+                else:
+                    plt.ylabel(r'$<\sigma_i \sigma_j>$')
+                
                 plt.legend(loc = 'best')
                 plt.savefig('./' + foldername  +                            results_foldername+                            '/FewCorrelations_L={0}_h={1}.png'.format(L[i],h))
     else:
@@ -1359,7 +1379,7 @@ def PlotFirstCorrelations(n, L, foldername, results_foldername,hfields_plots, te
                     (resr, rescorr, reserrcorr) =                    dist_corr(L[i],0 ,corr, errcorr, distmax)
                     
                     if hid == 1:
-                            print(rescorr)
+                        print(rescorr)
                     
                     plt.gca().set_prop_cycle(None)
                     alpha = 0.5
@@ -1380,7 +1400,11 @@ def PlotFirstCorrelations(n, L, foldername, results_foldername,hfields_plots, te
                                          alpha = alpha)
 
                 plt.xlabel(r'$h/J_1$')
-                plt.ylabel(r'$<\sigma_i \sigma_j> - <\sigma_i> <\sigma_j> $')
+                if rmmag:
+                    plt.ylabel(r'$<\sigma_i \sigma_j> - <\sigma_i> <\sigma_j> $')
+                else:
+                    plt.ylabel(r'$<\sigma_i \sigma_j>$')
+                    
                 plt.legend(loc = 'best')
                 plt.savefig('./' + foldername  +                            results_foldername+                            'FewCorrelations_L={0}_t={1}.png'.format(L[i],t))
  
