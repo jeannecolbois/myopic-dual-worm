@@ -128,19 +128,14 @@ def LoadParametersFromFile(foldername, filename):
     obsparams = hkl.load(backup, path = "/parameters/obsparams")
     listfunctions = obsparams['observableslist']
     
-    #reference spins
-    s0 = ijl_s[L, L, 0]
-    s1 = ijl_s[L, L, 1]
-    s2 = ijl_s[L, L, 2]
-    
-    sref = [s0, s1, s2]
+    srefs = obsparams['srefs']
     if os.path.isfile("./"+foldername+filename+"_ids2walker.hkl"):
         ids2walker = hkl.load("./"+foldername+filename+"_ids2walker.hkl")
     else:
         ids2walker = []
         warnings.warn("ids2walker not found, not loaded!")
         
-    return L, numsites, J1, J2, J3, J3st, J4, nb, num_in_bin, temperatures, nt,             stat_temps, temperatures_plots, hfields, nh,             stat_hfields, hfields_plots, listfunctions, sref, ids2walker
+    return L, numsites, J1, J2, J3, J3st, J4, nb, num_in_bin, temperatures, nt,             stat_temps, temperatures_plots, hfields, nh,             stat_hfields, hfields_plots, listfunctions, srefs, ids2walker
 
 
 # In[ ]:
@@ -592,7 +587,7 @@ def LoadFirstCorrelationsFromFile(foldername, filename, idfunc, idfuncsi, stat_t
 # In[ ]:
 
 
-def LoadCentralCorrelations(foldername, filenamelist, listfunctions, sref, stat_temps, stat_hfields, nb, **kwargs):
+def LoadCentralCorrelations(foldername, filenamelist, listfunctions, srefs, stat_temps, stat_hfields, nb, **kwargs):
     n = len(filenamelist)
     
     ## "Correlations" <sisj>
@@ -617,7 +612,7 @@ def LoadCentralCorrelations(foldername, filenamelist, listfunctions, sref, stat_
             [t_h_MeanSs[nf], t_h_varMeanSs[nf], t_h_MeanSi[nf],
              t_h_varMeanSi[nf], t_h_MeanCorr[nf],t_h_errCorrEstim[nf]] =\
             LoadCorrelationsFromFile(foldername, filename, idfunc,
-                                     idfuncsi, sref[nf], stat_temps[nf],
+                                     idfuncsi, srefs[nf], stat_temps[nf],
                                      stat_hfields[nf], nb[nf], **kwargs)
         else:
             [t_h_MeanSs[nf], t_h_varMeanSs[nf], t_h_MeanSi[nf], t_h_varMeanSi[nf], t_h_MeanCorr[nf], 
@@ -628,7 +623,7 @@ def LoadCentralCorrelations(foldername, filenamelist, listfunctions, sref, stat_
 # In[ ]:
 
 
-def LoadCorrelationsFromFile(foldername, filename, idfunc, idfuncsi, sref, stat_temps, stat_hfields, nb, **kwargs):
+def LoadCorrelationsFromFile(foldername, filename, idfunc, idfuncsi, srefs, stat_temps, stat_hfields, nb, **kwargs):
     
     backup = "./"+foldername+filename
     name = "Central_Correlations"
@@ -643,8 +638,9 @@ def LoadCorrelationsFromFile(foldername, filename, idfunc, idfuncsi, sref, stat_
                       stat_hfields, **kwargs)
     
     t_h_MeanCorr = []
-    for i in range(len(sref)):
-        column = t_h_MeanSi[:, :, sref[i]]
+    assert len(srefs) == 3
+    for i in range(len(srefs)):
+        column = t_h_MeanSi[:, :, srefs[i]]
         column = column[:,:,np.newaxis]
         if rmmag:
             t_h_MeanCorr.append(t_h_MeanSs[:,:,i,:] - t_h_MeanSi*column) #<si sj> - <si> <sj> for j in lattice. /!\ this is ELEMENTWISE
@@ -653,7 +649,7 @@ def LoadCorrelationsFromFile(foldername, filename, idfunc, idfuncsi, sref, stat_
             
     # Estimating the error on <si sj> - <si><sj>
     t_h_errCorrEstim = CorrelErrorEstimator(backup, idfunc,
-                                            idfuncsi, sref,
+                                            idfuncsi, srefs,
                                             name, namesi,
                                             nb)   
 
@@ -1275,12 +1271,11 @@ def PlotStrctFact(StrctFact, foldername, results_foldername, tid,
 # In[ ]:
 
 
-def dist_corr(L, findex, corr, errcorr,distmax):
+def dist_corr(L, findex, corr, errcorr,distmax, srefs):
     # for now, doing this:
-    distances, distances_spins, NNList, s_pos, srefs = kf.NearestNeighboursLists(L, distmax)
+    distances, distances_spins, NNList, s_pos = kf.NearestNeighboursLists(L, distmax, srefs)
     # instead, consider using the same NNlist as given to FirstCorrelations
     
-    # 
     print(srefs)
     C = [[0 for i in range(len(NNList[0]))] for j in range(len(srefs))]
     ErrC = [[0 for i in range(len(NNList[0]))] for j in range(len(srefs))]
@@ -1315,7 +1310,7 @@ def dist_corr(L, findex, corr, errcorr,distmax):
 
 
 def PlotFirstCorrelations(n, L, foldername, results_foldername,hfields_plots, temperatures_plots,
-                         t_h_MeanCorr, t_h_errCorrEstim, distmax = 3.5, ploth = False, **kwargs):
+                         t_h_MeanCorr, t_h_errCorrEstim, srefs, distmax = 3.5, ploth = False, **kwargs):
 
     distmax = min(3.5, distmax)
     nlistnames = ['1', '2', '3', '3star', '4', '5', '6', '6star']
@@ -1333,7 +1328,7 @@ def PlotFirstCorrelations(n, L, foldername, results_foldername,hfields_plots, te
 
                     corr = [np.array(t_h_MeanCorr[i])[:,t,hid,:]]
                     errcorr =                    [np.sqrt(np.array(t_h_errCorrEstim[i])[:,t,hid])]
-                    (resr, rescorr, reserrcorr) =                    dist_corr(L[i],0 ,corr, errcorr, distmax)
+                    (resr, rescorr, reserrcorr) =                    dist_corr(L[i],0 ,corr, errcorr, distmax, srefs[i])
                     
                     if t == 1:
                         print(rescorr)
@@ -1376,7 +1371,7 @@ def PlotFirstCorrelations(n, L, foldername, results_foldername,hfields_plots, te
 
                     corr = [np.array(t_h_MeanCorr[i])[:,tid,hid,:]]
                     errcorr =                    [np.sqrt(np.array(t_h_errCorrEstim[i])[:,tid,hid])]
-                    (resr, rescorr, reserrcorr) =                    dist_corr(L[i],0 ,corr, errcorr, distmax)
+                    (resr, rescorr, reserrcorr) =                    dist_corr(L[i],0 ,corr, errcorr, distmax, srefs[i])
                     
                     if hid == 1:
                         print(rescorr)

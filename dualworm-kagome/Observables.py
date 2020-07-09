@@ -9,9 +9,9 @@ def magnetisation(stlen, state, en_state, spinstate, s_ijl, ijl_s,**kwargs):
     #print(M/stlen)
     return abs(M/stlen)
 
-def centralcorrelations(stlen, state, en_state, spinstate, s_ijl, ijl_s,**kwargs):
+def centralcorrelations(stlen, state, en_state, spinstate, s_ijl, ijl_s, srefs = [],**kwargs):
     L = np.sqrt(stlen/9)
-    ref_spin = [spinstate[ijl_s[(L, L, 0)]], spinstate[ijl_s[(L, L, 1)]], spinstate[ijl_s[(L, L, 2)]]]
+    ref_spin = [spinstate[srefs[0]], spinstate[srefs[1]], spinstate[srefs[2]]]
     central_corr = [ref_spin[0]*spinstate, ref_spin[1]*spinstate, ref_spin[2]*spinstate]
     
     return np.array(central_corr) 

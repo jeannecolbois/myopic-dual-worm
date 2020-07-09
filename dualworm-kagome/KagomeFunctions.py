@@ -614,18 +614,18 @@ def superlattice(L):
 # In[ ]:
 
 
-def referenceSpins(L, ijl_s):
-    '''
-        Returns the basic unit cell
-    '''
-    srefs = [ijl_s[(L,L,0)], ijl_s[(L,L,1)], ijl_s[(L,L,2)]]
-    return srefs
+#def referenceSpins(L, ijl_s):
+#    '''
+#        Returns the basic unit cell
+#    '''
+#    srefs = [ijl_s[(L,L,0)], ijl_s[(L,L,1)], ijl_s[(L,L,2)]]
+#    return srefs
 
 
 # In[ ]:
 
 
-def NearestNeighboursLists(L, distmax):
+def NearestNeighboursLists(L, distmax, srefs):
     '''
         Returns a list of distances between sites (smaller than distmax) with respect to the 3 reference sites, a dictionary of pairs of sites at a given distance and a list of the nearest neighbour pairs associated with a given site and distance.
     '''
@@ -653,7 +653,7 @@ def NearestNeighboursLists(L, distmax):
     (n1, n2, Leff, S) = superlattice(L)
     
     # getting the list of pairs that we're interested in, 
-    srefs = [ijl_s[(L,L,0)], ijl_s[(L,L,1)], ijl_s[(L,L,2)]]
+    #srefs = [ijl_s[(L,L,0)], ijl_s[(L,L,1)], ijl_s[(L,L,2)]]
     pairs, distances, distances_spins = sitepairslist(srefs, s_pos, n1,n2,Leff,distmax+0.01)
     
     NNList = [[[] for i in range(len(distances))] for j in range(len(srefs))]
@@ -697,7 +697,7 @@ def NearestNeighboursLists(L, distmax):
                 NNList[j][6] = NNList6_0
                 NNList[j].insert(7, NNList6_1)
 
-    return distances, distances_spins, NNList, s_pos, srefs
+    return distances, distances_spins, NNList, s_pos
 
 
 # In[ ]:
