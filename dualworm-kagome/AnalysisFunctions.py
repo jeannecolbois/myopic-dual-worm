@@ -128,7 +128,11 @@ def LoadParametersFromFile(foldername, filename):
     obsparams = hkl.load(backup, path = "/parameters/obsparams")
     listfunctions = obsparams['observableslist']
     
-    srefs = obsparams['srefs']
+    try:
+        srefs = obsparams['srefs']
+    except:
+        srefs = [ijl_s[(L, L, 0)], ijl_s[(L, L, 1)], ijl_s[(L, L, 2)]]
+        print("srefs not registered.")
     if os.path.isfile("./"+foldername+filename+"_ids2walker.hkl"):
         ids2walker = hkl.load("./"+foldername+filename+"_ids2walker.hkl")
     else:
