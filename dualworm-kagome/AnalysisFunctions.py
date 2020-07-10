@@ -1271,38 +1271,69 @@ def PlotStrctFact(StrctFact, foldername, results_foldername, tid,
 # In[ ]:
 
 
-def dist_corr(L, findex, corr, errcorr,distmax, srefs):
+def dist_corr(L, findex, corr, errcorr,distmax, srefs, nnlists):
     # for now, doing this:
-    distances, distances_spins, NNList, s_pos = kf.NearestNeighboursLists(L, distmax, srefs)
+    
+    #distances, distances_spins, NNList, s_pos = kf.NearestNeighboursLists(L, distmax, srefs)
     # instead, consider using the same NNlist as given to FirstCorrelations
     
-    print(srefs)
-    C = [[0 for i in range(len(NNList[0]))] for j in range(len(srefs))]
-    ErrC = [[0 for i in range(len(NNList[0]))] for j in range(len(srefs))]
+    
+    #C = [[0 for i in range(len(NNList[0]))] for j in range(len(srefs))]
+    #ErrC = [[0 for i in range(len(NNList[0]))] for j in range(len(srefs))]
+    #for j in range(len(srefs)):
+    #    for i in range(len(NNList[0])):
+    #        Corrji = 0
+    #        ErrCorrji = 0
+    #        count = 0
+    #        for pair in NNList[j][i]:
+    #            if srefs[j] == pair[0]:
+    #                count += 1
+    #                Corrji += corr[findex][j][pair[1]]
+    #                ErrCorrji += errcorr[findex][j][pair[1]]
+    #        if count == 0:
+    #            print("NNList[", j, "][", i, "] = ", NNList[j][i])
+    #        Corrji = Corrji/count
+    #        ErrCorrji = ErrCorrji/count
+    #        
+    #        C[j][i] = Corrji
+    #        ErrC[j][i]= ErrCorrji
+    #    C[j] = np.array(C[j])
+    #    ErrC[j] = np.array(ErrC[j])
+    
+    assert len(srefs) == 3
+    C = np.zeros([len(srefs), len(nnlists)])
+    ErrC = np.zeros([len(srefs), len(nnlists)])
+    
+    
+    
     for j in range(len(srefs)):
-        for i in range(len(NNList[0])):
-            Corrji = 0
-            ErrCorrji = 0
-            count = 0
-            for pair in NNList[j][i]:
-                if srefs[j] == pair[0]:
-                    count += 1
-                    Corrji += corr[findex][j][pair[1]]
-                    ErrCorrji += errcorr[findex][j][pair[1]]
-            if count == 0:
-                print("NNList[", j, "][", i, "] = ", NNList[j][i])
-            Corrji = Corrji/count
-            ErrCorrji = ErrCorrji/count
-
+        #print('sref', srefs[j])
+        for i in range(len(nnlists)):
+            nns = np.array(nnlists[i]);
+            ids0 = np.where(nns[:,0] == srefs[j]);
+            ids1 = np.where(nns[:,1] == srefs[j]);
             
-            C[j][i] = Corrji
-            ErrC[j][i]= ErrCorrji
-        C[j] = np.array(C[j])
-        ErrC[j] = np.array(ErrC[j])
-
-    C = np.array(sum(C))/3
-    ErrC = np.array(sum(ErrC))/3
-    return distances, C, ErrC
+            numberneis = ids0[0].shape[0] + ids1[0].shape[0];
+            #print(i)
+            #print('ids', ids0[0], " and ", ids1[0])
+            #print('nns', nns[ids0[0]][:,1], " and ", nns[ids1[0]][:,0])
+            #print('corr shape', corr[findex].shape)
+            #print('correlations',  corr[findex][j, nns[ids0[0]][:,1]], " and ", corr[findex][j, nns[ids1[0]][:,0]])
+            ##
+            #print('correlations - sum',  corr[findex][j, nns[ids0[0]][:,1]].sum()+corr[findex][j, nns[ids1[0]][:,0]].sum())
+            #
+            assert numberneis > 0
+            C[j,i] += corr[findex][j, nns[ids0[0]][:,1]].sum()/numberneis;
+            C[j,i] += corr[findex][j, nns[ids1[0]][:,0]].sum()/numberneis;
+            
+            ErrC[j,i] += errcorr[findex][j, nns[ids0[0]][:,1]].sum()/numberneis;
+            ErrC[j,i] += errcorr[findex][j, nns[ids1[0]][:,0]].sum()/numberneis;
+            
+            
+    C =C.sum(0)/3
+    ErrC = ErrC.sum(0)/3
+    
+    return C, ErrC
         
 
 
@@ -1315,8 +1346,15 @@ def PlotFirstCorrelations(n, L, foldername, results_foldername,hfields_plots, te
     distmax = min(3.5, distmax)
     nlistnames = ['1', '2', '3', '3star', '4', '5', '6', '6star']
     rmmag = kwargs.get('rmmag', False)
+    
+   
     if not ploth:
         for i in range(n):
+            
+            #spin table and dictionary
+            (s_ijl, ijl_s) = kf.createspinsitetable(L[i])
+            nnlists = [dw.NNpairs(ijl_s, s_ijl, L[i]), dw.NN2pairs(ijl_s, s_ijl, L[i]),
+                       dw.NN3parpairs(ijl_s, s_ijl, L[i]), dw.NN3starpairs(ijl_s, s_ijl, L[i])]
             for hid, h in enumerate(hfields_plots[i]):
                 fig, ax = plt.subplots(dpi=200, figsize = (9,9))
                 ax.set_xscale("log")
@@ -1327,8 +1365,10 @@ def PlotFirstCorrelations(n, L, foldername, results_foldername,hfields_plots, te
                 for t in range(1,length):
 
                     corr = [np.array(t_h_MeanCorr[i])[:,t,hid,:]]
+                    #print(corr[0].shape)
                     errcorr =                    [np.sqrt(np.array(t_h_errCorrEstim[i])[:,t,hid])]
-                    (resr, rescorr, reserrcorr) =                    dist_corr(L[i],0 ,corr, errcorr, distmax, srefs[i])
+                    
+                    (rescorr, reserrcorr) =                    dist_corr(L[i],0 ,corr, errcorr, distmax, srefs[i], nnlists)
                     
                     if t == 1:
                         print(rescorr)
@@ -1361,6 +1401,10 @@ def PlotFirstCorrelations(n, L, foldername, results_foldername,hfields_plots, te
                 plt.savefig('./' + foldername  +                            results_foldername+                            '/FewCorrelations_L={0}_h={1}.png'.format(L[i],h))
     else:
         for i in range(n):
+            #spin table and dictionary
+            (s_ijl, ijl_s) = kf.createspinsitetable(L[i])
+            nnlists = [dw.NNpairs(ijl_s, s_ijl, L[i]), dw.NN2pairs(ijl_s, s_ijl, L[i]),
+                       dw.NN3parpairs(ijl_s, s_ijl, L[i]), dw.NN3starpairs(ijl_s, s_ijl, L[i])]
             for tid, t in enumerate(temperatures_plots[i]):
                 fig, ax = plt.subplots(dpi=200, figsize = (9,9))
                 plt.title('First few neighbours correlations,                t = {0}'.format(t))
@@ -1371,7 +1415,8 @@ def PlotFirstCorrelations(n, L, foldername, results_foldername,hfields_plots, te
 
                     corr = [np.array(t_h_MeanCorr[i])[:,tid,hid,:]]
                     errcorr =                    [np.sqrt(np.array(t_h_errCorrEstim[i])[:,tid,hid])]
-                    (resr, rescorr, reserrcorr) =                    dist_corr(L[i],0 ,corr, errcorr, distmax, srefs[i])
+                    
+                    (rescorr, reserrcorr) =                    dist_corr(L[i],0 ,corr, errcorr, distmax, srefs[i], nnlists)
                     
                     if hid == 1:
                         print(rescorr)
