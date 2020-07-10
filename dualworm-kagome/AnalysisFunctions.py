@@ -1347,7 +1347,9 @@ def PlotFirstCorrelations(n, L, foldername, results_foldername,hfields_plots, te
     nlistnames = ['1', '2', '3', '3star', '4', '5', '6', '6star']
     rmmag = kwargs.get('rmmag', False)
     
-   
+    plotfirst = kwargs.get('plotFirst', False)
+    if plotfirst: 
+        t_h_MeanFc = kwargs.get('t_h_MeanFc')
     if not ploth:
         for i in range(n):
             
@@ -1390,15 +1392,25 @@ def PlotFirstCorrelations(n, L, foldername, results_foldername,hfields_plots, te
                                          reserrcorr[nei],\
                                          fmt = fmt,\
                                          alpha = alpha)
-
+                
+                if plotfirst:
+                    plt.gca().set_prop_cycle(None)
+                    plt.semilogx(temperatures_plots[i],t_h_MeanFc[i][:,hid,0],'.')
+                    plt.semilogx(temperatures_plots[i],t_h_MeanFc[i][:,hid,1],'.')
+                    plt.semilogx(temperatures_plots[i],t_h_MeanFc[i][:,hid,2],'.')
+                    plt.semilogx(temperatures_plots[i],t_h_MeanFc[i][:,hid,3],'.')
                 plt.xlabel(r'$T/J_1$')
                 if rmmag:
                     plt.ylabel(r'$<\sigma_i \sigma_j> - <\sigma_i> <\sigma_j> $')
                 else:
                     plt.ylabel(r'$<\sigma_i \sigma_j>$')
                 
+                
                 plt.legend(loc = 'best')
-                plt.savefig('./' + foldername  +                            results_foldername+                            '/FewCorrelations_L={0}_h={1}.png'.format(L[i],h))
+                if not plotfirst:
+                    plt.savefig('./' + foldername  +                                results_foldername+                                '/FewCorrelations_L={0}_h={1}.png'.format(L[i],h))
+                else:
+                    plt.savefig('./' + foldername  +                                results_foldername+                                '/FewCorrelationsComparison_L={0}_h={1}.png'.format(L[i],h))
     else:
         for i in range(n):
             #spin table and dictionary
