@@ -228,6 +228,7 @@ def Binning(t_h_mean, t_h_varmean, stattuple, nb, stat_temps,stat_hfields, **kwa
             for resid, t in enumerate(stat_temps[minplt:maxplt]):
                 plt.plot(range(len(t_h_vars[resid][reshid])), t_h_vars[resid][reshid], '.-', label = 't = {0}'.format(t))
             plt.title('h = {0}'.format(h))
+            plt.grid(which='both')
             plt.legend()
             plt.show()
     t_h_varmean = [[max(var) for var in h_vars] for h_vars in t_h_vars]
@@ -759,6 +760,7 @@ def SwapsAnalysis(L, n, tidmin, tidmax, temperatures, hfields, foldername, resul
             plt.xlabel('Magnetic field')
             plt.ylabel('Ratio of swaps')
             plt.title('Ratio of swaps as a function of the magnetic field')
+            plt.grid(which='both')
             plt.savefig('./' + foldername  + results_foldername+ '/NumberSwapsField_L={0}.png'.format(L[i]))
 
 
@@ -811,6 +813,7 @@ def BasicPlotsE(L, n, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
                                  alpha=0.4, color = col)
             plt.xlabel(r'Magnetic field $h$')
             plt.ylabel(r'$E$')
+            plt.grid(which='both')
             plt.legend(loc= 'best', framealpha=0.5)
             plt.savefig('./' + foldername  + results_foldername
                         + '/h_E.png')
@@ -833,6 +836,7 @@ def BasicPlotsE(L, n, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
                                  alpha=0.4, color = col)
             plt.xlabel(r'Temperature $T$')
             plt.ylabel(r'$E$')
+            plt.grid(which='both')
             plt.legend(loc= 'best', framealpha=0.5)
             plt.savefig('./' + foldername  + results_foldername +                        '/Mean energy per site.png')
             plt.savefig('./' + foldername  + results_foldername +                        '/Mean energy per site.pgf')
@@ -860,6 +864,7 @@ def BasicPlotsE(L, n, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
                 #print(ErrC[i])
             plt.xlabel(r'Temperature $T$ ')
             plt.ylabel(r'Heat capacity $C$ ')
+            plt.grid(which='both')
             plt.legend(loc= 'best', framealpha=0.5)
             plt.savefig('./' + foldername  + results_foldername+ '/HeatCapacityErrors.png')
             plt.savefig('./' + foldername  + results_foldername+ '/HeatCapacityErrors.pgf')
@@ -886,6 +891,7 @@ def BasicPlotsE(L, n, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
                                  alpha = 0.5, color = col)
             plt.xlabel(r'Temperature $T$ ')
             plt.ylabel(r'$\frac{c}{k_B T}$')
+            plt.grid(which='both')
             plt.legend(loc= 'best', framealpha=0.5)
             plt.savefig('./' + foldername  + results_foldername+ '/HeatCapacityT.png')
             plt.savefig('./' + foldername  + results_foldername+ '/HeatCapacityT.pgf')
@@ -924,6 +930,7 @@ def BasicPlotsE(L, n, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
                                  '.-', label = r'$h$ = {0}'.format(h), color = col)
                     plt.xlabel(r'Temperature $T$ ')
                 plt.ylabel(r'$S$')
+                plt.grid(which='both')
                 plt.legend(loc= 'best', framealpha=0.5)
                 plt.savefig('./' + foldername  + results_foldername+ '/EntropyT.png')
                 plt.savefig('./' + foldername  + results_foldername+ '/EntropyT.pgf')
@@ -965,6 +972,7 @@ def BasicPlotsE(L, n, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
             #plt.plot(ratios, [0 for r in ratios], '.')
             plt.xlabel(r'$\frac{J_3}{J_2}$', size = 22)
             plt.ylabel(r'$\frac{E - E_{NN}}{J_2}$', size = 22)
+            plt.grid(which='both')
             #plt.legend()
             plt.savefig('./' + foldername  + results_foldername + '/E(ratio).png')
             plt.savefig('./' + foldername  + results_foldername + '/E(ratio).pgf')
@@ -1022,6 +1030,7 @@ def BasicPlotsM(L, n, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
                                  alpha=0.4, color = col)
             plt.xlabel(r'Magnetic field $h$')
             plt.ylabel(r'Magnetisation per site $m$')
+            plt.grid(which='both')
             plt.legend(loc= 'best', framealpha=0.5)
             plt.title('Filename: '+filenamelist[i])
             plt.savefig('./' + foldername  + results_foldername
@@ -1045,6 +1054,7 @@ def BasicPlotsM(L, n, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
             plt.xlabel(r'Temperature $T$ ')
             plt.ylabel('Magnetisation per site')
             plt.title('Filename: '+filenamelist[i])
+            plt.grid(which='both')
             plt.legend(loc= 'best', framealpha=0.5)
             plt.savefig('./' + foldername  + results_foldername+ '/M.png')
             plt.savefig('./' + foldername  + results_foldername+ '/M.pgf')
@@ -1068,6 +1078,7 @@ def BasicPlotsM(L, n, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
                                  alpha = 0.5, color = col)
             plt.xlabel(r'Temperature $T$ ')
             plt.ylabel('Susceptibility')
+            plt.grid(which='both')
             plt.title('Filename: '+filenamelist[i])
             plt.savefig('./' + foldername  + results_foldername+ '/Susceptibility.png')
             plt.savefig('./' + foldername  + results_foldername+ '/Susceptibility.pgf')
@@ -1362,7 +1373,7 @@ def PlotFirstCorrelations(n, L, foldername, results_foldername,hfields_plots, te
             nnlists = [dw.NNpairs(ijl_s, s_ijl, L[i]), dw.NN2pairs(ijl_s, s_ijl, L[i]),
                        dw.NN3parpairs(ijl_s, s_ijl, L[i]), dw.NN3starpairs(ijl_s, s_ijl, L[i])]
             for hid, h in enumerate(hfields_plots[i]):
-                fig, ax = plt.subplots(dpi=200, figsize = (9,9))
+                fig, ax = plt.subplots(dpi=200, figsize = (11,9))
                 ax.set_xscale("log")
                 plt.title('First few neighbours correlations,                h = {0}'.format(h))
                 fmts = ['.','x','v','-','^','o','*','s']
@@ -1409,7 +1420,7 @@ def PlotFirstCorrelations(n, L, foldername, results_foldername,hfields_plots, te
                 else:
                     plt.ylabel(r'$<\sigma_i \sigma_j>$')
                 
-                
+                plt.grid(which='both')
                 plt.legend(loc = 'best')
                 if not plotfirst:
                     plt.savefig('./' + foldername  +                                results_foldername+                                '/FewCorrelations_L={0}_h={1}.png'.format(L[i],h))
@@ -1422,7 +1433,7 @@ def PlotFirstCorrelations(n, L, foldername, results_foldername,hfields_plots, te
             nnlists = [dw.NNpairs(ijl_s, s_ijl, L[i]), dw.NN2pairs(ijl_s, s_ijl, L[i]),
                        dw.NN3parpairs(ijl_s, s_ijl, L[i]), dw.NN3starpairs(ijl_s, s_ijl, L[i])]
             for tid, t in enumerate(temperatures_plots[i]):
-                fig, ax = plt.subplots(dpi=200, figsize = (9,9))
+                fig, ax = plt.subplots(dpi=200, figsize = (11,9))
                 plt.title('First few neighbours correlations,                t = {0}'.format(t))
                 fmts = ['.','x','v','-','^','o','*','s']
                 length = len(hfields_plots[i])
@@ -1460,7 +1471,7 @@ def PlotFirstCorrelations(n, L, foldername, results_foldername,hfields_plots, te
                     plt.ylabel(r'$<\sigma_i \sigma_j> - <\sigma_i> <\sigma_j> $')
                 else:
                     plt.ylabel(r'$<\sigma_i \sigma_j>$')
-                    
+                plt.grid(which='both')    
                 plt.legend(loc = 'best')
                 plt.savefig('./' + foldername  +                            results_foldername+                            'FewCorrelations_L={0}_t={1}.png'.format(L[i],t))
  
