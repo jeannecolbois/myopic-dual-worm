@@ -784,6 +784,7 @@ def BasicPlotsE(L, n, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
                 t_h_varMeanEsq, C, ErrC, J1, J2, J3, J4, S0 = np.log(2), **kwargs):
     
     ploth = kwargs.get('ploth', False)
+    pgf = kwargs.get('pgf', False)
     
     t_h_MeanE = np.array(t_h_MeanE)
     t_h_MeanEsq =  np.array(t_h_MeanEsq)
@@ -817,7 +818,8 @@ def BasicPlotsE(L, n, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
             plt.legend(loc= 'best', framealpha=0.5)
             plt.savefig('./' + foldername  + results_foldername
                         + '/h_E.png')
-            plt.savefig('./' + foldername  + results_foldername
+            if pgf:
+                plt.savefig('./' + foldername  + results_foldername
                         + '/h_E.pgf')
         else:
             mh = len(hfields_plots[i])
@@ -839,7 +841,8 @@ def BasicPlotsE(L, n, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
             plt.grid(which='both')
             plt.legend(loc= 'best', framealpha=0.5)
             plt.savefig('./' + foldername  + results_foldername +                        '/Mean energy per site.png')
-            plt.savefig('./' + foldername  + results_foldername +                        '/Mean energy per site.pgf')
+            if pgf:
+                plt.savefig('./' + foldername  + results_foldername +                        '/Mean energy per site.pgf')
 
     if not ploth:
         #Heat capacity
@@ -867,7 +870,8 @@ def BasicPlotsE(L, n, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
             plt.grid(which='both')
             plt.legend(loc= 'best', framealpha=0.5)
             plt.savefig('./' + foldername  + results_foldername+ '/HeatCapacityErrors.png')
-            plt.savefig('./' + foldername  + results_foldername+ '/HeatCapacityErrors.pgf')
+            if pgf:
+                plt.savefig('./' + foldername  + results_foldername+ '/HeatCapacityErrors.pgf')
 
         ##Heat capacity / T
         margin = [0.08, 0.08, 0.02, 0.1]
@@ -894,7 +898,8 @@ def BasicPlotsE(L, n, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
             plt.grid(which='both')
             plt.legend(loc= 'best', framealpha=0.5)
             plt.savefig('./' + foldername  + results_foldername+ '/HeatCapacityT.png')
-            plt.savefig('./' + foldername  + results_foldername+ '/HeatCapacityT.pgf')
+            if pgf:
+                plt.savefig('./' + foldername  + results_foldername+ '/HeatCapacityT.pgf')
 
         # Residual entropy
         RS = kwargs.get('RS', False)
@@ -933,7 +938,8 @@ def BasicPlotsE(L, n, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
                 plt.grid(which='both')
                 plt.legend(loc= 'best', framealpha=0.5)
                 plt.savefig('./' + foldername  + results_foldername+ '/EntropyT.png')
-                plt.savefig('./' + foldername  + results_foldername+ '/EntropyT.pgf')
+                if pgf:
+                    plt.savefig('./' + foldername  + results_foldername+ '/EntropyT.pgf')
 
         # Ground-state energy
         gs = kwargs.get('gs', False)
@@ -975,7 +981,8 @@ def BasicPlotsE(L, n, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
             plt.grid(which='both')
             #plt.legend()
             plt.savefig('./' + foldername  + results_foldername + '/E(ratio).png')
-            plt.savefig('./' + foldername  + results_foldername + '/E(ratio).pgf')
+            if pgf:
+                plt.savefig('./' + foldername  + results_foldername + '/E(ratio).pgf')
         
         gscheck = kwargs.get('gscheck', False)
         if gscheck:
@@ -1002,7 +1009,7 @@ def BasicPlotsM(L, n, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
                 t_h_varMeanM, t_h_varMeanMsq, Chi, ErrChi, J1, J2, J3, J4, **kwargs):
     
     ploth = kwargs.get('ploth', False)
-    
+    pgf = kwargs.get('pgf', False)
     ## Magnetisation
     t_h_MeanM = np.array(t_h_MeanM)
     t_h_MeanMsq =  np.array(t_h_MeanMsq)
@@ -1035,8 +1042,9 @@ def BasicPlotsM(L, n, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
             plt.title('Filename: '+filenamelist[i])
             plt.savefig('./' + foldername  + results_foldername
                         + '/h_M.png')
-            plt.savefig('./' + foldername  + results_foldername
-                        + '/h_M.pgf')
+            if pgf:
+                plt.savefig('./' + foldername  + results_foldername
+                            + '/h_M.pgf')
         else:
             mh = len(hfields_plots[i])
             plt.figure(figsize=(12, 8), dpi=300)
@@ -1057,7 +1065,8 @@ def BasicPlotsM(L, n, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
             plt.grid(which='both')
             plt.legend(loc= 'best', framealpha=0.5)
             plt.savefig('./' + foldername  + results_foldername+ '/M.png')
-            plt.savefig('./' + foldername  + results_foldername+ '/M.pgf')
+            if pgf:
+                plt.savefig('./' + foldername  + results_foldername+ '/M.pgf')
     
     if not ploth:
         #Susceptibility
@@ -1081,7 +1090,8 @@ def BasicPlotsM(L, n, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
             plt.grid(which='both')
             plt.title('Filename: '+filenamelist[i])
             plt.savefig('./' + foldername  + results_foldername+ '/Susceptibility.png')
-            plt.savefig('./' + foldername  + results_foldername+ '/Susceptibility.pgf')
+            if pgf:
+                plt.savefig('./' + foldername  + results_foldername+ '/Susceptibility.pgf')
 
 
 # In[ ]:
@@ -1120,7 +1130,7 @@ def PrepPlot2DCorrelations(rid, n, t_h_MeanCorr,
 def BasicPlotsCorrelations2D(foldername, results_foldername, rid,
                              n, L, corr, errcorr, t_h_MeanSi,
                              hfields_plots, temperatures_plots,\
-                             ploth = False):
+                             ploth = False, pgf = False):
     if not ploth:
         matplotlib.rcParams.update({'font.size': 6})
         for i in range(n):
@@ -1131,7 +1141,8 @@ def BasicPlotsCorrelations2D(foldername, results_foldername, rid,
                 plt.title('L = {0}; h = {1}'.format(L[i], h))
                 plt.clim(-1,1)
                 plt.savefig('./' + foldername  +                            results_foldername+                            '/Correlations0_L{0}_h={1}.png'.format(L[i], h))
-                plt.savefig('./' + foldername  +                            results_foldername+                            '/Correlations0_L{0}_h={1}.pgf'.format(L[i],h))
+                if pgf:
+                    plt.savefig('./' + foldername  +                            results_foldername+                            '/Correlations0_L{0}_h={1}.pgf'.format(L[i],h))
                 plt.show()
 
 
@@ -1140,7 +1151,8 @@ def BasicPlotsCorrelations2D(foldername, results_foldername, rid,
                 plt.title('L = {0}; h = {1}'.format(L[i], h))
                 plt.clim(-1,1)
                 plt.savefig('./' + foldername  +                            results_foldername+                            '/Correlations1_L{0}_h={1}.png'.format(L[i],h))
-                plt.savefig('./' + foldername  +                            results_foldername +                            '/Correlations1_L{0}_h={1}.pgf'.format(L[i],h))
+                if pgf:
+                    plt.savefig('./' + foldername  +                            results_foldername +                            '/Correlations1_L{0}_h={1}.pgf'.format(L[i],h))
                 plt.show()
 
                 plt.figure(dpi=300)
@@ -1148,7 +1160,8 @@ def BasicPlotsCorrelations2D(foldername, results_foldername, rid,
                 plt.title('L = {0}; h = {1}'.format(L[i], h))
                 plt.clim(-1,1)
                 plt.savefig('./' + foldername  +                            results_foldername+                            '/Correlations_L{0}_h={1}.png'.format(L[i],h))
-                plt.savefig('./' + foldername  +                            results_foldername+                            '/Correlations_L{0}_h={1}.pgf'.format(L[i],h))
+                if pgf:
+                    plt.savefig('./' + foldername  +                            results_foldername+                            '/Correlations_L{0}_h={1}.pgf'.format(L[i],h))
                 plt.show()
                 
         avgsi =  [[[] for h in hfields_plots[0]]
@@ -1164,7 +1177,8 @@ def BasicPlotsCorrelations2D(foldername, results_foldername, rid,
                 plt.title('L = {0}; h = {1}'.format(L[i], h))
                 #plt.clim(-1,1)
                 plt.savefig('./' + foldername  +                            results_foldername+                            '/Spinaverage_L{0}_h={1}.png'.format(L[i],h))
-                plt.savefig('./' + foldername  +                            results_foldername+                            '/Spinaverage_L{0}_h={1}.pgf'.format(L[i],h))
+                if pgf:
+                    plt.savefig('./' + foldername  +                            results_foldername+                            '/Spinaverage_L{0}_h={1}.pgf'.format(L[i],h))
                 plt.show()
     
     else:
@@ -1177,7 +1191,8 @@ def BasicPlotsCorrelations2D(foldername, results_foldername, rid,
                 plt.title('L = {0}; t = {1}'.format(L[i], t))
                 plt.clim(-1,1)
                 plt.savefig('./' + foldername  +                            results_foldername+                            '/Correlations0_L{0}_t={1}.png'.format(L[i],t))
-                plt.savefig('./' + foldername  +                            results_foldername+                            '/Correlations0_L{0}_t={1}.pgf'.format(L[i],t))
+                if pgf:
+                    plt.savefig('./' + foldername  +                            results_foldername+                            '/Correlations0_L{0}_t={1}.pgf'.format(L[i],t))
                 plt.show()
 
 
@@ -1186,7 +1201,8 @@ def BasicPlotsCorrelations2D(foldername, results_foldername, rid,
                 plt.title('L = {0}; t = {1}'.format(L[i], t))
                 plt.clim(-1,1)
                 plt.savefig('./' + foldername  +                            results_foldername+                            '/Correlations1_L{0}_t={1}.png'.format(L[i],t))
-                plt.savefig('./' + foldername  +                            results_foldername+                            '/Correlations1_L{0}_t={1}.pgf'.format(L[i],t))
+                if pgf:
+                    plt.savefig('./' + foldername  +                            results_foldername+                            '/Correlations1_L{0}_t={1}.pgf'.format(L[i],t))
                 plt.show()
 
                 plt.figure(dpi=300)
@@ -1194,7 +1210,8 @@ def BasicPlotsCorrelations2D(foldername, results_foldername, rid,
                 plt.title('L = {0}; t = {1}'.format(L[i], t))
                 plt.clim(-1,1)
                 plt.savefig('./' + foldername  +                            results_foldername+                            '/Correlations2_L{0}_t={1}.png'.format(L[i],t))
-                plt.savefig('./' + foldername  +                            results_foldername+                            '/Correlations2_L{0}_t={1}.pgf'.format(L[i],t))
+                if pgf:
+                    plt.savefig('./' + foldername  +                            results_foldername+                            '/Correlations2_L{0}_t={1}.pgf'.format(L[i],t))
                 plt.show()
         
         avgsi =  [[[] for t in temperatures_plots[0]]
@@ -1210,7 +1227,8 @@ def BasicPlotsCorrelations2D(foldername, results_foldername, rid,
                 plt.title('L = {0}; T = {1}'.format(L[i], t))
                 #plt.clim(-1,1)
                 plt.savefig('./' + foldername  +                            results_foldername+                            '/Spinaverage_L{0}_t={1}.png'.format(L[i],t))
-                plt.savefig('./' + foldername  +                            results_foldername+                            '/Spinaverage_L{0}_t={1}.pgf'.format(L[i],t))
+                if pgf:
+                    plt.savefig('./' + foldername  +                            results_foldername+                            '/Spinaverage_L{0}_t={1}.pgf'.format(L[i],t))
                 plt.show()
                 
 
@@ -1360,6 +1378,7 @@ def PlotFirstCorrelations(n, L, foldername, results_foldername,hfields_plots, te
 
     distmax = min(3.5, distmax)
     nlistnames = ['1', '2', '3', '3star', '4', '5', '6', '6star']
+    
     rmmag = kwargs.get('rmmag', False)
     
     plotfirst = kwargs.get('plotFirst', False)
@@ -1373,10 +1392,14 @@ def PlotFirstCorrelations(n, L, foldername, results_foldername,hfields_plots, te
             nnlists = [dw.NNpairs(ijl_s, s_ijl, L[i]), dw.NN2pairs(ijl_s, s_ijl, L[i]),
                        dw.NN3parpairs(ijl_s, s_ijl, L[i]), dw.NN3starpairs(ijl_s, s_ijl, L[i])]
             for hid, h in enumerate(hfields_plots[i]):
-                fig, ax = plt.subplots(dpi=200, figsize = (11,9))
+                fig, ax = plt.subplots(figsize = (11,9),dpi=200)
                 ax.set_xscale("log")
-                plt.title('First few neighbours correlations,                h = {0}'.format(h))
-                fmts = ['.','x','v','-','^','o','*','s']
+                if n!=0:
+                    plt.title('First few neighbours correlations,                    h = {0}'.format(h))
+                else:
+                    plt.title('First few neighbours correlations')
+                    
+                fmts = ['.','x','v','*','o','^','s']
                 length = len(temperatures_plots[i])
                 fmt = fmts[i]
                 for t in range(1,length):
@@ -1397,7 +1420,7 @@ def PlotFirstCorrelations(n, L, foldername, results_foldername,hfields_plots, te
                             plt.errorbar(temperatures_plots[i][t],
                                          rescorr[nei],
                                          reserrcorr[nei],\
-                                         fmt = fmt,\
+                                         fmt = fmts[nei],\
                                          label =\
                                          'Neighbour {0}'.format(nlistnames[nei]),\
                                          alpha = alpha)
@@ -1405,7 +1428,7 @@ def PlotFirstCorrelations(n, L, foldername, results_foldername,hfields_plots, te
                             plt.errorbar(temperatures_plots[i][t],
                                          rescorr[nei],
                                          reserrcorr[nei],\
-                                         fmt = fmt,\
+                                         fmt = fmts[nei],\
                                          alpha = alpha)
                 
                 if plotfirst:
@@ -1433,9 +1456,9 @@ def PlotFirstCorrelations(n, L, foldername, results_foldername,hfields_plots, te
             nnlists = [dw.NNpairs(ijl_s, s_ijl, L[i]), dw.NN2pairs(ijl_s, s_ijl, L[i]),
                        dw.NN3parpairs(ijl_s, s_ijl, L[i]), dw.NN3starpairs(ijl_s, s_ijl, L[i])]
             for tid, t in enumerate(temperatures_plots[i]):
-                fig, ax = plt.subplots(dpi=200, figsize = (11,9))
+                fig, ax = plt.subplots(figsize = (11,9), dpi=200)
                 plt.title('First few neighbours correlations,                t = {0}'.format(t))
-                fmts = ['.','x','v','-','^','o','*','s']
+                fmts = ['.','x','v','*','o','^','s']
                 length = len(hfields_plots[i])
                 fmt = fmts[i]
                 for hid in range(1,length):
