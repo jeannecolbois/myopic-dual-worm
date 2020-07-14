@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+
 # coding: utf-8
 
 # In[ ]:
@@ -798,20 +798,21 @@ def BasicPlotsE(L, n, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
     margin = [0.08, 0.08, 0.02, 0.1]
     for i in range(n):
         if ploth:
-            mt = len(temperatures_plots[i])
+            mt = tidmax[i];
             plt.figure(figsize=(12, 8),dpi=300)
             plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
             for tid, t in enumerate(temperatures_plots[i]):
-                col = [0 + tid/mt, (1 - tid/mt)**2, 1 - tid/mt]
-                plt.plot(hfields_plots[i],
-                                 t_h_MeanE[i][tid, :],'.-',\
-                                  label = r'$T$ = {0}'.format(t), color = col)
-                plt.fill_between(hfields_plots[i],
-                                 (t_h_MeanE[i][tid,:]
-                                  - np.sqrt(t_h_varMeanE[i][tid,:])),
-                                 (t_h_MeanE[i][tid,:]
-                                  + np.sqrt(t_h_varMeanE[i][tid,:])),\
-                                 alpha=0.4, color = col)
+                if tid >= tidmin and tid <= tidmax[i]:
+                    col = [0 + tid/mt, (1 - tid/mt)**2, 1 - tid/mt]
+                    plt.plot(hfields_plots[i],
+                                     t_h_MeanE[i][tid, :],'.-',\
+                                      label = r'$T$ = {0}'.format(t), color = col)
+                    plt.fill_between(hfields_plots[i],
+                                     (t_h_MeanE[i][tid,:]
+                                      - np.sqrt(t_h_varMeanE[i][tid,:])),
+                                     (t_h_MeanE[i][tid,:]
+                                      + np.sqrt(t_h_varMeanE[i][tid,:])),\
+                                     alpha=0.4, color = col)
             plt.xlabel(r'Magnetic field $h$')
             plt.ylabel(r'$E$')
             plt.grid(which='both')
@@ -844,10 +845,111 @@ def BasicPlotsE(L, n, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
             if pgf:
                 plt.savefig('./' + foldername  + results_foldername +                        '/Mean energy per site.pgf')
 
-    if not ploth:
-        #Heat capacity
-        margin = [0.08, 0.08, 0.02, 0.1]
+    
+    #Heat capacity
+    margin = [0.08, 0.08, 0.02, 0.1]
 
+    if ploth:
+        for i in range(n):
+            mt = tidmax[i]
+            plt.figure(figsize=(12, 8),dpi=300)
+            plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
+            for tid, t in enumerate(temperatures_plots[i]):
+                if tid >= tidmin and tid <= tidmax[i]:
+                    col = [0 + tid/mt, (1 - tid/mt)**2, 1 - tid/mt]
+                    plt.plot(hfields_plots[i],
+                             C[i][tid,:],'.-',\
+                                      label = r'$T$ = {0}'.format(t), color = col)
+                    plt.fill_between(hfields_plots[i],
+                                     ( C[i][tid,:]
+                                      - ErrC[i][tid,:]),
+                                     ( C[i][tid,:]
+                                      + ErrC[i][tid,:]),\
+                                     alpha=0.4, color = col)
+            plt.xlabel(r'Magnetic field $h$')
+            plt.ylabel(r'Heat capacity $C$ ')
+            plt.grid(which='both')
+            plt.legend(loc= 'best', framealpha=0.5)
+            plt.savefig('./' + foldername  + results_foldername+ '/h_HeatCapacityErrors.png')
+            if pgf:
+                plt.savefig('./' + foldername  + results_foldername+ '/h_HeatCapacityErrors.pgf')
+                
+        hidmin = kwargs.get('hidmin',0)
+        hidmax = kwargs.get('hidmax',len(hfields_plots[0]) )
+        for i in range(n):
+            mt = tidmax[i]
+            plt.figure(figsize=(12, 8),dpi=300)
+            plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
+            for tid, t in enumerate(temperatures_plots[i]):
+                if tid >= tidmin and tid <= tidmax[i]:
+                    col = [0 + tid/mt, (1 - tid/mt)**2, 1 - tid/mt]
+                    plt.plot(hfields_plots[i][hidmin:hidmax],
+                             C[i][tid,hidmin:hidmax],'.-',\
+                                      label = r'$T$ = {0}'.format(t), color = col)
+                    plt.fill_between(hfields_plots[i][hidmin:hidmax],
+                                     ( C[i][tid,hidmin:hidmax]
+                                      - ErrC[i][tid,hidmin:hidmax]),
+                                     ( C[i][tid,hidmin:hidmax]
+                                      + ErrC[i][tid,hidmin:hidmax]),\
+                                     alpha=0.4, color = col)
+            plt.xlabel(r'Magnetic field $h$')
+            plt.ylabel(r'Heat capacity $C$ ')
+            plt.grid(which='both')
+            plt.legend(loc= 'best', framealpha=0.5)
+            plt.savefig('./' + foldername  + results_foldername+ '/h_HeatCapacityErrorsZoom.png')
+            if pgf:
+                plt.savefig('./' + foldername  + results_foldername+ '/h_HeatCapacityErrorsZoom.pgf')
+                
+        for i in range(n):
+            mt = tidmax[i]
+            plt.figure(figsize=(12, 8),dpi=300)
+            plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
+            for tid, t in enumerate(temperatures_plots[i]):
+                print(t)
+                if tid >= tidmin and tid <= tidmax[i]:
+                    col = [0 + tid/mt, (1 - tid/mt)**2, 1 - tid/mt]
+                    plt.plot(hfields_plots[i],
+                             C[i][tid,:]/t,'.-',\
+                                      label = r'$T$ = {0}'.format(t), color = col)
+                    plt.fill_between(hfields_plots[i],
+                                     ( C[i][tid,:]/t
+                                      - ErrC[i][tid,:]),
+                                     ( C[i][tid,:]/t
+                                      + ErrC[i][tid,:]),\
+                                 alpha=0.4, color = col)
+            plt.xlabel(r'Magnetic field $h$')
+            plt.ylabel(r'Heat capacity $C/T$ ')
+            plt.grid(which='both')
+            plt.legend(loc= 'best', framealpha=0.5)
+            plt.savefig('./' + foldername  + results_foldername+ '/h_HeatCapacityOverTErrors.png')
+            if pgf:
+                plt.savefig('./' + foldername  + results_foldername+ '/h_HeatCapacityOverTErrors.pgf')
+
+        for i in range(n):
+            mt = tidmax[i]
+            plt.figure(figsize=(12, 8),dpi=300)
+            plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
+            for tid, t in enumerate(temperatures_plots[i]):
+                if tid >= tidmin and tid <= tidmax[i]:
+                    col = [0 + tid/mt, (1 - tid/mt)**2, 1 - tid/mt]
+                    plt.plot(hfields_plots[i][hidmin:hidmax],
+                             C[i][tid,hidmin:hidmax]/t,'.-',\
+                                      label = r'$T$ = {0}'.format(t), color = col)
+                    plt.fill_between(hfields_plots[i][hidmin:hidmax],
+                                     ( C[i][tid,hidmin:hidmax]/t
+                                      - ErrC[i][tid,hidmin:hidmax]),
+                                     ( C[i][tid,hidmin:hidmax]/t
+                                      + ErrC[i][tid,hidmin:hidmax]),\
+                                     alpha=0.4, color = col)
+            plt.xlabel(r'Magnetic field $h$')
+            plt.ylabel(r'Heat capacity $C$ ')
+            plt.grid(which='both')
+            plt.legend(loc= 'best', framealpha=0.5)
+            plt.savefig('./' + foldername  + results_foldername+ '/h_HeatCapacityErrorsOvTZoom.png')
+            if pgf:
+                plt.savefig('./' + foldername  + results_foldername+ '/h_HeatCapacityErrorsOvTZoom.pgf')
+        
+    else:
         for i in range(n):
             mh = len(hfields_plots[i])
             plt.figure(figsize=(12, 8), dpi=300)
@@ -1021,20 +1123,22 @@ def BasicPlotsM(L, n, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
     margin = [0.08, 0.08, 0.02, 0.1]
     for i in range(n):
         if ploth:
-            mt = len(temperatures_plots[i])
+            #mt = len(temperatures_plots[i])
+            mt = tidmax[i];
             plt.figure(figsize=(12, 8),dpi=300)
             plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
             for tid, t in enumerate(temperatures_plots[i]):
-                col = [0 + tid/mt, (1 - tid/mt)**2, 1 - tid/mt]
-                plt.plot(hfields_plots[i],
-                                 t_h_MeanM[i][tid, :],'.-',\
-                                  label = r'$T$ = {0}'.format(t), color = col)
-                plt.fill_between(hfields_plots[i],
-                                 (t_h_MeanM[i][tid,:]
-                                  - np.sqrt(t_h_varMeanM[i][tid,:])),
-                                 (t_h_MeanM[i][tid,:]
-                                  + np.sqrt(t_h_varMeanM[i][tid,:])),\
-                                 alpha=0.4, color = col)
+                if tid >= tidmin and tid <= tidmax[i]:
+                    col = [0 + tid/mt, (1 - tid/mt)**2, 1 - tid/mt]
+                    plt.plot(hfields_plots[i],
+                                     t_h_MeanM[i][tid, :],'.-',\
+                                      label = r'$T$ = {0}'.format(t), color = col)
+                    plt.fill_between(hfields_plots[i],
+                                     (t_h_MeanM[i][tid,:]
+                                      - np.sqrt(t_h_varMeanM[i][tid,:])),
+                                     (t_h_MeanM[i][tid,:]
+                                      + np.sqrt(t_h_varMeanM[i][tid,:])),\
+                                     alpha=0.4, color = col)
             plt.xlabel(r'Magnetic field $h$')
             plt.ylabel(r'Magnetisation per site $m$')
             plt.grid(which='both')
@@ -1050,15 +1154,15 @@ def BasicPlotsM(L, n, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
             plt.figure(figsize=(12, 8), dpi=300)
             plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
             for hid, h in enumerate(hfields_plots[i]):
-                col = [0 + hid/mh, (1 - hid/mh)**2, 1 - hid/mh]
-                plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]], t_h_MeanM[i][tidmin:tidmax[i]][:,hid], 
-                             '.-',label = r'$h$ = {0}'.format(h), color = col)
-                plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]],
-                                 (t_h_MeanM[i][tidmin:tidmax[i]][:,hid]
-                                  - np.sqrt(t_h_varMeanM[i][tidmin:tidmax[i]][:,hid])),
-                                 (t_h_MeanM[i][tidmin:tidmax[i]][:,hid]
-                                  + np.sqrt(t_h_varMeanM[i][tidmin:tidmax[i]][:,hid])),\
-                                 alpha = 0.5, color = col)
+                    col = [0 + hid/mh, (1 - hid/mh)**2, 1 - hid/mh]
+                    plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]], t_h_MeanM[i][tidmin:tidmax[i]][:,hid], 
+                                 '.-',label = r'$h$ = {0}'.format(h), color = col)
+                    plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]],
+                                     (t_h_MeanM[i][tidmin:tidmax[i]][:,hid]
+                                      - np.sqrt(t_h_varMeanM[i][tidmin:tidmax[i]][:,hid])),
+                                     (t_h_MeanM[i][tidmin:tidmax[i]][:,hid]
+                                      + np.sqrt(t_h_varMeanM[i][tidmin:tidmax[i]][:,hid])),\
+                                     alpha = 0.5, color = col)
             plt.xlabel(r'Temperature $T$ ')
             plt.ylabel('Magnetisation per site')
             plt.title('Filename: '+filenamelist[i])
@@ -1067,9 +1171,33 @@ def BasicPlotsM(L, n, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
             plt.savefig('./' + foldername  + results_foldername+ '/M.png')
             if pgf:
                 plt.savefig('./' + foldername  + results_foldername+ '/M.pgf')
+    #Susceptibility
+    if ploth:
+        for i in range(n):
+            mt = tidmax[i];
+            plt.figure(figsize=(12, 8),dpi=300)
+            plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
+            for tid, t in enumerate(temperatures_plots[i]):
+                if tid >= tidmin and tid <= tidmax[i]:
+                    col = [0 + tid/mt, (1 - tid/mt)**2, 1 - tid/mt]
+                    plt.plot(hfields_plots[i],
+                                     Chi[i][tid, :],'.-',\
+                                      label = r'$T$ = {0}'.format(t), color = col)
+                    plt.fill_between(hfields_plots[i],
+                                     (Chi[i][tid,:]
+                                      - ErrChi[i][tid,:]),
+                                     (Chi[i][tid,:]
+                                      + ErrChi[i][tid,:]),\
+                                     alpha=0.4, color = col)
+            plt.xlabel(r'Magnetic field $h$')
+            plt.ylabel('Susceptibility')
+            plt.grid(which='both')
+            plt.title('Filename: '+filenamelist[i])
+            plt.savefig('./' + foldername  + results_foldername+ '/h_Susceptibility.png')
+            if pgf:
+                plt.savefig('./' + foldername  + results_foldername+ '/h_Susceptibility.pgf')
     
-    if not ploth:
-        #Susceptibility
+    else:
         for i in range(n):
             mh = len(hfields_plots[i])
             plt.figure(figsize=(12, 8), dpi=300)
