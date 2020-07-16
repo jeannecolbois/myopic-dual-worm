@@ -1,4 +1,4 @@
-
+#!/usr/bin/env python
 # coding: utf-8
 
 # In[ ]:
@@ -1505,7 +1505,7 @@ def PlotFirstCorrelations(n, L, foldername, results_foldername,hfields_plots, te
                          t_h_MeanCorr, t_h_errCorrEstim, srefs, distmax = 3.5, ploth = False, **kwargs):
 
     distmax = min(3.5, distmax)
-    nlistnames = ['1', '2', '3', '3star', '4', '5', '6', '6star']
+    nlistnames = ['1', '2', '3par', '3star', '4', '5', '6', '6star']
     
     rmmag = kwargs.get('rmmag', False)
     
@@ -1550,7 +1550,7 @@ def PlotFirstCorrelations(n, L, foldername, results_foldername,hfields_plots, te
                                          reserrcorr[nei],\
                                          fmt = fmts[nei],\
                                          label =\
-                                         'Neighbour {0}'.format(nlistnames[nei]),\
+                                         'NN {0}'.format(nlistnames[nei]),\
                                          alpha = alpha)
                         else:
                             plt.errorbar(temperatures_plots[i][t],
@@ -1608,7 +1608,7 @@ def PlotFirstCorrelations(n, L, foldername, results_foldername,hfields_plots, te
                                          reserrcorr[nei],\
                                          fmt = fmt,\
                                          label =\
-                                         'Neighbour {0}'.format(nlistnames[nei]),\
+                                         'NN {0}'.format(nlistnames[nei]),\
                                          alpha = alpha)
                         else:
                             plt.errorbar(hfields_plots[i][hid],
