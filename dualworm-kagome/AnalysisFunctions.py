@@ -592,6 +592,48 @@ def LoadFirstCorrelationsFromFile(foldername, filename, idfunc, idfuncsi, stat_t
 # In[ ]:
 
 
+def LoadFrustratedTriangles(foldername, filenamelist, listfunctions,
+                stat_temps, stat_hfields, nb, **kwargs):
+    
+    n = len(filenamelist)
+    ## Charges
+    t_h_MeanCharges = [[] for _ in range(n)]
+    t_h_varMeanCharges = [[] for _ in range(n)]
+    
+    for nf, filename in enumerate(filenamelist):
+        if ('FrustratedTriangles' in listfunctions[nf]):
+            idfunc = listfunctions[nf].index('FrustratedTriangles')
+            
+            [t_h_MeanCharges[nf], t_h_varMeanCharges[nf]] =             LoadFrustratedTrianglesFromFile(foldername, filename, idfunc,
+                               stat_temps[nf], stat_hfields[nf],
+                                nb[nf], **kwargs)
+            
+        else:
+            [t_h_MeanCharges[nf], t_h_varMeanCharges[nf]] = [[],[]]
+            
+        
+    return t_h_MeanCharges, t_h_varMeanCharges
+
+
+# In[ ]:
+
+
+def LoadFrustratedTrianglesFromFile(foldername, filename, idfunc, 
+                        stat_temps, stat_hfields, nb, **kwargs):
+    
+    backup = "./"+foldername+filename
+    name = "FrustratedTriangles"
+    
+    t_h_MeanCharges, t_h_varMeanCharges =    ExtractStatistics(backup, idfunc, name, nb, stat_temps,
+                      stat_hfields, **kwargs)
+    
+    
+    return t_h_MeanCharges, t_h_varMeanCharges
+
+
+# In[ ]:
+
+
 def LoadCentralCorrelations(foldername, filenamelist, listfunctions, srefs, stat_temps, stat_hfields, nb, **kwargs):
     n = len(filenamelist)
     
@@ -774,6 +816,69 @@ def testPhase(energy, modelenergy):
         return False
     elif energy > modelenergy:
         return "Problem!!"
+
+
+# In[ ]:
+
+
+def BasicPlotsTriangles(L, n, tidmin, tidmax, temperatures_plots, hfields_plots, foldername,
+                results_foldername, filenamelist, t_h_MeanFrustratedTriangles,
+                        t_h_varMeanFrustratedTriangles, **kwargs):
+    ploth = kwargs.get('ploth', False)
+    pgf = kwargs.get('pgf', False)
+    
+    t_h_MeanFrustratedTriangles = np.array(t_h_MeanFrustratedTriangles)
+    t_h_varMeanFrustratedTriangles =  np.array(t_h_varMeanFrustratedTriangles)
+    
+    margin = [0.08, 0.08, 0.02, 0.1]
+    for i in range(n):
+        if ploth:
+            mt = tidmax[i];
+            plt.figure(figsize=(12, 8),dpi=300)
+            plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
+            for tid, t in enumerate(temperatures_plots[i]):
+                if tid >= tidmin and tid <= tidmax[i]:
+                    col = [0 + tid/mt, (1 - tid/mt)**2, 1 - tid/mt]
+                    plt.plot(hfields_plots[i],
+                                     t_h_MeanFrustratedTriangles[i][tid, :],'.-',\
+                                      label = r'$T$ = {0}'.format(t), color = col)
+                    plt.fill_between(hfields_plots[i],
+                                     (t_h_MeanFrustratedTriangles[i][tid,:]
+                                      - np.sqrt(t_h_varMeanFrustratedTriangles[i][tid,:])),
+                                     (t_h_MeanFrustratedTriangles[i][tid,:]
+                                      + np.sqrt(t_h_varMeanFrustratedTriangles[i][tid,:])),\
+                                     alpha=0.4, color = col)
+            plt.xlabel(r'Magnetic field $h$')
+            plt.ylabel(r'$n_{fr.}/n_{t}$')
+            plt.grid(which='both')
+            plt.legend(loc= 'best', framealpha=0.5)
+            plt.savefig('./' + foldername  + results_foldername
+                        + '/h_nfr.png')
+            if pgf:
+                plt.savefig('./' + foldername  + results_foldername
+                        + '/h_nfr.pgf')
+        else:
+            mh = len(hfields_plots[i])
+            plt.figure(figsize=(12, 8),dpi=300)
+            plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
+            for hid, h in enumerate(hfields_plots[i]):
+                col = [0 + hid/mh, (1 - hid/mh)**2, 1 - hid/mh]
+                plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]],
+                                 t_h_MeanFrustratedTriangles[i][tidmin:tidmax[i]][:,hid],'.-',\
+                                  label = r'$h$ = {0}'.format(h), color = col)
+                plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]],
+                                 (t_h_MeanFrustratedTriangles[i][tidmin:tidmax[i]][:,hid]
+                                  - np.sqrt(t_h_varMeanFrustratedTriangles[i][tidmin:tidmax[i]][:,hid])),
+                                 (t_h_MeanFrustratedTriangles[i][tidmin:tidmax[i]][:,hid]
+                                  + np.sqrt(t_h_varMeanFrustratedTriangles[i][tidmin:tidmax[i]][:,hid])),\
+                                 alpha=0.4, color = col)
+            plt.xlabel(r'Temperature $T$')
+            plt.ylabel(r'$n_{fr.}/n_{t}$')
+            plt.grid(which='both')
+            plt.legend(loc= 'best', framealpha=0.5)
+            plt.savefig('./' + foldername  + results_foldername +                        '/t_nfr.png')
+            if pgf:
+                plt.savefig('./' + foldername  + results_foldername +                        '/t_nfr.pgf')
 
 
 # In[ ]:

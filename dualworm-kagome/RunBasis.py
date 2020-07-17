@@ -386,6 +386,8 @@ if __name__ == "__main__":
                        help = 'activate if you want to compute the magnetisation statistics')
     parser.add_argument('--charges', default = False, action = 'store_true',
                         help = 'activate if you want to save the charges')
+    parser.add_argument('--frustratedT', default = False, action = 'store_true',
+                        help = 'activate if you want to save the frustrated triangles')
     parser.add_argument('--correlations', default = False, action = 'store_true',
                         help = 'activate if you want to save either central or all correlations')
     parser.add_argument('--both', default = False, action = 'store_true',

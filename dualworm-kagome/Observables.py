@@ -29,11 +29,16 @@ def charges(stlen, state, en_state, spinstate, s_ijl, ijl_s,c2s = [], csign= [],
     cvals = np.array([csign[c]*(spinstate[s1]+spinstate[s2]+spinstate[s3]) for c, (s1,s2,s3) in enumerate(c2s)], dtype = 'int8')
     return cvals
 
+def frustratedTriangles(stlen, state, en_state, spinstate, s_ijl, ijl_s,c2s = [], csign= [], **kwargs):
+    numcharges = len(c2s);
+    nfr = np.array([1 for c, (s1,s2,s3) in enumerate(c2s) if abs(spinstate[s1]+spinstate[s2]+spinstate[s3]) == 3]).sum()
+    return nfr/numcharges
+
 def initstatstables(namefunctions, nb, c2s, nnlists,
                     stat_temps, stat_fields, stlen):
     statstables = [0 for i in range(len(namefunctions))]
     for i, name in enumerate(namefunctions):
-        if name == "Energy" or name == "Magnetisation":
+        if name == "Energy" or name == "Magnetisation" or name == "FrustratedTriangles":
             statstables[i]=np.zeros((nb, 2, len(stat_temps), len(stat_fields)))
         elif name == "Charges":
             statstables[i] = np.zeros((nb, 2, len(stat_temps),
