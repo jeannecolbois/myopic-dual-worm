@@ -787,14 +787,15 @@ def LoadSiFromFile(foldername, filename, idfunc, stat_temps, **kwargs):
 
 
 def SwapsAnalysis(L, n, tidmin, tidmax, temperatures, hfields, foldername, results_foldername, swapst, swapsh):
+
     for i in range(n):
         plt.figure()
         plt.loglog(temperatures[i][tidmin:tidmax[i]-1], swapst[i][tidmin:tidmax[i]-1], '.-', color = 'green')
         plt.xlabel('Temperature')
         plt.ylabel('Ratio of swaps')
         plt.title('Ratio of swaps as a function of the temperature')
-        plt.savefig('./' + foldername  + results_foldername+ '/NumberSwapsTemperature_L={0}.png'.format(L[i]))
-        
+        plt.savefig('./' + foldername  + results_foldername+ '/NumberSwapsTemperature_L={0}_SimId={1}.png'.format(L[i],i))
+
         nh = len(hfields[i])
         if nh > 1:
             plt.figure()
@@ -803,7 +804,7 @@ def SwapsAnalysis(L, n, tidmin, tidmax, temperatures, hfields, foldername, resul
             plt.ylabel('Ratio of swaps')
             plt.title('Ratio of swaps as a function of the magnetic field')
             plt.grid(which='both')
-            plt.savefig('./' + foldername  + results_foldername+ '/NumberSwapsField_L={0}.png'.format(L[i]))
+            plt.savefig('./' + foldername  + results_foldername+ '/NumberSwapsField_L={0}_SimId={1}.png'.format(L[i], i))
 
 
 # In[ ]:
@@ -816,6 +817,99 @@ def testPhase(energy, modelenergy):
         return False
     elif energy > modelenergy:
         return "Problem!!"
+
+
+# In[ ]:
+
+
+def BasicPlotsFirstCorrelations(L, i, t_h_MeanFc, temperatures_plots, t_h_errCorrEstim,
+                                foldername, results_foldername, filenamelist, 
+                                tmin = 0, setyticks = None, addtitle = "", addsave = "",
+                                save = True, log = True,
+                                figsize=(11,9), dpi = 200,**kwargs):
+    
+    plt.figure(figsize=figsize, dpi = dpi)
+    if log:
+        plt.semilogx(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,0],'.',label = 'NN')
+    else:
+        plt.plot(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,0],'.',label = 'NN')
+    
+    plt.fill_between(temperatures_plots[i][tmin:],
+                    t_h_MeanFc[i][tmin:,0,0]-np.sqrt(t_h_errCorrEstim[i][0,tmin:,0,0]),
+                    t_h_MeanFc[i][tmin:,0,0]+np.sqrt(t_h_errCorrEstim[i][0,tmin:,0,0]), alpha = 0.2)
+    if log:
+        plt.semilogx(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,1],'x',label = 'NN2')
+    else: 
+        plt.plot(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,1],'x',label = 'NN2')
+    
+    plt.fill_between(temperatures_plots[i][tmin:],
+                    t_h_MeanFc[i][tmin:,0,1]-np.sqrt(t_h_errCorrEstim[i][0,tmin:,0,0]),
+                    t_h_MeanFc[i][tmin:,0,1]+np.sqrt(t_h_errCorrEstim[i][0,tmin:,0,0]), alpha = 0.2)
+    if log:
+        plt.semilogx(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,2],'v',label = 'NN3par')
+    else:
+        plt.plot(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,2],'v',label = 'NN3par')
+    plt.fill_between(temperatures_plots[i][tmin:],
+                    t_h_MeanFc[i][tmin:,0,2]-np.sqrt(t_h_errCorrEstim[i][0,tmin:,0,0]),
+                    t_h_MeanFc[i][tmin:,0,2]+np.sqrt(t_h_errCorrEstim[i][0,tmin:,0,0]), alpha = 0.2)
+    if log:
+        plt.semilogx(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,3],'*',label = 'NN3star')
+    else:
+        plt.plot(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,3],'*',label = 'NN3star')
+    
+    plt.fill_between(temperatures_plots[i][tmin:],
+                    t_h_MeanFc[i][tmin:,0,3]-np.sqrt(t_h_errCorrEstim[i][0,tmin:,0,0]),
+                    t_h_MeanFc[i][tmin:,0,3]+np.sqrt(t_h_errCorrEstim[i][0,tmin:,0,0]), alpha = 0.2)
+    plt.title(addtitle)
+    plt.xlabel(r"$T/J_1$")
+    plt.ylabel(r"$\langle \sigma_i \sigma_j \rangle - \langle \sigma_i \rangle \langle \sigma_j \rangle$")
+    plt.yticks(setyticks)
+    plt.grid(which='both')
+    plt.legend()
+    if save:
+        if log:
+            plt.savefig("./" + foldername + results_foldername + "/FirstCorrelations"+addsave+ ".png")
+        else:
+            plt.savefig("./" + foldername + results_foldername + "/FirstCorrelations"+addsave+ "_Linear.png")
+
+
+# In[ ]:
+
+
+def BasicPlotsDifferenceFirstCorrelations(L, i, t_h_MeanFc, temperatures_plots, t_h_errCorrEstim,
+                                foldername, results_foldername, filenamelist, 
+                                tmin = 0, tmax = 128, setxlim = None, setylim = None, 
+                                setxticks = None, setyticks = None, 
+                                addtitle = "", addsave = "",
+                                save = True, log = True, 
+                                figsize=(11,9), dpi = 200,**kwargs):
+    plt.figure(figsize=figsize, dpi = dpi)
+    if log:
+        plt.semilogx(temperatures_plots[i][tmin:tmax],t_h_MeanFc[i][tmin:tmax,0,1]-t_h_MeanFc[i][tmin:tmax,0,2],'k.',label = 'NN2 - NN3par')
+    else:
+        plt.plot(temperatures_plots[i][tmin:tmax],t_h_MeanFc[i][tmin:tmax,0,1]-t_h_MeanFc[i][tmin:tmax,0,2],'k.',label = 'NN2 - NN3par')
+    plt.fill_between(temperatures_plots[i][tmin:tmax],
+                    t_h_MeanFc[i][tmin:tmax,0,1]-t_h_MeanFc[i][tmin:tmax,0,2]-np.sqrt(t_h_errCorrEstim[i][0,tmin:tmax,0,0]),
+                    t_h_MeanFc[i][tmin:tmax,0,1]-t_h_MeanFc[i][tmin:tmax,0,2]+np.sqrt(t_h_errCorrEstim[i][0,tmin:tmax,0,0]), color = 'k', alpha = 0.2)
+    if log:
+        plt.semilogx(temperatures_plots[i][tmin:tmax],t_h_MeanFc[i][tmin:tmax,0,1]-t_h_MeanFc[i][tmin:tmax,0,3],'r.',label = 'NN2 - NN3star')
+    else:
+        plt.plot(temperatures_plots[i][tmin:tmax],t_h_MeanFc[i][tmin:tmax,0,1]-t_h_MeanFc[i][tmin:tmax,0,3],'r.',label = 'NN2 - NN3star')
+    plt.fill_between(temperatures_plots[i][tmin:tmax],
+                    t_h_MeanFc[i][tmin:tmax,0,1]-t_h_MeanFc[i][tmin:tmax,0,3]-np.sqrt(t_h_errCorrEstim[i][0,tmin:tmax,0,0]),
+                    t_h_MeanFc[i][tmin:tmax,0,1]-t_h_MeanFc[i][tmin:tmax,0,3]+np.sqrt(t_h_errCorrEstim[i][0,tmin:tmax,0,0]), color = 'r', alpha = 0.2)
+
+    plt.title(addtitle)
+    plt.xlabel(r"$T/J_1$")
+    plt.ylabel(r"$\Delta(\langle \sigma_i \sigma_j \rangle - \langle \sigma_i \rangle \langle \sigma_j \rangle)$")
+    plt.xlim(setxlim)
+    plt.ylim(setylim)
+    plt.xticks(setxticks)
+    plt.yticks(setyticks)
+    plt.grid(which='both')
+    plt.legend()
+    if save:
+        plt.savefig("./" + foldername + results_foldername + "/FirstCorrelationsDifference"+ addsave + "_ZoomLinear.png")
 
 
 # In[ ]:
@@ -923,10 +1017,10 @@ def BasicPlotsE(L, n, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
             plt.grid(which='both')
             plt.legend(loc= 'best', framealpha=0.5)
             plt.savefig('./' + foldername  + results_foldername
-                        + '/h_E.png')
+                        + '/h_E_simId={0}.png'.format(i))
             if pgf:
                 plt.savefig('./' + foldername  + results_foldername
-                        + '/h_E.pgf')
+                        + '/h_E_simId={0}.pgf'.format(i))
         else:
             mh = len(hfields_plots[i])
             plt.figure(figsize=(12, 8),dpi=300)
@@ -946,9 +1040,9 @@ def BasicPlotsE(L, n, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
             plt.ylabel(r'$E$')
             plt.grid(which='both')
             plt.legend(loc= 'best', framealpha=0.5)
-            plt.savefig('./' + foldername  + results_foldername +                        '/Mean energy per site.png')
+            plt.savefig('./' + foldername  + results_foldername +                        '/Mean energy per site_simId={0}.png'.format(i))
             if pgf:
-                plt.savefig('./' + foldername  + results_foldername +                        '/Mean energy per site.pgf')
+                plt.savefig('./' + foldername  + results_foldername +                        '/Mean energy per site_simId={0}.pgf'.format(i))
 
     
     #Heat capacity
@@ -975,9 +1069,9 @@ def BasicPlotsE(L, n, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
             plt.ylabel(r'Heat capacity $C$ ')
             plt.grid(which='both')
             plt.legend(loc= 'best', framealpha=0.5)
-            plt.savefig('./' + foldername  + results_foldername+ '/h_HeatCapacityErrors.png')
+            plt.savefig('./' + foldername  + results_foldername+ '/h_HeatCapacityErrors_simId={0}.png'.format(i))
             if pgf:
-                plt.savefig('./' + foldername  + results_foldername+ '/h_HeatCapacityErrors.pgf')
+                plt.savefig('./' + foldername  + results_foldername+ '/h_HeatCapacityErrors_simId={0}.pgf'.format(i))
                 
         hidmin = kwargs.get('hidmin',0)
         hidmax = kwargs.get('hidmax',len(hfields_plots[0]) )
@@ -1001,9 +1095,9 @@ def BasicPlotsE(L, n, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
             plt.ylabel(r'Heat capacity $C$ ')
             plt.grid(which='both')
             plt.legend(loc= 'best', framealpha=0.5)
-            plt.savefig('./' + foldername  + results_foldername+ '/h_HeatCapacityErrorsZoom.png')
+            plt.savefig('./' + foldername  + results_foldername+ '/h_HeatCapacityErrorsZoom_simId={0}.png'.format(i))
             if pgf:
-                plt.savefig('./' + foldername  + results_foldername+ '/h_HeatCapacityErrorsZoom.pgf')
+                plt.savefig('./' + foldername  + results_foldername+ '/h_HeatCapacityErrorsZoom_simId={0}.pgf'.format(i))
                 
         for i in range(n):
             mt = tidmax[i]
@@ -1026,9 +1120,9 @@ def BasicPlotsE(L, n, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
             plt.ylabel(r'Heat capacity $C/T$ ')
             plt.grid(which='both')
             plt.legend(loc= 'best', framealpha=0.5)
-            plt.savefig('./' + foldername  + results_foldername+ '/h_HeatCapacityOverTErrors.png')
+            plt.savefig('./' + foldername  + results_foldername+ '/h_HeatCapacityOverTErrors_simId={0}.png'.format(i))
             if pgf:
-                plt.savefig('./' + foldername  + results_foldername+ '/h_HeatCapacityOverTErrors.pgf')
+                plt.savefig('./' + foldername  + results_foldername+ '/h_HeatCapacityOverTErrors_simId={0}.pgf'.format(i))
 
         for i in range(n):
             mt = tidmax[i]
@@ -1050,9 +1144,9 @@ def BasicPlotsE(L, n, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
             plt.ylabel(r'Heat capacity $C$ ')
             plt.grid(which='both')
             plt.legend(loc= 'best', framealpha=0.5)
-            plt.savefig('./' + foldername  + results_foldername+ '/h_HeatCapacityErrorsOvTZoom.png')
+            plt.savefig('./' + foldername  + results_foldername+ '/h_HeatCapacityErrorsOvTZoom_simId={0}.png'.format(i))
             if pgf:
-                plt.savefig('./' + foldername  + results_foldername+ '/h_HeatCapacityErrorsOvTZoom.pgf')
+                plt.savefig('./' + foldername  + results_foldername+ '/h_HeatCapacityErrorsOvTZoom_simId={0}.pgf'.format(i))
         
     else:
         for i in range(n):
@@ -1076,9 +1170,9 @@ def BasicPlotsE(L, n, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
             plt.ylabel(r'Heat capacity $C$ ')
             plt.grid(which='both')
             plt.legend(loc= 'best', framealpha=0.5)
-            plt.savefig('./' + foldername  + results_foldername+ '/HeatCapacityErrors.png')
+            plt.savefig('./' + foldername  + results_foldername+ '/HeatCapacityErrors_simId={0}.png'.format(i))
             if pgf:
-                plt.savefig('./' + foldername  + results_foldername+ '/HeatCapacityErrors.pgf')
+                plt.savefig('./' + foldername  + results_foldername+ '/HeatCapacityErrors_simId={0}.pgf'.format(i))
 
         ##Heat capacity / T
         margin = [0.08, 0.08, 0.02, 0.1]
@@ -1104,9 +1198,9 @@ def BasicPlotsE(L, n, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
             plt.ylabel(r'$\frac{c}{k_B T}$')
             plt.grid(which='both')
             plt.legend(loc= 'best', framealpha=0.5)
-            plt.savefig('./' + foldername  + results_foldername+ '/HeatCapacityT.png')
+            plt.savefig('./' + foldername  + results_foldername+ '/HeatCapacityT_simId={0}.png'.format(i))
             if pgf:
-                plt.savefig('./' + foldername  + results_foldername+ '/HeatCapacityT.pgf')
+                plt.savefig('./' + foldername  + results_foldername+ '/HeatCapacityT_simId={0}.pgf'.format(i))
 
         # Residual entropy
         RS = kwargs.get('RS', False)
@@ -1144,9 +1238,9 @@ def BasicPlotsE(L, n, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
                 plt.ylabel(r'$S$')
                 plt.grid(which='both')
                 plt.legend(loc= 'best', framealpha=0.5)
-                plt.savefig('./' + foldername  + results_foldername+ '/EntropyT.png')
+                plt.savefig('./' + foldername  + results_foldername+ '/EntropyT_simId={0}.png'.format(i))
                 if pgf:
-                    plt.savefig('./' + foldername  + results_foldername+ '/EntropyT.pgf')
+                    plt.savefig('./' + foldername  + results_foldername+ '/EntropyT_simId={0}.pgf'.format(i))
 
         # Ground-state energy
         gs = kwargs.get('gs', False)
@@ -1187,9 +1281,9 @@ def BasicPlotsE(L, n, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
             plt.ylabel(r'$\frac{E - E_{NN}}{J_2}$', size = 22)
             plt.grid(which='both')
             #plt.legend()
-            plt.savefig('./' + foldername  + results_foldername + '/E(ratio).png')
+            plt.savefig('./' + foldername  + results_foldername + '/E(ratio)_simId={0}.png'.format(i))
             if pgf:
-                plt.savefig('./' + foldername  + results_foldername + '/E(ratio).pgf')
+                plt.savefig('./' + foldername  + results_foldername + '/E(ratio)_simId={0}.pgf'.format(i))
         
         gscheck = kwargs.get('gscheck', False)
         if gscheck:
@@ -1606,8 +1700,11 @@ def dist_corr(L, findex, corr, errcorr,distmax, srefs, nnlists):
 # In[ ]:
 
 
-def PlotFirstCorrelations(n, L, foldername, results_foldername,hfields_plots, temperatures_plots,
-                         t_h_MeanCorr, t_h_errCorrEstim, srefs, distmax = 3.5, ploth = False, **kwargs):
+def PlotFirstCorrelations(i, L, foldername, results_foldername,hfields_plots, temperatures_plots,
+                         t_h_MeanCorr, t_h_errCorrEstim, srefs, distmax = 3.5, ploth = False,
+                          tmin = 0, setyticks = None, addtitle = "", addsave = "", save = True, log = True,
+                          figsize=(11,9), dpi = 200,
+                          **kwargs):
 
     distmax = min(3.5, distmax)
     nlistnames = ['1', '2', '3par', '3star', '4', '5', '6', '6star']
@@ -1618,117 +1715,113 @@ def PlotFirstCorrelations(n, L, foldername, results_foldername,hfields_plots, te
     if plotfirst: 
         t_h_MeanFc = kwargs.get('t_h_MeanFc')
     if not ploth:
-        for i in range(n):
-            
-            #spin table and dictionary
-            (s_ijl, ijl_s) = kf.createspinsitetable(L[i])
-            nnlists = [dw.NNpairs(ijl_s, s_ijl, L[i]), dw.NN2pairs(ijl_s, s_ijl, L[i]),
-                       dw.NN3parpairs(ijl_s, s_ijl, L[i]), dw.NN3starpairs(ijl_s, s_ijl, L[i])]
-            for hid, h in enumerate(hfields_plots[i]):
-                fig, ax = plt.subplots(figsize = (11,9),dpi=200)
-                ax.set_xscale("log")
-                if n!=0:
-                    plt.title('First few neighbours correlations,                    h = {0}'.format(h))
-                else:
-                    plt.title('First few neighbours correlations')
-                    
-                fmts = ['.','x','v','*','o','^','s']
-                length = len(temperatures_plots[i])
-                fmt = fmts[i]
-                for t in range(1,length):
+        #spin table and dictionary
+        (s_ijl, ijl_s) = kf.createspinsitetable(L[i])
+        nnlists = [dw.NNpairs(ijl_s, s_ijl, L[i]), dw.NN2pairs(ijl_s, s_ijl, L[i]),
+                   dw.NN3parpairs(ijl_s, s_ijl, L[i]), dw.NN3starpairs(ijl_s, s_ijl, L[i])]
+        for hid, h in enumerate(hfields_plots[i]):
+            fig, ax = plt.subplots(figsize = figsize,dpi=dpi)
+            ax.set_xscale("log")
+            if len(hfields_plots[i])!=1:
+                plt.title('First few neighbours correlations' + addtitle+',                h = {0}'.format(h))
+            else:
+                plt.title('First few neighbours correlations' + addtitle)
 
-                    corr = [np.array(t_h_MeanCorr[i])[:,t,hid,:]]
-                    #print(corr[0].shape)
-                    errcorr =                    [np.sqrt(np.array(t_h_errCorrEstim[i])[:,t,hid])]
-                    
-                    (rescorr, reserrcorr) =                    dist_corr(L[i],0 ,corr, errcorr, distmax, srefs[i], nnlists)
-                    
+            fmts = ['.','x','v','*','o','^','s']
+            length = len(temperatures_plots[i])
+            fmt = fmts[i]
+            for t in range(1,length):
+
+                corr = [np.array(t_h_MeanCorr[i])[:,t,hid,:]]
+                #print(corr[0].shape)
+                errcorr =                [np.sqrt(np.array(t_h_errCorrEstim[i])[:,t,hid])]
+
+                (rescorr, reserrcorr) =                dist_corr(L[i],0 ,corr, errcorr, distmax, srefs[i], nnlists)
+
+                if t == 1:
+                    print(rescorr)
+
+                plt.gca().set_prop_cycle(None)
+                alpha = 0.5
+                for nei in range(0,len(rescorr)):
                     if t == 1:
-                        print(rescorr)
-                    
-                    plt.gca().set_prop_cycle(None)
-                    alpha = 0.5
-                    for nei in range(0,len(rescorr)):
-                        if t == 1:
-                            plt.errorbar(temperatures_plots[i][t],
-                                         rescorr[nei],
-                                         reserrcorr[nei],\
-                                         fmt = fmts[nei],\
-                                         label =\
-                                         'NN {0}'.format(nlistnames[nei]),\
-                                         alpha = alpha)
-                        else:
-                            plt.errorbar(temperatures_plots[i][t],
-                                         rescorr[nei],
-                                         reserrcorr[nei],\
-                                         fmt = fmts[nei],\
-                                         alpha = alpha)
-                
-                if plotfirst:
-                    plt.gca().set_prop_cycle(None)
-                    plt.semilogx(temperatures_plots[i],t_h_MeanFc[i][:,hid,0],'.')
-                    plt.semilogx(temperatures_plots[i],t_h_MeanFc[i][:,hid,1],'.')
-                    plt.semilogx(temperatures_plots[i],t_h_MeanFc[i][:,hid,2],'.')
-                    plt.semilogx(temperatures_plots[i],t_h_MeanFc[i][:,hid,3],'.')
-                plt.xlabel(r'$T/J_1$')
-                if rmmag:
-                    plt.ylabel(r'$<\sigma_i \sigma_j> - <\sigma_i> <\sigma_j> $')
-                else:
-                    plt.ylabel(r'$<\sigma_i \sigma_j>$')
-                
-                plt.grid(which='both')
-                plt.legend(loc = 'best')
-                if not plotfirst:
-                    plt.savefig('./' + foldername  +                                results_foldername+                                '/FewCorrelations_L={0}_h={1}.png'.format(L[i],h))
-                else:
-                    plt.savefig('./' + foldername  +                                results_foldername+                                '/FewCorrelationsComparison_L={0}_h={1}.png'.format(L[i],h))
+                        plt.errorbar(temperatures_plots[i][t],
+                                     rescorr[nei],
+                                     reserrcorr[nei],\
+                                     fmt = fmts[nei],\
+                                     label =\
+                                     'NN {0}'.format(nlistnames[nei]),\
+                                     alpha = alpha)
+                    else:
+                        plt.errorbar(temperatures_plots[i][t],
+                                     rescorr[nei],
+                                     reserrcorr[nei],\
+                                     fmt = fmts[nei],\
+                                     alpha = alpha)
+
+            if plotfirst:
+                plt.gca().set_prop_cycle(None)
+                plt.semilogx(temperatures_plots[i],t_h_MeanFc[i][:,hid,0],'.')
+                plt.semilogx(temperatures_plots[i],t_h_MeanFc[i][:,hid,1],'.')
+                plt.semilogx(temperatures_plots[i],t_h_MeanFc[i][:,hid,2],'.')
+                plt.semilogx(temperatures_plots[i],t_h_MeanFc[i][:,hid,3],'.')
+            plt.xlabel(r'$T/J_1$')
+            if rmmag:
+                plt.ylabel(r'$<\sigma_i \sigma_j> - <\sigma_i> <\sigma_j> $')
+            else:
+                plt.ylabel(r'$<\sigma_i \sigma_j>$')
+
+            plt.grid(which='both')
+            plt.legend(loc = 'best')
+            if not plotfirst:
+                plt.savefig('./' + foldername  +                            results_foldername+                            '/FewCorrelations_L={0}_h={1}_simId={2}'+addsave+'.png'.format(L[i],h,i))
+            else:
+                plt.savefig('./' + foldername  +                            results_foldername+                            '/FewCorrelationsComparison_L={0}_h={1}_simId={2}'+addsave+'.png'.format(L[i],h,i))
     else:
-        for i in range(n):
-            #spin table and dictionary
-            (s_ijl, ijl_s) = kf.createspinsitetable(L[i])
-            nnlists = [dw.NNpairs(ijl_s, s_ijl, L[i]), dw.NN2pairs(ijl_s, s_ijl, L[i]),
-                       dw.NN3parpairs(ijl_s, s_ijl, L[i]), dw.NN3starpairs(ijl_s, s_ijl, L[i])]
-            for tid, t in enumerate(temperatures_plots[i]):
-                fig, ax = plt.subplots(figsize = (11,9), dpi=200)
-                plt.title('First few neighbours correlations,                t = {0}'.format(t))
-                fmts = ['.','x','v','*','o','^','s']
-                length = len(hfields_plots[i])
-                fmt = fmts[i]
-                for hid in range(1,length):
+        #spin table and dictionary
+        (s_ijl, ijl_s) = kf.createspinsitetable(L[i])
+        nnlists = [dw.NNpairs(ijl_s, s_ijl, L[i]), dw.NN2pairs(ijl_s, s_ijl, L[i]),
+                   dw.NN3parpairs(ijl_s, s_ijl, L[i]), dw.NN3starpairs(ijl_s, s_ijl, L[i])]
+        for tid, t in enumerate(temperatures_plots[i]):
+            fig, ax = plt.subplots(figsize = figsize, dpi=dpi)
+            plt.title('First few neighbours correlations' + addtitle+',            t = {0}'.format(t))
+            fmts = ['.','x','v','*','o','^','s']
+            length = len(hfields_plots[i])
+            fmt = fmts[i]
+            for hid in range(1,length):
 
-                    corr = [np.array(t_h_MeanCorr[i])[:,tid,hid,:]]
-                    errcorr =                    [np.sqrt(np.array(t_h_errCorrEstim[i])[:,tid,hid])]
-                    
-                    (rescorr, reserrcorr) =                    dist_corr(L[i],0 ,corr, errcorr, distmax, srefs[i], nnlists)
-                    
+                corr = [np.array(t_h_MeanCorr[i])[:,tid,hid,:]]
+                errcorr =                [np.sqrt(np.array(t_h_errCorrEstim[i])[:,tid,hid])]
+
+                (rescorr, reserrcorr) =                dist_corr(L[i],0 ,corr, errcorr, distmax, srefs[i], nnlists)
+
+                if hid == 1:
+                    print(rescorr)
+
+                plt.gca().set_prop_cycle(None)
+                alpha = 0.5
+                for nei in range(0,len(rescorr)):
                     if hid == 1:
-                        print(rescorr)
-                    
-                    plt.gca().set_prop_cycle(None)
-                    alpha = 0.5
-                    for nei in range(0,len(rescorr)):
-                        if hid == 1:
-                            plt.errorbar(hfields_plots[i][hid],
-                                         rescorr[nei],
-                                         reserrcorr[nei],\
-                                         fmt = fmt,\
-                                         label =\
-                                         'NN {0}'.format(nlistnames[nei]),\
-                                         alpha = alpha)
-                        else:
-                            plt.errorbar(hfields_plots[i][hid],
-                                         rescorr[nei],
-                                         reserrcorr[nei],\
-                                         fmt = fmt,\
-                                         alpha = alpha)
+                        plt.errorbar(hfields_plots[i][hid],
+                                     rescorr[nei],
+                                     reserrcorr[nei],\
+                                     fmt = fmt,\
+                                     label =\
+                                     'NN {0}'.format(nlistnames[nei]),\
+                                     alpha = alpha)
+                    else:
+                        plt.errorbar(hfields_plots[i][hid],
+                                     rescorr[nei],
+                                     reserrcorr[nei],\
+                                     fmt = fmt,\
+                                     alpha = alpha)
 
-                plt.xlabel(r'$h/J_1$')
-                if rmmag:
-                    plt.ylabel(r'$<\sigma_i \sigma_j> - <\sigma_i> <\sigma_j> $')
-                else:
-                    plt.ylabel(r'$<\sigma_i \sigma_j>$')
-                plt.grid(which='both')    
-                plt.legend(loc = 'best')
-                plt.savefig('./' + foldername  +                            results_foldername+                            'FewCorrelations_L={0}_t={1}.png'.format(L[i],t))
- 
+            plt.xlabel(r'$h/J_1$')
+            if rmmag:
+                plt.ylabel(r'$<\sigma_i \sigma_j> - <\sigma_i> <\sigma_j> $')
+            else:
+                plt.ylabel(r'$<\sigma_i \sigma_j>$')
+            plt.grid(which='both')    
+            plt.legend(loc = 'best')
+            plt.savefig('./' + foldername  +                        results_foldername+                        'FewCorrelations_L={0}_t={1}_simId={2}'+addsave+'.png'.format(L[i],t,i))
 
