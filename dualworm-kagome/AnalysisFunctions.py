@@ -15,9 +15,11 @@ import KagomeFT as kft
 import Observables as obs
 import warnings
 import os
+import itertools
 
 
 # In[ ]:
+
 
 
 def correlationsTester(state, latsize, d_ijl, ijl_d, L):
@@ -160,20 +162,28 @@ def ExtractStatistics(backup, idfunc, name,
     
     t_h_meanfunc = nb_stattuple.sum(0)/nb
     t_h_meanfunc = t_h_meanfunc[sq]
+    
+    
     binning = kwargs.get('binning', False)
 
-    t_h_varmeanfunc = [[0 for h in stat_hfields] for t in stat_temps]
+    #t_h_varmeanfunc = [[0 for h in stat_hfields] for t in stat_temps]
+    t_h_varmeanfunc = np.zeros(t_h_meanfunc.shape)
+    
     for resid, t in enumerate(stat_temps):
         for reshid, h in enumerate(stat_hfields):
             for b in range(nb):
-                t_h_varmeanfunc[resid][reshid] += ((nb_stattuple[b][sq][resid][reshid] - t_h_meanfunc[resid][reshid]) ** 2)/(nb * (nb - 1))
+                t_h_varmeanfunc[resid,reshid] += ((nb_stattuple[b, sq, resid, reshid] - t_h_meanfunc[resid][reshid]) ** 2)/(nb * (nb - 1))
+                # note that this is like t_h_varmeanfunc[resid,reshid, :]
+                    
     if binning:
-        print("Binning...")
-        warnings.warn("binning not implemented for the new structure of statstable!")
-        Binning(t_h_meanfunc,t_h_varmeanfunc, nb_stattuple[sq], nb,
+        print("Binning..." + name)
+        #warnings.warn("binning not implemented for the new structure of statstable!")
+        t_h_varmeanfunc = Binning(t_h_meanfunc,t_h_varmeanfunc, nb_stattuple[:,sq,:,:], nb,
                                 stat_temps, stat_hfields, **kwargs)
         
-    return t_h_meanfunc, np.array(t_h_varmeanfunc)
+        if name == "FirstCorrelations":
+            print(t_h_varmeanfunc[0][0])
+    return t_h_meanfunc, t_h_varmeanfunc
 
 
 # In[ ]:
@@ -183,8 +193,13 @@ def Binning(t_h_mean, t_h_varmean, stattuple, nb, stat_temps,stat_hfields, **kwa
     '''
         This function implements a binning analysis
     '''
-    raise Exception("Binning not adapted to the new statstable structure!")
-    ### NAIVE IMPLEMENTATION
+    #raise Exception("Binning not adapted to the new statstable structure!")
+
+    
+    ### NAIVE IMPLEMENTATION:
+    # go through all the measurements and recompute the variance when the bins are grouped
+    
+    # 1- preparing the list of bins
     nblist = []
     nbb = nb
     while nbb >= 15:
@@ -193,24 +208,21 @@ def Binning(t_h_mean, t_h_varmean, stattuple, nb, stat_temps,stat_hfields, **kwa
         
     print(" bins list for binning: ", nblist)
         
-    t_h_vars = [[[] for reshid in range(len(stat_hfields))] for resid in range(len(stat_temps))]
+    # preparing the resulting variances
+    t_h_vars = np.zeros(list(itertools.chain(*[[len(nblist)],t_h_varmean.shape])))#[[[] for reshid in range(len(stat_hfields))] for resid in range(len(stat_temps))]
+    
+    # go through the measurements
     for resid, t in enumerate(stat_temps):
         for reshid, h in enumerate(stat_hfields):
-            var = []
-            for l,nbb in enumerate(nblist):
-                avg = np.array(stattuple[resid][0:(2**l)]).sum(0)/(2**l)
-                varl=((avg - t_h_mean[resid])**2)/(nbb*(nbb-1))
+            # go through the levels of binning
+            for l,nbb in enumerate(nblist): 
+                avg = np.array(stattuple[0:(2**l),resid,reshid]).sum(0)/(2**l)
+                t_h_vars[l,resid,reshid]=((avg - t_h_mean[resid,reshid])**2)/(nbb*(nbb-1))
                 for b in range(1,nbb):
-                    avg = np.array(stattuple[resid][(2**l)*b:(2**l)*(b+1)]).sum(0)/(2**l)
-                    varl+=((avg - t_h_mean[resid])**2)/(nbb*(nbb-1))
-                if len(varl.shape) == 0:
-                    var.append(varl)
-                else:
-                    var.append(np.max(varl))
-                if resid == 0:
-                    print(nbb, " --- ", var[l])
-            
-            t_h_vars[resid][reshid] = var
+                    avg = np.array(stattuple[(2**l)*b:(2**l)*(b+1),resid,reshid]).sum(0)/(2**l)
+                    t_h_vars[l,resid,reshid]+=((avg - t_h_mean[resid,reshid])**2)/(nbb*(nbb-1))
+                #if resid == 0:
+                #    print(nbb, " --- ", t_h_vars[l,resid,reshid])
             
     plzplot = kwargs.get('plzplot', False)
     plotmin = kwargs.get('plotmin', 0)
@@ -226,12 +238,18 @@ def Binning(t_h_mean, t_h_varmean, stattuple, nb, stat_temps,stat_hfields, **kwa
         maxhplt = min(plothmax, len(stat_hfields))
         for reshid, h in enumerate(stat_hfields[minhplt:maxhplt]):
             for resid, t in enumerate(stat_temps[minplt:maxplt]):
-                plt.plot(range(len(t_h_vars[resid][reshid])), t_h_vars[resid][reshid], '.-', label = 't = {0}'.format(t))
+                if len(t_h_vars.shape) ==3:
+                    plt.plot(range(len(t_h_vars[:,resid,reshid])), t_h_vars[:,resid,reshid], '.-', label = 't = {0}'.format(t))
+                else:
+                    plt.plot(range(len(t_h_vars[:,resid,reshid,0])), t_h_vars[:,resid,reshid,0], '.-', label = 't = {0}'.format(t))
             plt.title('h = {0}'.format(h))
             plt.grid(which='both')
             plt.legend()
             plt.show()
-    t_h_varmean = [[max(var) for var in h_vars] for h_vars in t_h_vars]
+    
+    # taking the max over l:
+    t_h_varmean = np.amax(t_h_vars,0)
+    return np.array(t_h_varmean)
 
 
 # In[ ]:
@@ -532,7 +550,8 @@ def LoadMagnetisationFromFile(foldername, filename, numsites, nb, stat_temps,
 # In[ ]:
 
 
-def LoadFirstCorrelations(foldername, filenamelist, listfunctions, stat_temps, stat_hfields, nb, **kwargs):
+def LoadFirstCorrelations(foldername, filenamelist, listfunctions, stat_temps,
+                          stat_hfields, nb,t_h_varMeanMsq, **kwargs):
     n = len(filenamelist)
     
     ## "First Correlations" (check!!)
@@ -555,7 +574,7 @@ def LoadFirstCorrelations(foldername, filenamelist, listfunctions, stat_temps, s
              t_h_varMeanSi[nf]] =\
             LoadFirstCorrelationsFromFile(foldername, filename, idfunc,
                                      idfuncsi, stat_temps[nf],
-                                     stat_hfields[nf], nb[nf], **kwargs)
+                                     stat_hfields[nf], nb[nf],t_h_varMeanMsq[nf], **kwargs)
         else:
             [t_h_MeanFc[nf], t_h_varMeanFc[nf], t_h_MeanSi[nf], t_h_varMeanSi[nf]] = [[],[],[],[]]
     return t_h_MeanFc, t_h_varMeanFc, t_h_MeanSi, t_h_varMeanSi
@@ -564,7 +583,10 @@ def LoadFirstCorrelations(foldername, filenamelist, listfunctions, stat_temps, s
 # In[ ]:
 
 
-def LoadFirstCorrelationsFromFile(foldername, filename, idfunc, idfuncsi, stat_temps, stat_hfields, nb, **kwargs):
+def LoadFirstCorrelationsFromFile(foldername, filename, idfunc, 
+                                  idfuncsi, stat_temps, 
+                                  stat_hfields, nb, 
+                                  t_h_varMeanMsq,**kwargs):
     
     backup = "./"+foldername+filename
     name = "FirstCorrelations"
@@ -575,17 +597,19 @@ def LoadFirstCorrelationsFromFile(foldername, filename, idfunc, idfuncsi, stat_t
     t_h_MeanSi, t_h_varMeanSi =    ExtractStatistics(backup, idfuncsi, namesi, nb, stat_temps,
                       stat_hfields, **kwargs)
     
-    t_h_MeanFv, t_h_varMeanFc =    ExtractStatistics(backup, idfunc, name, nb, stat_temps,
-                      stat_hfields, **kwargs)
+    t_h_MeanFc, t_h_varMeanFc =    ExtractStatistics(backup, idfunc, name, nb, stat_temps,
+                      stat_hfields, sq=0, **kwargs)
     
-    t_h_MeanFc = np.copy(t_h_MeanFv);
     print(t_h_MeanFc.shape)
     print(t_h_MeanSi.shape)
     if rmmag:
-        m = t_h_MeanSi.sum(2)/t_h_MeanSi.shape[2]
+        m = t_h_MeanSi.sum(2)/t_h_MeanSi.shape[2] # sample average
         for nni in range(t_h_MeanFc.shape[2]):
-            t_h_MeanFc[:,:,nni] = (t_h_MeanFv[:,:,nni] - m**2) #<si sj> - <si> <sj> for j in lattice. /!\ this is ELEMENTWISE
+            t_h_MeanFc[:,:,nni] = (t_h_MeanFc[:,:,nni] - m**2) #<si sj> - <si> <sj> for j in lattice. /!\ this is ELEMENTWISE
             
+    for i in range(t_h_varMeanFc.shape[2]):
+        t_h_varMeanFc[:,:,i] = t_h_varMeanFc[:,:,i]+ t_h_varMeanMsq[:,:] # approximately
+    
     return t_h_MeanFc, t_h_varMeanFc, t_h_MeanSi, t_h_varMeanSi
 
 
@@ -889,15 +913,15 @@ def BasicPlotsDifferenceFirstCorrelations(L, i, t_h_MeanFc, temperatures_plots, 
     else:
         plt.plot(temperatures_plots[i][tmin:tmax],t_h_MeanFc[i][tmin:tmax,0,1]-t_h_MeanFc[i][tmin:tmax,0,2],'k.',label = 'NN2 - NN3par')
     plt.fill_between(temperatures_plots[i][tmin:tmax],
-                    t_h_MeanFc[i][tmin:tmax,0,1]-t_h_MeanFc[i][tmin:tmax,0,2]-2*np.sqrt(t_h_varMeanFc[i][tmin:,0,1]),
-                    t_h_MeanFc[i][tmin:tmax,0,1]-t_h_MeanFc[i][tmin:tmax,0,2]+2*np.sqrt(t_h_varMeanFc[i][tmin:,0,1]), color = 'k', alpha = 0.2)
+                    t_h_MeanFc[i][tmin:tmax,0,1]-t_h_MeanFc[i][tmin:tmax,0,2]-2*np.sqrt(t_h_varMeanFc[i][tmin:,0,2]),
+                    t_h_MeanFc[i][tmin:tmax,0,1]-t_h_MeanFc[i][tmin:tmax,0,2]+2*np.sqrt(t_h_varMeanFc[i][tmin:,0,2]), color = 'k', alpha = 0.2)
     if log:
         plt.semilogx(temperatures_plots[i][tmin:tmax],t_h_MeanFc[i][tmin:tmax,0,1]-t_h_MeanFc[i][tmin:tmax,0,3],'r.',label = 'NN2 - NN3star')
     else:
         plt.plot(temperatures_plots[i][tmin:tmax],t_h_MeanFc[i][tmin:tmax,0,1]-t_h_MeanFc[i][tmin:tmax,0,3],'r.',label = 'NN2 - NN3star')
     plt.fill_between(temperatures_plots[i][tmin:tmax],
-                    t_h_MeanFc[i][tmin:tmax,0,1]-t_h_MeanFc[i][tmin:tmax,0,3]-2*np.sqrt(t_h_varMeanFc[i][tmin:,0,1]),
-                    t_h_MeanFc[i][tmin:tmax,0,1]-t_h_MeanFc[i][tmin:tmax,0,3]+2*np.sqrt(t_h_varMeanFc[i][tmin:,0,1]), color = 'r', alpha = 0.2)
+                    t_h_MeanFc[i][tmin:tmax,0,1]-t_h_MeanFc[i][tmin:tmax,0,3]-2*np.sqrt(t_h_varMeanFc[i][tmin:,0,3]),
+                    t_h_MeanFc[i][tmin:tmax,0,1]-t_h_MeanFc[i][tmin:tmax,0,3]+2*np.sqrt(t_h_varMeanFc[i][tmin:,0,3]), color = 'r', alpha = 0.2)
 
     plt.title(addtitle)
     plt.xlabel(r"$T/J_1$")
@@ -1729,7 +1753,6 @@ def PlotFirstCorrelations(i, L, foldername, results_foldername,hfields_plots, te
 
             fmts = ['.','x','v','*','o','^','s']
             length = len(temperatures_plots[i])
-            fmt = fmts[i]
             for t in range(1,length):
 
                 corr = [np.array(t_h_MeanCorr[i])[:,t,hid,:]]
@@ -1787,7 +1810,6 @@ def PlotFirstCorrelations(i, L, foldername, results_foldername,hfields_plots, te
             plt.title('First few neighbours correlations' + addtitle+',            t = {0}'.format(t))
             fmts = ['.','x','v','*','o','^','s']
             length = len(hfields_plots[i])
-            fmt = fmts[i]
             for hid in range(1,length):
 
                 corr = [np.array(t_h_MeanCorr[i])[:,tid,hid,:]]
