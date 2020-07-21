@@ -317,6 +317,13 @@ def ObservablesInit(args, backup, s_ijl, ijl_s, L):
         cfuncid = observableslist.index('Charges')
     else:
         cfuncid = -1
+    nfr = args.frustratedT
+    if nfr:
+        observables.append(obs.frustratedTriangles)
+        observableslist.append('FrustratedTriangles')
+        cfuncid = observableslist.index('FrustratedTriangles')
+    else:
+        cfuncid = -1
     correlations = args.correlations
     firstcorrelations = args.firstcorrelations
     both = args.both
@@ -338,18 +345,21 @@ def ObservablesInit(args, backup, s_ijl, ijl_s, L):
         if (not firstcorrelations) or both:
             observables.append(obs.centralcorrelations)
             observableslist.append('Central_Correlations')
-
+    
+    srefs = [ijl_s[tuple(args.sref0)], ijl_s[tuple(args.sref1)],ijl_s[tuple(args.sref2)]]
+    
     print('List of measurements to be performed:', observableslist)
     x = (not firstcorrelations) or both;
     obsparams = {'energy':energy, 'magnetisation':magnetisation,
-                'charges':charges, 'correlations':correlations,
+                'charges':charges, 'frustrated triangles': nfr, 'correlations':correlations,
                  'firstcorrelations':firstcorrelations,
                  'central_correlations':x,
-                'observableslist': observableslist}
+                'observableslist': observableslist,
+                'srefs': srefs}
     hkl.dump(obsparams, backup+".hkl", path = "/parameters/obsparams", mode = 'r+')
     
     return [nnlists, observables, observableslist, magnfuncid,
-            cfuncid] 
+            cfuncid, srefs] 
 
 
 # In[ ]:

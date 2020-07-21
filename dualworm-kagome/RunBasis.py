@@ -90,7 +90,7 @@ def main(args):
 
     ### INITIALISATION FOR THE MEASUREMENTS
     # Observables to measure
-    [nnlists, observables, observableslist, magnfuncid,cfuncid]  =    rbf.ObservablesInit(args, backup, s_ijl, ijl_s, L)
+    [nnlists, observables, observableslist, magnfuncid,cfuncid,srefs]  =    rbf.ObservablesInit(args, backup, s_ijl, ijl_s, L)
 
     # Temperatures to measure
     stat_temps = rbf.Temperatures2MeasureInit(args, backup,
@@ -231,7 +231,8 @@ def main(args):
           'walker2ids':walker2ids,'ids2walker':ids2walker,
           'ssf':ssf, 'ssffurther': ssffurther, 
           'alternate':alternate, 'randspinupdate': False,
-          'namefunctions': namefunctions, 'backup': backup,
+          'namefunctions': namefunctions, 'srefs':srefs,
+          'backup': backup,
           'genMode': genMode, 'fullstateupdate': fullssf}
         # Run measurements
 
@@ -279,7 +280,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--L', type = int, default = 4, help = 'Lattice side size')
-
+    
     # COUPLINGS
     parser.add_argument('--J1', type = float, default = 1.0,
                         help = 'NN coupling') # nearest-neighbour coupling
@@ -385,12 +386,17 @@ if __name__ == "__main__":
                        help = 'activate if you want to compute the magnetisation statistics')
     parser.add_argument('--charges', default = False, action = 'store_true',
                         help = 'activate if you want to save the charges')
+    parser.add_argument('--frustratedT', default = False, action = 'store_true',
+                        help = 'activate if you want to save the frustrated triangles')
     parser.add_argument('--correlations', default = False, action = 'store_true',
                         help = 'activate if you want to save either central or all correlations')
     parser.add_argument('--both', default = False, action = 'store_true',
                         help = '''activate if you want to save both''')
     parser.add_argument('--firstcorrelations', default = False, action = 'store_true',
                         help = 'activate if you want to save first correlations, otherwise will save central')
+    parser.add_argument('--sref0', nargs = '+', type = int, default = [], help = 'ref spin 0')
+    parser.add_argument('--sref1', nargs = '+', type = int, default = [], help = 'ref spin 1')
+    parser.add_argument('--sref2', nargs = '+', type = int, default = [], help = 'ref spin 2')
     #SAVE
     parser.add_argument('--output', type = str, default = "randomoutput.dat", help = 'saving filename (.pkl will be added)')
     parser.add_argument('--verbose', default = False, action = 'store_true', help = 'verbose')

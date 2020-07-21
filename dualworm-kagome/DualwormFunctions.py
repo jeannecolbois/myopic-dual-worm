@@ -1055,6 +1055,7 @@ def mcs_swaps(states, spinstates, statesen,
     nt = kwargs.get('nt',None)
     randspinupdate = kwargs.get('randspinupdate', True)
     namefunctions = kwargs.get('namefunctions', [])
+    srefs = kwargs.get('srefs', [])
     #structure for replica:
     hfields = kwargs.get('hfields', None)
     nh = kwargs.get('nh',None)
@@ -1211,7 +1212,7 @@ def mcs_swaps(states, spinstates, statesen,
                                    sidlist, didlist, L, s_ijl, ijl_s,
                                    num_in_bin, stlen,
                                    magnfuncid, ids2walker,\
-                                   c2s = c2s, csign = csign,nnlists = nnlists)
+                                   c2s = c2s, csign = csign,nnlists = nnlists, srefs = srefs)
                 if genMode:
                     wid = ids2walker[0, 0]
                     hkl.dump(states[wid], backup+"_groundstate_it{0}.hkl".format(it//measperiod))
