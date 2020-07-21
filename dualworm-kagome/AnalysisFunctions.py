@@ -822,7 +822,7 @@ def testPhase(energy, modelenergy):
 # In[ ]:
 
 
-def BasicPlotsFirstCorrelations(L, i, t_h_MeanFc, temperatures_plots, t_h_errCorrEstim,
+def BasicPlotsFirstCorrelations(L, i, t_h_MeanFc, temperatures_plots, t_h_varMeanFc,
                                 foldername, results_foldername, filenamelist, 
                                 tmin = 0, setyticks = None, addtitle = "", addsave = "",
                                 save = True, log = True,
@@ -835,31 +835,31 @@ def BasicPlotsFirstCorrelations(L, i, t_h_MeanFc, temperatures_plots, t_h_errCor
         plt.plot(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,0],'.',label = 'NN')
     
     plt.fill_between(temperatures_plots[i][tmin:],
-                    t_h_MeanFc[i][tmin:,0,0]-np.sqrt(t_h_errCorrEstim[i][0,tmin:,0,0]),
-                    t_h_MeanFc[i][tmin:,0,0]+np.sqrt(t_h_errCorrEstim[i][0,tmin:,0,0]), alpha = 0.2)
+                    t_h_MeanFc[i][tmin:,0,0]-np.sqrt(t_h_varMeanFc[i][tmin:,0,0]),
+                    t_h_MeanFc[i][tmin:,0,0]+np.sqrt(t_h_varMeanFc[i][tmin:,0,0]), alpha = 0.2)
     if log:
         plt.semilogx(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,1],'x',label = 'NN2')
     else: 
         plt.plot(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,1],'x',label = 'NN2')
     
     plt.fill_between(temperatures_plots[i][tmin:],
-                    t_h_MeanFc[i][tmin:,0,1]-np.sqrt(t_h_errCorrEstim[i][0,tmin:,0,0]),
-                    t_h_MeanFc[i][tmin:,0,1]+np.sqrt(t_h_errCorrEstim[i][0,tmin:,0,0]), alpha = 0.2)
+                    t_h_MeanFc[i][tmin:,0,1]-np.sqrt(t_h_varMeanFc[i][tmin:,0,1]),
+                    t_h_MeanFc[i][tmin:,0,1]+np.sqrt(t_h_varMeanFc[i][tmin:,0,1]), alpha = 0.2)
     if log:
         plt.semilogx(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,2],'v',label = 'NN3par')
     else:
         plt.plot(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,2],'v',label = 'NN3par')
     plt.fill_between(temperatures_plots[i][tmin:],
-                    t_h_MeanFc[i][tmin:,0,2]-np.sqrt(t_h_errCorrEstim[i][0,tmin:,0,0]),
-                    t_h_MeanFc[i][tmin:,0,2]+np.sqrt(t_h_errCorrEstim[i][0,tmin:,0,0]), alpha = 0.2)
+                    t_h_MeanFc[i][tmin:,0,2]-np.sqrt(t_h_varMeanFc[i][tmin:,0,2]),
+                    t_h_MeanFc[i][tmin:,0,2]+np.sqrt(t_h_varMeanFc[i][tmin:,0,2]), alpha = 0.2)
     if log:
         plt.semilogx(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,3],'*',label = 'NN3star')
     else:
         plt.plot(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,3],'*',label = 'NN3star')
     
     plt.fill_between(temperatures_plots[i][tmin:],
-                    t_h_MeanFc[i][tmin:,0,3]-np.sqrt(t_h_errCorrEstim[i][0,tmin:,0,0]),
-                    t_h_MeanFc[i][tmin:,0,3]+np.sqrt(t_h_errCorrEstim[i][0,tmin:,0,0]), alpha = 0.2)
+                    t_h_MeanFc[i][tmin:,0,3]-np.sqrt(t_h_varMeanFc[i][tmin:,0,3]),
+                    t_h_MeanFc[i][tmin:,0,3]+np.sqrt(t_h_varMeanFc[i][tmin:,0,3]), alpha = 0.2)
     plt.title(addtitle)
     plt.xlabel(r"$T/J_1$")
     plt.ylabel(r"$\langle \sigma_i \sigma_j \rangle - \langle \sigma_i \rangle \langle \sigma_j \rangle$")
@@ -876,7 +876,7 @@ def BasicPlotsFirstCorrelations(L, i, t_h_MeanFc, temperatures_plots, t_h_errCor
 # In[ ]:
 
 
-def BasicPlotsDifferenceFirstCorrelations(L, i, t_h_MeanFc, temperatures_plots, t_h_errCorrEstim,
+def BasicPlotsDifferenceFirstCorrelations(L, i, t_h_MeanFc, temperatures_plots, t_h_varMeanFc,
                                 foldername, results_foldername, filenamelist, 
                                 tmin = 0, tmax = 128, setxlim = None, setylim = None, 
                                 setxticks = None, setyticks = None, 
@@ -889,15 +889,15 @@ def BasicPlotsDifferenceFirstCorrelations(L, i, t_h_MeanFc, temperatures_plots, 
     else:
         plt.plot(temperatures_plots[i][tmin:tmax],t_h_MeanFc[i][tmin:tmax,0,1]-t_h_MeanFc[i][tmin:tmax,0,2],'k.',label = 'NN2 - NN3par')
     plt.fill_between(temperatures_plots[i][tmin:tmax],
-                    t_h_MeanFc[i][tmin:tmax,0,1]-t_h_MeanFc[i][tmin:tmax,0,2]-np.sqrt(t_h_errCorrEstim[i][0,tmin:tmax,0,0]),
-                    t_h_MeanFc[i][tmin:tmax,0,1]-t_h_MeanFc[i][tmin:tmax,0,2]+np.sqrt(t_h_errCorrEstim[i][0,tmin:tmax,0,0]), color = 'k', alpha = 0.2)
+                    t_h_MeanFc[i][tmin:tmax,0,1]-t_h_MeanFc[i][tmin:tmax,0,2]-2*np.sqrt(t_h_varMeanFc[i][tmin:,0,1]),
+                    t_h_MeanFc[i][tmin:tmax,0,1]-t_h_MeanFc[i][tmin:tmax,0,2]+2*np.sqrt(t_h_varMeanFc[i][tmin:,0,1]), color = 'k', alpha = 0.2)
     if log:
         plt.semilogx(temperatures_plots[i][tmin:tmax],t_h_MeanFc[i][tmin:tmax,0,1]-t_h_MeanFc[i][tmin:tmax,0,3],'r.',label = 'NN2 - NN3star')
     else:
         plt.plot(temperatures_plots[i][tmin:tmax],t_h_MeanFc[i][tmin:tmax,0,1]-t_h_MeanFc[i][tmin:tmax,0,3],'r.',label = 'NN2 - NN3star')
     plt.fill_between(temperatures_plots[i][tmin:tmax],
-                    t_h_MeanFc[i][tmin:tmax,0,1]-t_h_MeanFc[i][tmin:tmax,0,3]-np.sqrt(t_h_errCorrEstim[i][0,tmin:tmax,0,0]),
-                    t_h_MeanFc[i][tmin:tmax,0,1]-t_h_MeanFc[i][tmin:tmax,0,3]+np.sqrt(t_h_errCorrEstim[i][0,tmin:tmax,0,0]), color = 'r', alpha = 0.2)
+                    t_h_MeanFc[i][tmin:tmax,0,1]-t_h_MeanFc[i][tmin:tmax,0,3]-2*np.sqrt(t_h_varMeanFc[i][tmin:,0,1]),
+                    t_h_MeanFc[i][tmin:tmax,0,1]-t_h_MeanFc[i][tmin:tmax,0,3]+2*np.sqrt(t_h_varMeanFc[i][tmin:,0,1]), color = 'r', alpha = 0.2)
 
     plt.title(addtitle)
     plt.xlabel(r"$T/J_1$")
