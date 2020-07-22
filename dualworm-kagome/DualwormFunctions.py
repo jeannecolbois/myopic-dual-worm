@@ -1111,6 +1111,7 @@ def mcs_swaps(states, spinstates, statesen,
     swapsh = np.array([0 for hid in range(nh)], dtype='int32')
     
     failedupdates = np.array([[0 for hid in range(nh)] for bid in range(nt)],dtype ='int32')
+    failedssfupdates = np.array([[0 for hid in range(nh)] for bid in range(nt)],dtype ='int32')
     
     t_join = 0
     t_spins = 0
@@ -1148,7 +1149,7 @@ def mcs_swaps(states, spinstates, statesen,
                 dim.ssfsevolve(hamiltonian[0], states, spinstates,
                                np.array(s2p, dtype = 'int32'),
                                walker2params, walker2ids, statesen,
-                               failedupdates, ncores,
+                               failedssfupdates, ncores,
                                iterworm)
             else:
                 if verbose:
@@ -1156,7 +1157,7 @@ def mcs_swaps(states, spinstates, statesen,
                 dim.genssfsevolve(hamiltonian, states, spinstates,
                                   np.array(s2p, dtype = 'int32'),
                                   walker2params, walker2ids, statesen,
-                                  failedupdates, ncores,iterworm,
+                                  failedssfupdates, ncores,iterworm,
                                   fullstateupdate)
 
         t2 = time()
@@ -1265,7 +1266,7 @@ def mcs_swaps(states, spinstates, statesen,
                     backup+"_"+namefunctions[funcid]+"_final.hkl",
                     mode = 'w')
         
-    return statstables, swapst, swapsh, failedupdates
+    return statstables, swapst, swapsh, failedupdates, failedssfupdates
     
     
 
