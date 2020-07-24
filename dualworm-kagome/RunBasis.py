@@ -138,14 +138,15 @@ def main(args):
 
 
     t1 = time()
-    (statstableth, swapst_th, swapsh_th, failedupdatesth) =     dw.mcs_swaps(states, spinstates, energies, betas, [],[], **kw)
+    (statstableth, swapst_th, swapsh_th, failedupdatesth, failedssfupdatesth) =     dw.mcs_swaps(states, spinstates, energies, betas, [],[], **kw)
     t2 = time()
 
     print('Time for all thermalisation steps = ', t2-t1)
 
 
     thermres = {'swapst_th':swapst_th, 'swapsh_th':swapsh_th,
-               'failedupdatesth':failedupdatesth, 'totaltime':t2-t1}
+               'failedupdatesth':failedupdatesth,
+                'failedssfupdatesth':failedssfupdatesth, 'totaltime':t2-t1}
     hkl.dump(thermres,backup+".hkl",
              path = "/results/thermres", mode = 'r+')
 
@@ -237,15 +238,17 @@ def main(args):
         # Run measurements
 
     t1 = time()
-    (statstable, swapst, swapsh, failedupdates) =    dw.mcs_swaps(states, spinstates, energies, betas, stat_temps, stat_hfields,**kw)
+    (statstable, swapst, swapsh, failedupdates, failedssfupdates) =    dw.mcs_swaps(states, spinstates, energies, betas, stat_temps, stat_hfields,**kw)
     #print("Energies = ", energies)
     t2 = time()
 
     print('Time for all measurements steps = ', t2-t1)
     print("Energies size: ", energies.shape)
 
+    totupdates = nips*num_in_bin*nb*measperiod*len(s_ijl)
     measurementsres = {'swapst': swapst, 'swapsh': swapsh,
-                       'failedupdates':failedupdates}
+                       'failedupdates':failedupdates,'totupdates':totupdates, 
+                       'failedssfupdates':failedssfupdates}
 
     hkl.dump(measurementsres, backup+".hkl", path = "/results/measurements", mode = 'r+')
 
@@ -268,7 +271,7 @@ def main(args):
     hkl.dump(spinstates, backup+"_spinstates.hkl")
     
     print("Job done")
-    return statstable, swapst, swapsh, failedupdatesth, failedupdates
+    return statstable, swapst, swapsh, failedupdatesth, failedupdates, failedssfupdates
 
 
 # In[ ]:
