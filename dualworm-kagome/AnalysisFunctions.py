@@ -299,6 +299,58 @@ def LoadSwapsFromFile(foldername, filename, nb, num_in_bin, nh, nt):
 # In[ ]:
 
 
+def LoadUpdates(foldername, filenamelist, nb, num_in_bin, size):
+    n = len(filenamelist)
+    failedupdates_th = [[] for _ in range(n)]
+    failedssfupdates_th = [[] for _ in range(n)]
+    failedupdates = [[] for _ in range(n)]
+    failedssfupdates = [[] for _ in range(n)]
+    
+    for nf, filename in enumerate(filenamelist):
+        [failedupdates_th[nf], failedssfupdates_th[nf],
+        failedupdates[nf], failedssfupdates[nf]] =\
+        LoadUpdatesFromFile(foldername, filename, nb[nf],
+                          num_in_bin[nf], size[nf])
+    
+    return failedupdates_th, failedssfupdates_th, failedupdates, failedssfupdates
+
+
+# In[ ]:
+
+
+def LoadUpdatesFromFile(foldername, filename, nb, num_in_bin, size):
+    backup = "./"+foldername+filename+".hkl"
+    
+    kwtherm = hkl.load(backup, path="/parameters/thermalisation")
+    kwmeas = hkl.load(backup, path="/parameters/measurements")
+    
+    nips = kwmeas['nips']
+    nsms = nb*num_in_bin
+    measperiod = kwmeas['measperiod']
+    
+    nstepstherm = kwtherm['thermsteps']*nips
+    nsteps = measperiod*nips*nsms
+        
+    thermres = hkl.load(backup, path="/results/thermres")
+    failedupdates_th = thermres['failedupdatesth']
+    failedssfupdates_th = thermres['failedssfupdatesth']
+    
+    failedupdates_th = failedupdates_th/nstepstherm
+    failedssfupdates_th = failedssfupdates_th/(nstepstherm*size)
+    
+    meas = hkl.load(backup, path = "/results/measurements")
+    failedupdates = meas['failedupdates']
+    failedssfupdates = meas['failedssfupdates']
+    failedupdates = failedupdates/nsteps
+    failedssfupdates = failedssfupdates/(nsteps*size)
+    
+    
+    return failedupdates_th, failedssfupdates_th, failedupdates, failedssfupdates
+
+
+# In[ ]:
+
+
 def LoadStates(foldername, filenamelist,L,nh, **kwargs):
     n = len(filenamelist)
     
@@ -829,6 +881,23 @@ def SwapsAnalysis(L, n, tidmin, tidmax, temperatures, hfields, foldername, resul
             plt.title('Ratio of swaps as a function of the magnetic field')
             plt.grid(which='both')
             plt.savefig('./' + foldername  + results_foldername+ '/NumberSwapsField_L={0}_SimId={1}.png'.format(L[i], i))
+
+
+# In[ ]:
+
+
+def FailedAnalysis(L, n, tidmin, tidmax, temperatures, hfields, foldername, results_foldername, failed, failedssf):
+
+    for i in range(n):
+        plt.figure()
+        plt.semilogx(temperatures[i][tidmin:tidmax[i]-1], failed[i][tidmin:tidmax[i]-1], '.-',label = 'worms')
+        plt.semilogx(temperatures[i][tidmin:tidmax[i]-1], failedssf[i][tidmin:tidmax[i]-1], '.-', label = 'ssf')
+        plt.xlabel('Temperature')
+        plt.ylabel('Ratio of failed attemps')
+        plt.legend()
+        plt.title('Ratio of failed attempts as a function of the temperature')
+        plt.savefig('./' + foldername  + results_foldername+ '/NumberFailedAttempsTemperature_L={0}_SimId={1}.png'.format(L[i],i))
+    
 
 
 # In[ ]:
