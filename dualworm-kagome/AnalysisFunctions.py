@@ -923,32 +923,32 @@ def BasicPlotsFirstCorrelations(L, i, t_h_MeanFc, temperatures_plots, t_h_varMea
     
     plt.figure(figsize=figsize, dpi = dpi)
     if log:
-        plt.semilogx(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,0],'.',label = 'NN')
+        plt.semilogx(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,0],'.',label = r'$c_1$')
     else:
-        plt.plot(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,0],'.',label = 'NN')
+        plt.plot(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,0],'.',label = r'$c_1$')
     
     plt.fill_between(temperatures_plots[i][tmin:],
                     t_h_MeanFc[i][tmin:,0,0]-np.sqrt(t_h_varMeanFc[i][tmin:,0,0]),
                     t_h_MeanFc[i][tmin:,0,0]+np.sqrt(t_h_varMeanFc[i][tmin:,0,0]), alpha = 0.2)
     if log:
-        plt.semilogx(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,1],'x',label = 'NN2')
+        plt.semilogx(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,1],'x',label = r'$c_2$')
     else: 
-        plt.plot(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,1],'x',label = 'NN2')
+        plt.plot(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,1],'x',label = r'$c_2$')
     
     plt.fill_between(temperatures_plots[i][tmin:],
                     t_h_MeanFc[i][tmin:,0,1]-np.sqrt(t_h_varMeanFc[i][tmin:,0,1]),
                     t_h_MeanFc[i][tmin:,0,1]+np.sqrt(t_h_varMeanFc[i][tmin:,0,1]), alpha = 0.2)
     if log:
-        plt.semilogx(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,2],'v',label = 'NN3par')
+        plt.semilogx(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,2],'v',label = r'$c_{3||}$')
     else:
-        plt.plot(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,2],'v',label = 'NN3par')
+        plt.plot(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,2],'v',label = r'$c_{3||}$')
     plt.fill_between(temperatures_plots[i][tmin:],
                     t_h_MeanFc[i][tmin:,0,2]-np.sqrt(t_h_varMeanFc[i][tmin:,0,2]),
                     t_h_MeanFc[i][tmin:,0,2]+np.sqrt(t_h_varMeanFc[i][tmin:,0,2]), alpha = 0.2)
     if log:
-        plt.semilogx(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,3],'*',label = 'NN3star')
+        plt.semilogx(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,3],'*',label =r'$c_{3\star}$ ')
     else:
-        plt.plot(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,3],'*',label = 'NN3star')
+        plt.plot(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,3],'*',label =r'$c_{3\star}$ ')
     
     plt.fill_between(temperatures_plots[i][tmin:],
                     t_h_MeanFc[i][tmin:,0,3]-np.sqrt(t_h_varMeanFc[i][tmin:,0,3]),
@@ -978,16 +978,16 @@ def BasicPlotsDifferenceFirstCorrelations(L, i, t_h_MeanFc, temperatures_plots, 
                                 figsize=(11,9), dpi = 200,**kwargs):
     plt.figure(figsize=figsize, dpi = dpi)
     if log:
-        plt.semilogx(temperatures_plots[i][tmin:tmax],t_h_MeanFc[i][tmin:tmax,0,1]-t_h_MeanFc[i][tmin:tmax,0,2],'k.',label = 'NN2 - NN3par')
+        plt.semilogx(temperatures_plots[i][tmin:tmax],t_h_MeanFc[i][tmin:tmax,0,1]-t_h_MeanFc[i][tmin:tmax,0,2],'k.',label = r'$c_2$ - $c_{3||}$')
     else:
-        plt.plot(temperatures_plots[i][tmin:tmax],t_h_MeanFc[i][tmin:tmax,0,1]-t_h_MeanFc[i][tmin:tmax,0,2],'k.',label = 'NN2 - NN3par')
+        plt.plot(temperatures_plots[i][tmin:tmax],t_h_MeanFc[i][tmin:tmax,0,1]-t_h_MeanFc[i][tmin:tmax,0,2],'k.',label = r'$c_2$ - $c_{3||}$')
     plt.fill_between(temperatures_plots[i][tmin:tmax],
                     t_h_MeanFc[i][tmin:tmax,0,1]-t_h_MeanFc[i][tmin:tmax,0,2]-2*np.sqrt(t_h_varMeanFc[i][tmin:,0,2]),
                     t_h_MeanFc[i][tmin:tmax,0,1]-t_h_MeanFc[i][tmin:tmax,0,2]+2*np.sqrt(t_h_varMeanFc[i][tmin:,0,2]), color = 'k', alpha = 0.2)
     if log:
-        plt.semilogx(temperatures_plots[i][tmin:tmax],t_h_MeanFc[i][tmin:tmax,0,1]-t_h_MeanFc[i][tmin:tmax,0,3],'r.',label = 'NN2 - NN3star')
+        plt.semilogx(temperatures_plots[i][tmin:tmax],t_h_MeanFc[i][tmin:tmax,0,1]-t_h_MeanFc[i][tmin:tmax,0,3],'r.',label = r'$c_2$ - $c_{3\star}$ ')
     else:
-        plt.plot(temperatures_plots[i][tmin:tmax],t_h_MeanFc[i][tmin:tmax,0,1]-t_h_MeanFc[i][tmin:tmax,0,3],'r.',label = 'NN2 - NN3star')
+        plt.plot(temperatures_plots[i][tmin:tmax],t_h_MeanFc[i][tmin:tmax,0,1]-t_h_MeanFc[i][tmin:tmax,0,3],'r.',label = r'$c_2$ - $c_{3\star}$ ')
     plt.fill_between(temperatures_plots[i][tmin:tmax],
                     t_h_MeanFc[i][tmin:tmax,0,1]-t_h_MeanFc[i][tmin:tmax,0,3]-2*np.sqrt(t_h_varMeanFc[i][tmin:,0,3]),
                     t_h_MeanFc[i][tmin:tmax,0,1]-t_h_MeanFc[i][tmin:tmax,0,3]+2*np.sqrt(t_h_varMeanFc[i][tmin:,0,3]), color = 'r', alpha = 0.2)
@@ -1800,7 +1800,7 @@ def PlotFirstCorrelations(i, L, foldername, results_foldername,hfields_plots, te
                           **kwargs):
 
     distmax = min(3.5, distmax)
-    nlistnames = ['1', '2', '3par', '3star', '4', '5', '6', '6star']
+    nlistnames = ['$c_1$', '$c_2$', '$c_{3||}$', '$c_{3\star}$', '$c_{4}$', '$c_{5}$', '$c_{6}$', '$c_{6\star}$']
     
     rmmag = kwargs.get('rmmag', False)
     
@@ -1842,7 +1842,7 @@ def PlotFirstCorrelations(i, L, foldername, results_foldername,hfields_plots, te
                                      reserrcorr[nei],\
                                      fmt = fmts[nei],\
                                      label =\
-                                     'NN {0}'.format(nlistnames[nei]),\
+                                     r'{0}'.format(nlistnames[nei]),\
                                      alpha = alpha)
                     else:
                         plt.errorbar(temperatures_plots[i][t],
@@ -1898,7 +1898,7 @@ def PlotFirstCorrelations(i, L, foldername, results_foldername,hfields_plots, te
                                      reserrcorr[nei],\
                                      fmt = fmt,\
                                      label =\
-                                     'NN {0}'.format(nlistnames[nei]),\
+                                     r'{0}'.format(nlistnames[nei]),\
                                      alpha = alpha)
                     else:
                         plt.errorbar(hfields_plots[i][hid],
