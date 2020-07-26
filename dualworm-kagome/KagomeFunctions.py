@@ -201,6 +201,44 @@ def spin2plaquette(ijl_s, s_ijl, s2_d, L):
 # In[ ]:
 
 
+def path_for_measupdate(s_ijl, ijl_s, s2_d, L, version = 0):
+    '''
+        Returns a list of spin site indices to update the state
+        based on a tip magnetic field.
+    '''
+    path = []
+        
+    if version == 0:
+        for j in range(0, 2*L):
+            for twice in range(2):
+                for i in range(max(0,L-1-j),min(2*L, 3*L-1-j)):
+                    if twice == 0:
+                        path.append(ijl_s[(i,j,0)])
+                    else:
+                        path.append(ijl_s[(i,j,2)])
+                        path.append(ijl_s[(i,j,1)])
+    elif version == 1:
+        for j in range(0, 2*L):
+            for i in range(max(0,L-1-j),min(2*L, 3*L-1-j)):
+                for l in range(2,-1,-1):
+                    path.append(ijl_s[(i,j,l)])
+    elif version == 2:
+        path, bonus = spins_dimers_for_update(s_ijl, ijl_s, s2_d, L)
+    elif version == 3:
+        for i in range(0,2*L):
+            for even in range(2):
+                for j in range(max(0, L-1-i), min(2*L, 3*L-1-i)):
+                    if even == 0:
+                        path.append(ijl_s[(i,j,2)])
+                        path.append(ijl_s[fixbc(i-1,j+1,0,L)])
+                    else:
+                        path.append(ijl_s[(i,j,1)])
+    return np.array(path, dtype='int32')
+
+
+# In[ ]:
+
+
 def spins_dimers_for_update(s_ijl, ijl_s, s2_d, L):
     '''
         Returns a list of spin site indices and a list of dual bond indices. 

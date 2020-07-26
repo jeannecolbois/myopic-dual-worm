@@ -193,27 +193,26 @@ def main(args):
     
     if measupdate:
         nnspins, s2p = dw.spin2plaquette(ijl_s, s_ijl, s2_d,L)
-        p = args.p
+        htip = args.htip
+        Ttip = args.Ttip
         measupdatev = args.measupdatev
-        measupdatesave = args.measupdatesave
+        path = dw.path_for_measupdate(s_ijl, ijl_s, s2_d, L, version = measupdatev)
     else:
         if not (ssf or alternate):
-            nnspins = []
             s2p = []
-            p = 0
-            measupdatev = 0
-            measupdatesave = False
-        else:
-            nnspins = []
-            p = 0
-            measupdatev = 0
-            measupdatesave = False
+            
+        nnspins = []
+        htip = 0
+        Ttip = 0
+        measupdatev = 0
+        path = []
 
     kwmeas = {'nb':nb, 'num_in_bin':num_in_bin,'nips':nips,
               'nrps':nrps,
-             'measperiod':measperiod, 'measupdate':measupdate,
-              'measupdatev' : measupdatev, 'measupdatesave': measupdatesave,
-             'nnspins':nnspins, 's2p': s2p}
+              'measperiod':measperiod, 
+              'measupdate':measupdate, 'measupdatev' : measupdatev,
+              'htip': htip, 'Ttip':Ttip,
+              'nnspins':nnspins, 's2p': s2p}
     hkl.dump(kwmeas, backup+".hkl", path = "/parameters/measurements", mode = 'r+')
     kw = {'nb':nb,'num_in_bin':num_in_bin, 'iterworm':iterworm,
           'nrps': nrps,
@@ -224,9 +223,10 @@ def main(args):
           'd_nd':d_nd,'d_vd':d_vd,'d_wn':d_wn, 'd_2s':d_2s, 's2_d':s2_d,
           'sidlist':sidlist,'didlist':didlist,'s_ijl':s_ijl,'ijl_s':ijl_s,'L':L,
           'ncores':ncores, 
-          'measupdate': measupdate, 'measupdatev' : measupdatev, 'measupdatesave': measupdatesave,
+          'measupdate': measupdate, 'measupdatev' : measupdatev, 'path': path,
+          'htip':htip, 'Ttip':Ttip,
           'nnspins': nnspins, 's2p':s2p,
-          'magnfuncid':magnfuncid, 'p':p,
+          'magnfuncid':magnfuncid,
           'c2s':c2s, 'csign':csign, 'measperiod':measperiod,
           'nh':nh, 'hfields':hfields, 'walker2params':walker2params,
           'walker2ids':walker2ids,'ids2walker':ids2walker,
@@ -342,10 +342,10 @@ if __name__ == "__main__":
                        help = '''activate to mimic the action of the measuring tip''')
     parser.add_argument('--measupdatev', type = int, default = 0,
                        help = '''select the version of measupdate''')
-    parser.add_argument('--measupdatesave', default = False, action = 'store_true',
-                       help = '''activate to cancel measurement update before continuing''')
-    parser.add_argument('--p', type = float, default = 0.0, 
-                       help = '''prob of the measuring tip flipping the spin (number between 0 and 1)''')
+    parser.add_argument('--htip', type = float, default = 0.0, 
+                       help = '''magnetic field associated with the tip''')
+    parser.add_argument('--Ttip', type = float, default = 0.0, 
+                       help = '''temperature associated with the tip measurements''')
     parser.add_argument('--ssf', default = False, action = 'store_true',
                         help = 'activate for single spin flip update')
     parser.add_argument('--notfullssfupdate', default = False, action = 'store_true',

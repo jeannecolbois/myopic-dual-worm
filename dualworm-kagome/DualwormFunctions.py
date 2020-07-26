@@ -113,6 +113,17 @@ def charge2spins(c_ijl, ijl_s, L):
 # In[ ]:
 
 
+def path_for_measupdate(s_ijl, ijl_s, s2_d, L, version = 0):
+    '''
+        Returns a list of spin site indices to update the state
+        based on a tip magnetic field.
+    '''
+    return lattice.path_for_measupdate(s_ijl, ijl_s, s2_d, L, version = version)
+
+
+# In[ ]:
+
+
 def spins_dimers_for_update(s_ijl, ijl_s, s2_d, L):
     '''
         Returns a list of spin site indices and a list of dual bond indices. 
@@ -1046,10 +1057,9 @@ def mcs_swaps(states, spinstates, statesen,
     magnfuncid = kwargs.get('magnfuncid', -1)
     measupdate = kwargs.get('measupdate', False)
     measupdatev = kwargs.get('measupdatev', 0)
-    p = kwargs.get('p', 1)
-    if p == 0:
-        measupdate = False
-    measupdatesave = kwargs.get('measupdatesave', False)
+    path = kwargs.get('path',[])
+    htip = kwargs.get('htip', 0)
+    Ttip = kwargs.get('Ttip', 0)
     nnspins = kwargs.get('nnspins',None)
     s2p = kwargs.get('s2p', None)
     nt = kwargs.get('nt',None)
@@ -1101,12 +1111,9 @@ def mcs_swaps(states, spinstates, statesen,
     print("fullstateupdate = ", fullstateupdate)
     print("measupdate = ", measupdate)
     if measupdate:
-        print("p = ", p)
+        print("htip = ", htip)
+        print("Ttip = ", Ttip)
         print("v = ", measupdatev)
-        print("save = ", measupdatesave)
-        #if measupdatesave:
-        #    savestates = np.zeros(states.shape)
-        #    savespinstates = np.zeros(spinstates.shape)
     swapst = np.array([0 for tid in range(nt)], dtype='int32')
     swapsh = np.array([0 for hid in range(nh)], dtype='int32')
     
@@ -1199,10 +1206,9 @@ def mcs_swaps(states, spinstates, statesen,
                     
                     # note that the states energy is not updated here, so it only is affected
                     # in the statistics
-                    dim.measupdates(hamiltonian[0], p,
+                    dim.measupdates(hamiltonian[0], htip, Ttip,
                                     states, spinstates, statesen,
-                                    np.array(s2p, dtype='int32'),
-                                    np.array(sidlist, dtype='int32'),
+                                    np.array(s2p, dtype='int32'), path,
                                     walker2ids, ncores);
 
 
