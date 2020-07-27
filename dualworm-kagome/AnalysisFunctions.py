@@ -64,7 +64,11 @@ def LoadParameters(foldername, filenamelist):
     
     nb = [0 for _ in range(n)]
     num_in_bin = [0 for _ in range(n)]
-   
+    htip = [0 for _ in range(n)]
+    Ttip = [0 for _ in range(n)]
+    pswitch = [0 for _ in range(n)]
+    uponly = [0 for _ in range(n)]
+    
     temperatures = [[] for _ in range(n)]
     nt = [0 for _ in range(n)]
     stat_temps = [[] for _ in range(n)]
@@ -83,11 +87,11 @@ def LoadParameters(foldername, filenamelist):
     
     for nf, filename in enumerate(filenamelist):
         [L[nf], numsites[nf], J1[nf], J2[nf], J3[nf], J3st[nf], J4[nf], nb[nf], 
-         num_in_bin[nf], temperatures[nf], nt[nf], stat_temps[nf], temperatures_plots[nf],
+         num_in_bin[nf], htip[nf], Ttip[nf], pswitch[nf],uponly[nf], temperatures[nf], nt[nf], stat_temps[nf], temperatures_plots[nf],
          hfields[nf], nh[nf], stat_hfields[nf], hfields_plots[nf],
          listfunctions[nf], sref[nf], ids2walker[nf]] = LoadParametersFromFile(foldername, filename)
     
-    return L, numsites, J1, J2, J3, J3st, J4, nb, num_in_bin, temperatures, nt,             stat_temps, temperatures_plots, hfields, nh,             stat_hfields, hfields_plots, listfunctions, sref, ids2walker
+    return L, numsites, J1, J2, J3, J3st, J4, nb, num_in_bin,             htip, Ttip, pswitch, uponly,             temperatures, nt,             stat_temps, temperatures_plots, hfields, nh,             stat_hfields, hfields_plots, listfunctions, sref, ids2walker
 
 
 # In[ ]:
@@ -113,6 +117,10 @@ def LoadParametersFromFile(foldername, filename):
     kwmeas = hkl.load(backup,  path = "/parameters/measurements")
     nb = kwmeas['nb']
     num_in_bin = kwmeas['num_in_bin']
+    htip = kwmeas['htip']
+    Ttip = kwmeas['Ttip']
+    pswitch = kwmeas['pswitch']
+    uponly = kwmeas['uponly']
     
     physical = hkl.load(backup, path = "/parameters/physical")
     temperatures = physical['temperatures'].tolist()
@@ -141,7 +149,7 @@ def LoadParametersFromFile(foldername, filename):
         ids2walker = []
         warnings.warn("ids2walker not found, not loaded!")
         
-    return L, numsites, J1, J2, J3, J3st, J4, nb, num_in_bin, temperatures, nt,             stat_temps, temperatures_plots, hfields, nh,             stat_hfields, hfields_plots, listfunctions, srefs, ids2walker
+    return L, numsites, J1, J2, J3, J3st, J4, nb, num_in_bin,             htip, Ttip, pswitch, uponly,             temperatures, nt,             stat_temps, temperatures_plots, hfields, nh,             stat_hfields, hfields_plots, listfunctions, srefs, ids2walker
 
 
 # In[ ]:
@@ -1404,6 +1412,8 @@ def BasicPlotsM(L, n, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
     
     ploth = kwargs.get('ploth', False)
     pgf = kwargs.get('pgf', False)
+    expm = kwargs.get('expm', 0)
+    expmerr = kwargs.get('expmerr', 0)
     ## Magnetisation
     t_h_MeanM = np.array(t_h_MeanM)
     t_h_MeanMsq =  np.array(t_h_MeanMsq)
@@ -1431,6 +1441,10 @@ def BasicPlotsM(L, n, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
                                      (t_h_MeanM[i][tid,:]
                                       + np.sqrt(t_h_varMeanM[i][tid,:])),\
                                      alpha=0.4, color = col)
+                    if expm != 0:
+                        plt.fill_between([min(hfileds_plots[i]),max(hfields_plots[i])],[expm-expmerr,expm-expmerr],
+                                         [expm+expmerr, expm+expmerr], alpha = 0.2, label = r'$m$ - exp')
+    
             plt.xlabel(r'Magnetic field $h$')
             plt.ylabel(r'Magnetisation per site $m$')
             plt.grid(which='both')
@@ -1455,6 +1469,10 @@ def BasicPlotsM(L, n, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
                                      (t_h_MeanM[i][tidmin:tidmax[i]][:,hid]
                                       + np.sqrt(t_h_varMeanM[i][tidmin:tidmax[i]][:,hid])),\
                                      alpha = 0.5, color = col)
+                    if expm != 0:
+                        plt.fill_between([temperatures_plots[i][tidmin],temperatures_plots[i][tidmax[i]-1]],
+                                         [expm-expmerr,expm-expmerr],
+                                         [expm+expmerr, expm+expmerr], alpha = 0.2, label = r'$m$ - exp')
             plt.xlabel(r'Temperature $T$ ')
             plt.ylabel('Magnetisation per site')
             plt.title('Filename: '+filenamelist[i])
