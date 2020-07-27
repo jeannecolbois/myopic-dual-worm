@@ -215,7 +215,7 @@ def main(args):
               'nrps':nrps,
               'measperiod':measperiod, 
               'measupdate':measupdate, 'measupdatev' : measupdatev,
-              'htip': htip, 'Ttip':Ttip, 'pswitch': pswitch,
+              'htip': htip, 'Ttip':Ttip, 'pswitch': pswitch, 'uponly': uponly,
               'nnspins':nnspins, 's2p': s2p}
     hkl.dump(kwmeas, backup+".hkl", path = "/parameters/measurements", mode = 'r+')
     kw = {'nb':nb,'num_in_bin':num_in_bin, 'iterworm':iterworm,
