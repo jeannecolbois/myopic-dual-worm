@@ -352,7 +352,7 @@ if __name__ == "__main__":
                        help = '''temperature associated with the tip measurements''')
     parser.add_argument('--pswitch', type = float, default = 1, 
                        help = '''tip switching probability''')
-    parser.add_argument('--uponly', type = float, default = False, 
+    parser.add_argument('--uponly', default = False, action = 'store_true',
                        help = '''Only switching down spins to up spins in measupdate''')
     parser.add_argument('--ssf', default = False, action = 'store_true',
                         help = 'activate for single spin flip update')
