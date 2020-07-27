@@ -195,6 +195,8 @@ def main(args):
         nnspins, s2p = dw.spin2plaquette(ijl_s, s_ijl, s2_d,L)
         htip = args.htip
         Ttip = args.Ttip
+        pswitch = args.pswitch
+        uponly = args.uponly
         measupdatev = args.measupdatev
         path = dw.path_for_measupdate(s_ijl, ijl_s, s2_d, L, version = measupdatev)
     else:
@@ -205,13 +207,15 @@ def main(args):
         htip = 0
         Ttip = 0
         measupdatev = 0
+        pswitch = 1
+        uponly = False
         path = []
 
     kwmeas = {'nb':nb, 'num_in_bin':num_in_bin,'nips':nips,
               'nrps':nrps,
               'measperiod':measperiod, 
               'measupdate':measupdate, 'measupdatev' : measupdatev,
-              'htip': htip, 'Ttip':Ttip,
+              'htip': htip, 'Ttip':Ttip, 'pswitch': pswitch,
               'nnspins':nnspins, 's2p': s2p}
     hkl.dump(kwmeas, backup+".hkl", path = "/parameters/measurements", mode = 'r+')
     kw = {'nb':nb,'num_in_bin':num_in_bin, 'iterworm':iterworm,
@@ -224,7 +228,7 @@ def main(args):
           'sidlist':sidlist,'didlist':didlist,'s_ijl':s_ijl,'ijl_s':ijl_s,'L':L,
           'ncores':ncores, 
           'measupdate': measupdate, 'measupdatev' : measupdatev, 'path': path,
-          'htip':htip, 'Ttip':Ttip,
+          'htip':htip, 'Ttip':Ttip,'pswitch': pswitch, 'uponly':uponly,
           'nnspins': nnspins, 's2p':s2p,
           'magnfuncid':magnfuncid,
           'c2s':c2s, 'csign':csign, 'measperiod':measperiod,
@@ -346,6 +350,10 @@ if __name__ == "__main__":
                        help = '''magnetic field associated with the tip''')
     parser.add_argument('--Ttip', type = float, default = 0.0, 
                        help = '''temperature associated with the tip measurements''')
+    parser.add_argument('--pswitch', type = float, default = 1, 
+                       help = '''tip switching probability''')
+    parser.add_argument('--uponly', type = float, default = False, 
+                       help = '''Only switching down spins to up spins in measupdate''')
     parser.add_argument('--ssf', default = False, action = 'store_true',
                         help = 'activate for single spin flip update')
     parser.add_argument('--notfullssfupdate', default = False, action = 'store_true',

@@ -1060,6 +1060,8 @@ def mcs_swaps(states, spinstates, statesen,
     path = kwargs.get('path',[])
     htip = kwargs.get('htip', 0)
     Ttip = kwargs.get('Ttip', 0)
+    pswitch = kwargs.get('pswitch', 1)
+    uponly = kwargs.get('uponly', False)
     nnspins = kwargs.get('nnspins',None)
     s2p = kwargs.get('s2p', None)
     nt = kwargs.get('nt',None)
@@ -1113,7 +1115,8 @@ def mcs_swaps(states, spinstates, statesen,
     if measupdate:
         print("htip = ", htip)
         print("Ttip = ", Ttip)
-        print("v = ", measupdatev)
+        print("version : ", measupdatev)
+        print("switching probability : ", pswitch)
     swapst = np.array([0 for tid in range(nt)], dtype='int32')
     swapsh = np.array([0 for hid in range(nh)], dtype='int32')
     
@@ -1206,7 +1209,8 @@ def mcs_swaps(states, spinstates, statesen,
                     
                     # note that the states energy is not updated here, so it only is affected
                     # in the statistics
-                    dim.measupdates(hamiltonian[0], htip, Ttip,
+                    dim.measupdates(hamiltonian[0], 
+                                    htip, Ttip, pswitch, uponly,
                                     states, spinstates, statesen,
                                     np.array(s2p, dtype='int32'), path,
                                     walker2ids, ncores);
@@ -1228,8 +1232,6 @@ def mcs_swaps(states, spinstates, statesen,
                 # ideally I should do it before the spins update, then 
                 # perform the spin update and possibly the replicas in c++.
                 
-                #states = np.copy(states)
-                #spinstates = np.copy(spinstates)
                 
  
             if backup and (it//measperiod)/num_in_bin == binid:
