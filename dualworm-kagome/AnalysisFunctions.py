@@ -68,6 +68,7 @@ def LoadParameters(foldername, filenamelist):
     Ttip = [0 for _ in range(n)]
     pswitch = [0 for _ in range(n)]
     uponly = [0 for _ in range(n)]
+    path = [0 for _ in range(n)]
     
     temperatures = [[] for _ in range(n)]
     nt = [0 for _ in range(n)]
@@ -87,11 +88,13 @@ def LoadParameters(foldername, filenamelist):
     
     for nf, filename in enumerate(filenamelist):
         [L[nf], numsites[nf], J1[nf], J2[nf], J3[nf], J3st[nf], J4[nf], nb[nf], 
-         num_in_bin[nf], htip[nf], Ttip[nf], pswitch[nf],uponly[nf], temperatures[nf], nt[nf], stat_temps[nf], temperatures_plots[nf],
+         num_in_bin[nf], htip[nf], Ttip[nf], pswitch[nf],uponly[nf], path[nf],
+         temperatures[nf], nt[nf], stat_temps[nf], temperatures_plots[nf],
          hfields[nf], nh[nf], stat_hfields[nf], hfields_plots[nf],
          listfunctions[nf], sref[nf], ids2walker[nf]] = LoadParametersFromFile(foldername, filename)
     
-    return L, numsites, J1, J2, J3, J3st, J4, nb, num_in_bin,             htip, Ttip, pswitch, uponly,             temperatures, nt,             stat_temps, temperatures_plots, hfields, nh,             stat_hfields, hfields_plots, listfunctions, sref, ids2walker
+
+    return L, numsites, J1, J2, J3, J3st, J4, nb, num_in_bin,             htip, Ttip, pswitch, uponly, path,             temperatures, nt,             stat_temps, temperatures_plots, hfields, nh,             stat_hfields, hfields_plots, listfunctions, sref, ids2walker
 
 
 # In[ ]:
@@ -122,11 +125,13 @@ def LoadParametersFromFile(foldername, filename):
         Ttip = kwmeas['Ttip']
         pswitch = kwmeas['pswitch']
         uponly = kwmeas['uponly']
+        path = kwmeas['measupdatev']
     except:
         htip = 0
         Ttip = 0
         pswitch = 0
         uponly = True
+        path = 1
 
     physical = hkl.load(backup, path = "/parameters/physical")
     temperatures = physical['temperatures'].tolist()
@@ -155,7 +160,8 @@ def LoadParametersFromFile(foldername, filename):
         ids2walker = []
         warnings.warn("ids2walker not found, not loaded!")
         
-    return L, numsites, J1, J2, J3, J3st, J4, nb, num_in_bin,             htip, Ttip, pswitch, uponly,             temperatures, nt,             stat_temps, temperatures_plots, hfields, nh,             stat_hfields, hfields_plots, listfunctions, srefs, ids2walker
+
+    return L, numsites, J1, J2, J3, J3st, J4, nb, num_in_bin,             htip, Ttip, pswitch, uponly, path,             temperatures, nt,             stat_temps, temperatures_plots, hfields, nh,             stat_hfields, hfields_plots, listfunctions, srefs, ids2walker
 
 
 # In[ ]:
