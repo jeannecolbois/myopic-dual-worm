@@ -117,11 +117,17 @@ def LoadParametersFromFile(foldername, filename):
     kwmeas = hkl.load(backup,  path = "/parameters/measurements")
     nb = kwmeas['nb']
     num_in_bin = kwmeas['num_in_bin']
-    htip = kwmeas['htip']
-    Ttip = kwmeas['Ttip']
-    pswitch = kwmeas['pswitch']
-    uponly = kwmeas['uponly']
-    
+    try:
+        htip = kwmeas['htip']
+        Ttip = kwmeas['Ttip']
+        pswitch = kwmeas['pswitch']
+        uponly = kwmeas['uponly']
+    except:
+        htip = 0
+        Ttip = 0
+        pswitch = 0
+        uponly = True
+
     physical = hkl.load(backup, path = "/parameters/physical")
     temperatures = physical['temperatures'].tolist()
     nt = physical['nt']
