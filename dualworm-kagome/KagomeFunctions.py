@@ -209,7 +209,7 @@ def path_for_measupdate(s_ijl, ijl_s, s2_d, L, version = 0):
     path = []
         
     if version == 0:
-        for j in range(0, 2*L):
+        for j in range(0, 2*L): # simple scan
             for twice in range(2):
                 for i in range(max(0,L-1-j),min(2*L, 3*L-1-j)):
                     if twice == 0:
@@ -217,14 +217,50 @@ def path_for_measupdate(s_ijl, ijl_s, s2_d, L, version = 0):
                     else:
                         path.append(ijl_s[(i,j,2)])
                         path.append(ijl_s[(i,j,1)])
-    elif version == 1:
+    elif version == 1: # scan following kagome
         for j in range(0, 2*L):
             for i in range(max(0,L-1-j),min(2*L, 3*L-1-j)):
                 for l in range(2,-1,-1):
                     path.append(ijl_s[(i,j,l)])
-    elif version == 2:
+    elif version == 2: # scan following 2nd neighbour axis
+        ## not implemented
+        assert False, "Version 2 is not yet implemented"
+    elif version == 3: # VERSION 0 WITH COMING BACK
+        order = [True, False]
+        for j in range(0, 2*L):
+            for twice in range(2):
+                for forward in order:
+                    if forward:
+                        for i in range(max(0,L-1-j),min(2*L, 3*L-1-j)):
+                            if twice == 0:
+                                path.append(ijl_s[(i,j,0)])
+                            else:
+                                path.append(ijl_s[(i,j,2)])
+                                path.append(ijl_s[(i,j,1)])
+                    elif not forward:
+                        for i in range(min(2*L, 3*L-1-j)-1,max(0,L-1-j)-1,-1):
+                            if twice == 0:
+                                path.append(ijl_s[(i,j,0)])
+                            else:
+                                path.append(ijl_s[(i,j,1)])
+                                path.append(ijl_s[(i,j,2)])
+    elif version == 4: # VERSION 1 WITH COMING BACK
+        order = [True, False]
+        for j in range(0, 2*L):
+            for forward in order:
+                if forward:
+                    for i in range(max(0,L-1-j),min(2*L, 3*L-1-j)):
+                        for l in range(2,-1,-1):
+                            path.append(ijl_s[(i,j,l)])
+                elif not forward:
+                    for i in range(min(2*L, 3*L-1-j)-1,max(0,L-1-j)-1,-1):
+                        for l in range(0,3,1):
+                            path.append(ijl_s[(i,j,l)])
+
+                    
+    elif version == 5: # some variant on version 1 (PBC)
         path, bonus = spins_dimers_for_update(s_ijl, ijl_s, s2_d, L)
-    elif version == 3:
+    elif version == 6: #some variant on version 0 (PBC)
         for i in range(0,2*L):
             for even in range(2):
                 for j in range(max(0, L-1-i), min(2*L, 3*L-1-i)):
