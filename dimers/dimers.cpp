@@ -1208,12 +1208,12 @@ static PyObject* dimers_measupdates(PyObject *self, PyObject *args) {
         return nullptr;
     }
     int nbitscan = get<1>(sidlisttuple);
-    if(nbitscan != spinstatesize){
-      Py_XDECREF(sidlist_array);
-      PyErr_Format(PyExc_ValueError, "DIMERS.cpp : Inconsistent sidlist size and statesize at line %d", __LINE__);
-      return nullptr;
-
-    }
+   // if(nbitscan != spinstatesize){
+   //   Py_XDECREF(sidlist_array);
+   //   PyErr_Format(PyExc_ValueError, "DIMERS.cpp : Inconsistent sidlist size and statesize at line %d", __LINE__);
+   //   return nullptr;
+   //
+   // }
 
     //--------------------------------------//
     /* Interpret the table of walker2ids*/
