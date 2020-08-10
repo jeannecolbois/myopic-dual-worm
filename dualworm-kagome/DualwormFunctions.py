@@ -1079,6 +1079,9 @@ def mcs_swaps(states, spinstates, statesen,
     alternate = kwargs.get('alternate', False)
     
     genMode = kwargs.get('genMode', False)
+    saveupdates = kwargs.get('saveupdates', False)
+    if not (genMode and saveupdates and measupdate):
+        saveupdates = False
     fullstateupdate = kwargs.get('fullstateupdate', True) # by default, the ssf updates the whole state.
     #save
     backup = kwargs.get('backup', "")
@@ -1110,6 +1113,8 @@ def mcs_swaps(states, spinstates, statesen,
     print("alternate = ", alternate)
     print("ssffurther = ", ssffurther)
     print("genMode = ", genMode)
+    if saveupdates:
+        print("saveupdates = ", saveupdates)
     print("fullstateupdate = ", fullstateupdate)
     print("measupdate = ", measupdate)
     if measupdate:
@@ -1117,18 +1122,30 @@ def mcs_swaps(states, spinstates, statesen,
         print("Ttip = ", Ttip)
         print("version : ", measupdatev)
         print("switching probability : ", pswitch)
+        print("uponly : ", uponly)
     swapst = np.array([0 for tid in range(nt)], dtype='int32')
     swapsh = np.array([0 for hid in range(nh)], dtype='int32')
     
     failedupdates = np.array([[0 for hid in range(nh)] for bid in range(nt)],dtype ='int32')
     failedssfupdates = np.array([[0 for hid in range(nh)] for bid in range(nt)],dtype ='int32')
-    
+    if saveupdates:
+        updatelists = np.array([[[0 for sid in range(len(path))] for hid in range(nh)] for bid in range(nt)],dtype ='int32')
+        print("shape of updatelists :", updatelists.shape)
+        print("length of path: ", len(path))
+    else:
+        updatelists = np.zeros((1,1,1))
     t_join = 0
     t_spins = 0
     t_tempering = 0
     t_stat = 0
     
     print("statsfunctions", statsfunctions)
+
+    # save initiali states
+    if genMode:
+        wid = ids2walker[0, 0]
+        hkl.dump(states[wid], backup+"_groundstate_it{0}.hkl".format(0))
+        hkl.dump(spinstates[wid], backup+"_groundspinstate_it{0}.hkl".format(0))
 
 
     for it in range(itermcs):
@@ -1213,7 +1230,8 @@ def mcs_swaps(states, spinstates, statesen,
                                     htip, Ttip, pswitch, uponly,
                                     states, spinstates, statesen,
                                     np.array(s2p, dtype='int32'), path,
-                                    walker2ids, ncores);
+                                    walker2ids,updatelists, ncores, 
+                                    saveupdates);
 
 
                 for resid,tid in enumerate(stat_temps):
@@ -1226,8 +1244,8 @@ def mcs_swaps(states, spinstates, statesen,
                                    c2s = c2s, csign = csign,nnlists = nnlists, srefs = srefs)
                 if genMode:
                     wid = ids2walker[0, 0]
-                    hkl.dump(states[wid], backup+"_groundstate_it{0}.hkl".format(it//measperiod))
-                    hkl.dump(spinstates[wid], backup+"_groundspinstate_it{0}.hkl".format(it//measperiod))
+                    hkl.dump(states[wid], backup+"_groundstate_it{0}.hkl".format(it//measperiod+1))
+                    hkl.dump(spinstates[wid], backup+"_groundspinstate_it{0}.hkl".format(it//measperiod+1))
                 # it would probably be worth it to parallelise this in c++
                 # ideally I should do it before the spins update, then 
                 # perform the spin update and possibly the replicas in c++.
@@ -1274,7 +1292,13 @@ def mcs_swaps(states, spinstates, statesen,
                     backup+"_"+namefunctions[funcid]+"_final.hkl",
                     mode = 'w')
         
-    return statstables, swapst, swapsh, failedupdates, failedssfupdates
+    return statstables, swapst, swapsh,            failedupdates, failedssfupdates, updatelists
     
     
+
+
+# In[ ]:
+
+
+
 

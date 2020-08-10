@@ -138,7 +138,9 @@ def main(args):
 
 
     t1 = time()
-    (statstableth, swapst_th, swapsh_th, failedupdatesth, failedssfupdatesth) =     dw.mcs_swaps(states, spinstates, energies, betas, [],[], **kw)
+    (statstableth, swapst_th, swapsh_th, failedupdatesth, 
+     failedssfupdatesth, updateliststh) = \
+    dw.mcs_swaps(states, spinstates, energies, betas, [],[], **kw)
     t2 = time()
 
     print('Time for all thermalisation steps = ', t2-t1)
@@ -161,7 +163,7 @@ def main(args):
     print("States Checked")
 
     
-    if genMode and not ok:
+    if genMode and not ok and not measupdate:
         # save status and throw an error
         hkl.dump(states, backup+"_states.hkl")
         hkl.dump(spinstates, backup+"_spinstates.hkl")
@@ -198,6 +200,7 @@ def main(args):
         pswitch = args.pswitch
         uponly = args.uponly
         measupdatev = args.measupdatev
+        saveupdates = args.saveupdates
         path = dw.path_for_measupdate(s_ijl, ijl_s, s2_d, L, version = measupdatev)
     else:
         if not (ssf or alternate):
@@ -207,6 +210,7 @@ def main(args):
         htip = 0
         Ttip = 0
         measupdatev = 0
+        saveupdates = False
         pswitch = 1
         uponly = False
         path = []
@@ -238,11 +242,12 @@ def main(args):
           'alternate':alternate, 'randspinupdate': False,
           'namefunctions': namefunctions, 'srefs':srefs,
           'backup': backup,
-          'genMode': genMode, 'fullstateupdate': fullssf}
+          'genMode': genMode, 'fullstateupdate': fullssf,
+          'saveupdates': saveupdates}
         # Run measurements
 
     t1 = time()
-    (statstable, swapst, swapsh, failedupdates, failedssfupdates) =    dw.mcs_swaps(states, spinstates, energies, betas, stat_temps, stat_hfields,**kw)
+    (statstable, swapst, swapsh, failedupdates, failedssfupdates, updatelists) =    dw.mcs_swaps(states, spinstates, energies, betas, stat_temps, stat_hfields,**kw)
     #print("Energies = ", energies)
     t2 = time()
 
@@ -252,7 +257,7 @@ def main(args):
     totupdates = nips*num_in_bin*nb*measperiod*len(s_ijl)
     measurementsres = {'swapst': swapst, 'swapsh': swapsh,
                        'failedupdates':failedupdates,'totupdates':totupdates, 
-                       'failedssfupdates':failedssfupdates}
+                       'failedssfupdates':failedssfupdates, 'updatelists':updatelists}
 
     hkl.dump(measurementsres, backup+".hkl", path = "/results/measurements", mode = 'r+')
 
@@ -346,6 +351,8 @@ if __name__ == "__main__":
                        help = '''activate to mimic the action of the measuring tip''')
     parser.add_argument('--measupdatev', type = int, default = 0,
                        help = '''select the version of measupdate''')
+    parser.add_argument('--saveupdates', default = False, action = 'store_true',
+                       help = '''activate to save the effect of the measuring tip (only genMode)''')
     parser.add_argument('--htip', type = float, default = 0.0, 
                        help = '''magnetic field associated with the tip''')
     parser.add_argument('--Ttip', type = float, default = 0.0, 

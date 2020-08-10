@@ -1,4 +1,4 @@
-
+#!/usr/bin/env python
 # coding: utf-8
 
 # In[ ]:
@@ -24,6 +24,7 @@ def draw_nodes(pos, nodelist, c, **kargs):
     if isinstance(c, list):
         plt.colorbar()
     node_collection.set_zorder(2)
+    return node_collection
 
 
 # In[ ]:

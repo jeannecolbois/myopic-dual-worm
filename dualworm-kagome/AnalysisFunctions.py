@@ -371,6 +371,34 @@ def LoadUpdatesFromFile(foldername, filename, nb, num_in_bin, size):
 # In[ ]:
 
 
+def LoadUpdateLists(foldername, filenamelist):
+    n = len(filenamelist)
+    updatelists = [[] for _ in range(n)]
+    
+    for nf, filename in enumerate(filenamelist):
+        updatelists[nf] =        LoadUpdateListsFromFile(foldername, filename)
+    
+    return updatelists
+
+
+# In[ ]:
+
+
+def LoadUpdateListsFromFile(foldername, filename):
+    backup = "./"+foldername+filename+".hkl"
+    
+    kwtherm = hkl.load(backup, path="/parameters/thermalisation")
+    kwmeas = hkl.load(backup, path="/parameters/measurements")
+    
+    meas = hkl.load(backup, path = "/results/measurements")
+    updatelists = meas['updatelists']
+       
+    return updatelists
+
+
+# In[ ]:
+
+
 def LoadStates(foldername, filenamelist,L,nh, **kwargs):
     n = len(filenamelist)
     
@@ -440,7 +468,7 @@ def LoadGroundStatesFromFile(foldername, filename, L, nh,iters, **kwargs):
     it_spinstates = []
     it_states = []
     it_charges = []
-    for it in range(iters):
+    for it in range(iters+1):
         groundspinstate = hkl.load(backup+"_groundspinstate_it{0}.hkl".format(it))
         groundstate = hkl.load(backup+"_groundstate_it{0}.hkl".format(it))
         if nh == 1:
