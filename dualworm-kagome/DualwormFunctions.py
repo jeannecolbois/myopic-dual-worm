@@ -1133,7 +1133,7 @@ def mcs_swaps(states, spinstates, statesen,
         print("shape of updatelists :", updatelists.shape)
         print("length of path: ", len(path))
     else:
-        updatelists = np.zeros((1,1,1))
+        updatelists = np.zeros((1,1,1), dtype = 'int32')
     t_join = 0
     t_spins = 0
     t_tempering = 0
