@@ -1102,7 +1102,7 @@ static PyObject* dimers_measupdates(PyObject *self, PyObject *args) {
     double htip;
     double Ttip;
     double pswitch;
-    int uponly; // to catch a python boolean
+    bool uponly; // to catch a python boolean
     PyObject *states_obj, *spinstates_obj, *energies_obj;
     PyObject *s2p_obj, *sidlist_obj, *walker2ids_obj, *updatelists_obj;
     int nthreads;

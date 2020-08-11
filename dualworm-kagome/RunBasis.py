@@ -25,7 +25,7 @@ import argparse
 
 
 def main(args):
-    
+    verbose = args.verbose
     print("-------------------Initialisation--------------------")
     ### PREPARE SAVING
     backup = rbf.SafePreparation(args)
@@ -133,7 +133,7 @@ def main(args):
           'ids2walker':ids2walker,
           's2p':s2p, 'ssf':ssf, 'ssffurther': ssffurther,
           'alternate':alternate, 'fullstateupdate': True,
-          'verbose':args.verbose
+          'verbose':verbose
          }
 
 
@@ -161,7 +161,7 @@ def main(args):
     
     rbf.CheckStates(spinstates, states, d_2s)
     print("States Checked")
-
+    measupdate = args.measupdate
     
     if genMode and not ok and not measupdate:
         # save status and throw an error
@@ -191,7 +191,7 @@ def main(args):
     check = True #turn to spins and check match works
     measperiod = args.measperiod
     print('Measurement period:', measperiod)
-    measupdate = args.measupdate
+    
     
     if measupdate:
         nnspins, s2p = dw.spin2plaquette(ijl_s, s_ijl, s2_d,L)
@@ -222,6 +222,8 @@ def main(args):
               'htip': htip, 'Ttip':Ttip, 'pswitch': pswitch, 'uponly': uponly,
               'nnspins':nnspins, 's2p': s2p}
     hkl.dump(kwmeas, backup+".hkl", path = "/parameters/measurements", mode = 'r+')
+    if verbose:
+        print("uponly: ", uponly)
     kw = {'nb':nb,'num_in_bin':num_in_bin, 'iterworm':iterworm,
           'nrps': nrps,
           'nitermax':nmaxiter,'check':check,
@@ -243,7 +245,8 @@ def main(args):
           'namefunctions': namefunctions, 'srefs':srefs,
           'backup': backup,
           'genMode': genMode, 'fullstateupdate': fullssf,
-          'saveupdates': saveupdates}
+          'saveupdates': saveupdates,
+          'verbose':verbose}
         # Run measurements
 
     t1 = time()

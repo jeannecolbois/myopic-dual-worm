@@ -1226,6 +1226,9 @@ def mcs_swaps(states, spinstates, statesen,
                     
                     # note that the states energy is not updated here, so it only is affected
                     # in the statistics
+                    if verbose:
+                        print("uponly: ", uponly)
+                   
                     dim.measupdates(hamiltonian[0], 
                                     htip, Ttip, pswitch, uponly,
                                     states, spinstates, statesen,
