@@ -494,8 +494,13 @@ def LoadEnergyFromFile(foldername, filename, numsites, nb, stat_temps,
                                   t_h_MeanE[resid][reshid] ** 2) / T ** 2)
         C.append(Ch)
     # to compute the error on C, we need to compute sqrt(<C^2> - <C>^2)
+    # i.e. the variance of the variable C,
     # where "<>" stands for the average over all the bins
-    # i.e. <C> = 1/nb * sum_b C_b where C_b is the value of C over the bin b
+    # i.e. <C> = 1/nb * sum_b C_b where C_b is the value of C over the bin b.
+    # Then, the variance of the estimator of the mean
+    # is given by 1/(nb-1) times the variance
+    # of the variable.
+    # A better estimation would be obtained from the jackknife analysis
     # Note that C_b = N/T^2 * (<E^2>_b - <E>_b ^2)
     # where <>_b stands for the average over bin b
 
@@ -514,8 +519,8 @@ def LoadEnergyFromFile(foldername, filename, numsites, nb, stat_temps,
                     Mean_VarE_Sq += ((bsth_E[b][1][resid][reshid] -
                                       bsth_E[b][0][resid][reshid] ** 2) ** 2)/nb
             if (Mean_VarE_Sq - Mean_VarE ** 2 >= 0) :
-                ErrCh.append(numsites / (T ** 2) * np.sqrt(Mean_VarE_Sq 
-                                                           - Mean_VarE ** 2))
+                ErrCh.append((numsites / (T ** 2)) * np.sqrt((Mean_VarE_Sq 
+                                                           - Mean_VarE ** 2)/(nb-1)))
             else:
                 assert(Mean_VarE_Sq - Mean_VarE ** 2 >= -1e-15)
                 ErrCh.append(0)
@@ -590,7 +595,7 @@ def LoadMagnetisationFromFile(foldername, filename, numsites, nb, stat_temps,
                     Mean_VarM_Sq += ((bsth_M[b][1][resid][reshid]
                                       - bsth_M[b][0][resid][reshid] ** 2) ** 2)/nb
             if Mean_VarM_Sq - Mean_VarM ** 2 >= 0 :
-                ErrChih.append(numsites / T * np.sqrt(Mean_VarM_Sq - Mean_VarM ** 2))  
+                ErrChih.append((numsites / T) * np.sqrt((Mean_VarM_Sq - Mean_VarM ** 2)/(nb-1)))  
             else:
                 assert(Mean_VarM_Sq - Mean_VarM ** 2 >= -1e-15)
                 ErrChih.append(0)
