@@ -11,8 +11,8 @@ void measupdates(double J1, double htip, double Ttip, double pswitch, bool uponl
  int* spinstates, int spinstatesize, int* s2p, int ndims, int* sidlist, int nbsid,
  int* walker2ids, double* energies, int nbwalkers, int nthreads, int nt,
  int nh, int* updatelists, bool saveupdates) {
+  
   #pragma omp parallel for schedule(dynamic, 1) num_threads(nthreads)
-
   for(int walker = 0; walker < nbwalkers; walker++ ){
   // for each walker, measupdates
     int *state = &states[walker*statesize];
@@ -31,7 +31,8 @@ void measupdates(double J1, double htip, double Ttip, double pswitch, bool uponl
 }
 
 double measupdate(double J1, double htip, double Ttip, double pswitch, bool uponly, int* state, int* spinstate,
- int statesize, int spinstatesze, int* s2p,int ndims, int* sidlist, int nbsid, int* updatelist,  bool saveupdates){
+ int statesize, int spinstatesze, int* s2p,int ndims, int* sidlist, int nbsid,
+ int* updatelist,  bool saveupdates){
   double deltaE = 0.0;
 
   // define distributions

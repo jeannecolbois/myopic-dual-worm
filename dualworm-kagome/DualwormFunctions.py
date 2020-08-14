@@ -1113,8 +1113,7 @@ def mcs_swaps(states, spinstates, statesen,
     print("alternate = ", alternate)
     print("ssffurther = ", ssffurther)
     print("genMode = ", genMode)
-    if saveupdates:
-        print("saveupdates = ", saveupdates)
+    print("saveupdates = ", saveupdates)
     print("fullstateupdate = ", fullstateupdate)
     print("measupdate = ", measupdate)
     if measupdate:
@@ -1227,15 +1226,26 @@ def mcs_swaps(states, spinstates, statesen,
                     # note that the states energy is not updated here, so it only is affected
                     # in the statistics
                     if verbose:
-                        print("uponly: ", uponly)
+                        print(hamiltonian[0])
+                        print(htip)
+                        print(Ttip)
+                        print(pswitch)
+                        print(uponly)
+                        print(states.shape)
+                        print(spinstates.shape)
+                        print(statesen.shape)
+                        print(np.array(s2p, dtype='int32').shape)
+                        print(path.shape)
+                        print(walker2ids.shape)
+                        print(updatelists.shape)
+                        print(ncores)
+                        print(saveupdates)
                    
-                    dim.measupdates(hamiltonian[0], 
-                                    htip, Ttip, pswitch, uponly,
+                    dim.measupdates(hamiltonian[0], htip, Ttip, pswitch, uponly,
                                     states, spinstates, statesen,
                                     np.array(s2p, dtype='int32'), path,
-                                    walker2ids,updatelists, ncores, 
-                                    saveupdates);
-
+                                   walker2ids, updatelists, 4, saveupdates)
+                    
 
                 for resid,tid in enumerate(stat_temps):
                     for reshid, hid in enumerate(stat_fields):

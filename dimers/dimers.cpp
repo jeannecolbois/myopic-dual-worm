@@ -747,13 +747,19 @@ static PyObject* dimers_genssfsevolve(PyObject *self, PyObject *args) {
      int fullstateupdate;
 
      // take the arguments as pointers + int
-     if(!PyArg_ParseTuple(args,"OOOOOOOOiii", &list_obj,
+     if(!PyArg_ParseTuple(args,"OOOOOOOOiip", &list_obj,
      &states_obj, &spinstates_obj, &s2p_obj,
      &walker2params_obj, &walker2ids_obj,
      &energies_obj, &failedupdates_obj,
      &nthreads, &iters, &fullstateupdate))
      return nullptr;
 
+    if(! fullstateupdate){
+        PyErr_Format(PyExc_ValueError,
+                         "DIMERS.cpp : Fullstateupdate is False at line %d, please check, and remove this error if consistent", \
+                         __LINE__);
+        return nullptr;
+    }
     //----------------------------//
     /* Interpret the list input  */
     //----------------------------//
@@ -980,9 +986,15 @@ static PyObject* dimers_updatespinstates(PyObject *self, PyObject *args) {
      int nthreads;
      int randspinstate; // to catch a python boolean
      // take the arguments as pointers + int
-     if(!PyArg_ParseTuple(args,"OOOOOii", &states_obj, &spinstates_obj, &stat_walkers_obj, &sidlist_obj, &didlist_obj, &nthreads, &randspinstate))
+     if(!PyArg_ParseTuple(args,"OOOOOip", &states_obj, &spinstates_obj, &stat_walkers_obj, &sidlist_obj, &didlist_obj, &nthreads, &randspinstate))
 	   return nullptr;
 
+    if(!randspinstate){
+	PyErr_Format(PyExc_ValueError,
+                         "DIMERS.cpp : randspinsstate is False at line %d, please check and remove this if consistent", \
+                         __LINE__);
+        return nullptr;
+    }
     //-------------------------------//
     /* Interpret the table of states */
     //-------------------------------//
@@ -1102,19 +1114,30 @@ static PyObject* dimers_measupdates(PyObject *self, PyObject *args) {
     double htip;
     double Ttip;
     double pswitch;
-    bool uponly; // to catch a python boolean
+    int uponly; // to catch a python boolean
     PyObject *states_obj, *spinstates_obj, *energies_obj;
     PyObject *s2p_obj, *sidlist_obj, *walker2ids_obj, *updatelists_obj;
     int nthreads;
-    bool saveupdates;
+    int saveupdates;
 
-    if(!PyArg_ParseTuple(args,"ddddiOOOOOOOii", &J1, &htip, &Ttip, &pswitch, &uponly,
-    &states_obj, &spinstates_obj, &energies_obj,
-    &s2p_obj, &sidlist_obj, &walker2ids_obj, &updatelists_obj,
-    &nthreads, &saveupdates))
+    if(!PyArg_ParseTuple(args,"ddddpOOOOOOOip", &J1, &htip, &Ttip, &pswitch,&uponly, &states_obj,
+    &spinstates_obj, &energies_obj, &s2p_obj, &sidlist_obj, &walker2ids_obj, 
+    &updatelists_obj, &nthreads, &saveupdates)){
+    PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with measupdates args parsing");
     return nullptr;
-
-
+    }
+    if (nthreads != 4) {
+	PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue ...htip = %d, Ttip = %d, pswitch = %d, nthreads =  %i, uponly = %i", htip, Ttip, pswitch, nthreads, uponly);
+        return nullptr;
+    }
+    if (!uponly){
+	PyErr_Format(PyExc_ValueError, "DIMERS.cpp : uponly is False at line %d, please check", __LINE__);
+        return nullptr;
+    }
+    if (saveupdates){
+        PyErr_Format(PyExc_ValueError, "DIMERS.cpp : saveupdates is true at line %d, please check", __LINE__);
+        return nullptr;
+    }
     // //-------------------------------//
     // /* Interpret the table of states */
     // //-------------------------------//
@@ -1256,9 +1279,9 @@ static PyObject* dimers_measupdates(PyObject *self, PyObject *args) {
     int *updatelists = (int*)PyArray_DATA(updatelists_array);
     //-------------------------------------------------------CALL C++ FUNCTION -----------------------------------------------------------------------//
     PyThreadState* threadState = PyEval_SaveThread(); // release the GIL
-    measupdates(J1, htip, Ttip, pswitch, (bool)uponly, states, statesize, spinstates, spinstatesize,
-     s2p, ndimers, sidlist, nbitscan, walker2ids, energies, nbwalkers, nthreads, nt, nh,
-     updatelists, saveupdates);
+    measupdates(J1, htip, Ttip, pswitch, uponly, states, statesize, spinstates, spinstatesize,
+    s2p, ndimers, sidlist, nbitscan, walker2ids, energies, nbwalkers, nthreads, nt, nh,
+    updatelists, saveupdates);
     PyEval_RestoreThread(threadState); // claim the GIL
 
 
