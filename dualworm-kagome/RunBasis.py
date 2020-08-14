@@ -69,11 +69,15 @@ def main(args):
         try:
             ids2walker = hkl.load(loadbackup+"/backup_ids2walker.hkl")
         except OSError:
+            warnings.warn("error ids2walker load")
             [walker2params, walker2ids, ids2walker] =            dw.walkerstable(betas, nt, hfields, nh)
+            
+       
     else:
         [walker2params, walker2ids, ids2walker] =        dw.walkerstable(betas, nt, hfields, nh)
+    print("ids2walker shape", ids2walker.shape)
     # Saving the status:
-
+    
     ## SIMULATION INITIALISATION
     (states, energies, spinstates, ref_energies, checkgsid)=    rbf.StatesAndEnergyInit(args, backup, loadbackup,hamiltonian,
                             ids2walker, nt, nh, hfields, d_ijl,
@@ -279,6 +283,7 @@ def main(args):
     hkl.dump(walker2ids, backup+"_walker2ids.hkl")
     hkl.dump(ids2walker, backup+"_ids2walker.hkl")
     
+    print("ids2walker shape", ids2walker.shape)
     hkl.dump(states, backup+"_states.hkl")
     hkl.dump(spinstates, backup+"_spinstates.hkl")
     

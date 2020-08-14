@@ -1126,16 +1126,8 @@ static PyObject* dimers_measupdates(PyObject *self, PyObject *args) {
     PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with measupdates args parsing");
     return nullptr;
     }
-    if (nthreads != 4) {
-	PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue ...htip = %d, Ttip = %d, pswitch = %d, nthreads =  %i, uponly = %i", htip, Ttip, pswitch, nthreads, uponly);
-        return nullptr;
-    }
-    if (!uponly){
+   if (!uponly){
 	PyErr_Format(PyExc_ValueError, "DIMERS.cpp : uponly is False at line %d, please check", __LINE__);
-        return nullptr;
-    }
-    if (saveupdates){
-        PyErr_Format(PyExc_ValueError, "DIMERS.cpp : saveupdates is true at line %d, please check", __LINE__);
         return nullptr;
     }
     // //-------------------------------//
