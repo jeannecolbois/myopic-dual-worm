@@ -21,6 +21,7 @@ dualworm-kagome/ProfilingAndTesting/*.png
 dualworm-kagome/ProfilingAndTesting/*Results/*
 dualworm-kagome/GroundStates/*/
 dualworm-kagome/GroundStates/*.mat
+
 ANALYSIS_CSCS/
 Analysis_CSCS/
 Analysis_PSI/
@@ -28,3 +29,4 @@ Analysis_PSI_EPFL/
 Analysis_EPFL/
 Analysis_MFUs/
 dualworm-kagome/AnalysisCode_PSI/*.png
+dualworm-kagome/AnalysisCode_PSI/*.pdf
