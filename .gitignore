@@ -24,6 +24,8 @@ dualworm-kagome/GroundStates/*/
 dualworm-kagome/GroundStates/*.mat
 dualworm-kagome/AnalysisCode_PSI/*_folder
 dualworm-kagome/AnalysisCode_PSI/*.gif
+dualworm-kagome/AnalysisCode_PSI/*.pdf
+dualworm-kagome/AnalysisCode_PSI/*.pgf
 ANALYSIS_CSCS/
 Analysis_CSCS/
 Analysis_PSI/
