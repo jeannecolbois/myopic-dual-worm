@@ -51,11 +51,11 @@ def ComputeNthCorrList(NNListN, sconf, x, y, factor):
         distval = expdist(pair[0], pair[1], x,y, factor)
         ldist.append(distval)
 
-    w12 = np.array([(sconf[pair[0]]-s1)*(sconf[pair[1]]-s2) for pair in NNListN]);
-    avgw12 = sum(w12)/nNth
-    cov12 = avgw12*nNth/(nNth-1)
-    varw12 = sum((w12-avgw12)**2)/(nNth-1)
-    varcov12 = varw12*nNth/((nNth-1)**2)
+    w12 = np.array([(sconf[pair[0]]-s1)*(sconf[pair[1]]-s2) for pair in NNListN]); # correlations
+    avgw12 = np.sum(w12, axis = 0)/nNth # mean of the correlations over the sample
+    cov12 = avgw12*nNth/(nNth-1) # covariance proper calculation
+    varw12 = np.sum((w12-avgw12)**2, axis = 0)/(nNth-1) # estimator of the variance of w12
+    varcov12 = varw12*nNth/((nNth-1)**2) # estimator of the variance of the correlation estimator
 
     ldist = np.array(ldist)
     avgdist = sum(ldist)/nNth
