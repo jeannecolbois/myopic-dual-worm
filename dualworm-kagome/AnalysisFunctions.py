@@ -924,46 +924,51 @@ def BasicPlotsFirstCorrelations(L, i, t_h_MeanFc, temperatures_plots, t_h_varMea
                                 foldername, results_foldername, filenamelist, 
                                 tmin = 0, setyticks = None, addtitle = "", addsave = "",
                                 save = True, log = True,
-                                figsize=(11,9), dpi = 200,**kwargs):
+                                figsize=(11,9), dpi = 200, ax = [],**kwargs):
     
-    plt.figure(figsize=figsize, dpi = dpi)
+    createfig = kwargs.get('createfig', True)
+    print(createfig)
+    if createfig:
+        fig, ax = plt.figure(figsize=figsize, dpi = dpi)
+    
     if log:
-        plt.semilogx(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,0],'.',label = r'$c_1$')
+        ax.semilogx(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,0],'.',label = r'$c_1$')
     else:
-        plt.plot(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,0],'.',label = r'$c_1$')
+        ax.plot(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,0],'.',label = r'$c_1$')
     
-    plt.fill_between(temperatures_plots[i][tmin:],
+    ax.fill_between(temperatures_plots[i][tmin:],
                     t_h_MeanFc[i][tmin:,0,0]-np.sqrt(t_h_varMeanFc[i][tmin:,0,0]),
                     t_h_MeanFc[i][tmin:,0,0]+np.sqrt(t_h_varMeanFc[i][tmin:,0,0]), alpha = 0.2)
     if log:
-        plt.semilogx(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,1],'x',label = r'$c_2$')
+        ax.semilogx(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,1],'x',label = r'$c_2$')
     else: 
-        plt.plot(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,1],'x',label = r'$c_2$')
+        ax.plot(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,1],'x',label = r'$c_2$')
     
-    plt.fill_between(temperatures_plots[i][tmin:],
+    ax.fill_between(temperatures_plots[i][tmin:],
                     t_h_MeanFc[i][tmin:,0,1]-np.sqrt(t_h_varMeanFc[i][tmin:,0,1]),
                     t_h_MeanFc[i][tmin:,0,1]+np.sqrt(t_h_varMeanFc[i][tmin:,0,1]), alpha = 0.2)
     if log:
-        plt.semilogx(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,2],'v',label = r'$c_{3||}$')
+        ax.semilogx(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,2],'v',label = r'$c_{3||}$')
     else:
-        plt.plot(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,2],'v',label = r'$c_{3||}$')
-    plt.fill_between(temperatures_plots[i][tmin:],
+        ax.plot(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,2],'v',label = r'$c_{3||}$')
+    ax.fill_between(temperatures_plots[i][tmin:],
                     t_h_MeanFc[i][tmin:,0,2]-np.sqrt(t_h_varMeanFc[i][tmin:,0,2]),
                     t_h_MeanFc[i][tmin:,0,2]+np.sqrt(t_h_varMeanFc[i][tmin:,0,2]), alpha = 0.2)
     if log:
-        plt.semilogx(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,3],'*',label =r'$c_{3\star}$ ')
+        ax.semilogx(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,3],'*',label =r'$c_{3\star}$ ')
     else:
-        plt.plot(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,3],'*',label =r'$c_{3\star}$ ')
+        ax.plot(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,3],'*',label =r'$c_{3\star}$ ')
     
-    plt.fill_between(temperatures_plots[i][tmin:],
+    ax.fill_between(temperatures_plots[i][tmin:],
                     t_h_MeanFc[i][tmin:,0,3]-np.sqrt(t_h_varMeanFc[i][tmin:,0,3]),
                     t_h_MeanFc[i][tmin:,0,3]+np.sqrt(t_h_varMeanFc[i][tmin:,0,3]), alpha = 0.2)
-    plt.title(addtitle)
-    plt.xlabel(r"$T/J_1$")
-    plt.ylabel(r"$\langle \sigma_i \sigma_j \rangle - \langle \sigma_i \rangle \langle \sigma_j \rangle$")
-    plt.yticks(setyticks)
-    plt.grid(which='both')
-    plt.legend()
+    if createfig:
+        ax.set_title(addtitle)
+        ax.set_xlabel(r"$T/J_1$")
+        ax.set_ylabel(r"$\langle \sigma_i \sigma_j \rangle - \langle \sigma_i \rangle \langle \sigma_j \rangle$")
+        ax.set_yticks(setyticks)
+        ax.grid(which='both')
+        ax.legend()
     if save:
         if log:
             plt.savefig("./" + foldername + results_foldername + "/FirstCorrelations"+addsave+ ".png")
