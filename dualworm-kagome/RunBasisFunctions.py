@@ -57,8 +57,13 @@ def SimulationParameters(args, backup, loadfromfile, d_ijl,
     J1 = args.J1
     J2 = args.J2
     J3 = args.J3
-    J3st = J3
+    #check if J3st given as option, otherwise give it J3 value.
+    if "J3st" in args:
+        J3st = args.J3st
+    else:
+        J3st = J3
     J4 = args.J4
+    
     print('J1 ', J1)
     print('J2 ', J2)
     print('J3 ', J3)

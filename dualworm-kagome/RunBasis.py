@@ -291,6 +291,8 @@ if __name__ == "__main__":
                         help = '2nd NN coupling') # 2nd NN coupling
     parser.add_argument('--J3', type = float, default = 0.0,
                         help = '3rd NN coupling') # 3rd NN coupling
+    parser.add_argument('--J3st', type = float, default=argparse.SUPPRESS,
+                       help = '3rd star NN coupling. If not given, set to J3 value. If given, can be different from J3.')
     parser.add_argument('--J4', type = float, default = 0.0,
                         help = '4th NN coupling')
     
