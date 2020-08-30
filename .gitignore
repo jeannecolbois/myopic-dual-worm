@@ -14,7 +14,7 @@ dualworm-kagome/__pycache__/*
 */*/__pycache__/
 dualworm-kagome/Plot*
 dualworm-kagome/*_folder
-dualworm-kagome/AnalysisCode_PSI/*_folder
+dualworm-kagome/AnalysisCode_PSI/*
 dualworm-kagome/prun*
 dualworm-kagome/ProfilingAndTesting/*.pkl
 dualworm-kagome/ProfilingAndTesting/*.png
