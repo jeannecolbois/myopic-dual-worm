@@ -754,12 +754,6 @@ static PyObject* dimers_genssfsevolve(PyObject *self, PyObject *args) {
      &nthreads, &iters, &fullstateupdate))
      return nullptr;
 
-    if(! fullstateupdate){
-        PyErr_Format(PyExc_ValueError,
-                         "DIMERS.cpp : Fullstateupdate is False at line %d, please check, and remove this error if consistent", \
-                         __LINE__);
-        return nullptr;
-    }
     //----------------------------//
     /* Interpret the list input  */
     //----------------------------//
