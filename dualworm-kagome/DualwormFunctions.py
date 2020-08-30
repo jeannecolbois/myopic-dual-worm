@@ -822,7 +822,7 @@ def statistics(tid, resid, hid, reshid, bid, states, statesen, statstables,
 
 
 def replicas(it, nt, nh, statesen, betas, hfields, states, spinstates,
-             swapst, swapsh,ids2walker, walker2ids, walker2params):
+             swapst, swapsh,ids2walker, walker2ids, walker2params, verbose):
     '''
         Given the number of temperatures and magnetic fields, 
         the states, and the mapping from walker to parameter ids,
@@ -875,25 +875,43 @@ def replicas(it, nt, nh, statesen, betas, hfields, states, spinstates,
                         swapfields(tid, hid, up, statesen, betas, hfields, spinstates,
                                    ids2walker, walker2ids, walker2params, swapsh)
     else:
-        if it%2 == 0:
+        if verbose:
+            print("it % 4 = ", it%4)
+        if it%4 == 0:
             # even t swap
             for hid in range(nh):
+                # down to up
                 for tid in range(0,nt-1,2):
                     swaptemps(tid, hid, statesen, betas, hfields, ids2walker,
-                              walker2ids, walker2params, swapst)
-        elif it%2 == 1:
+                              walker2ids, walker2params, swapst, verbose= verbose)
+        elif it%4 == 1:
             #odd t swap
             for hid in range(nh):
+                #down to up
                 for tid in range(1,nt-1,2):
                     swaptemps(tid, hid, statesen, betas, hfields, ids2walker,
-                              walker2ids, walker2params, swapst)
+                              walker2ids, walker2params, swapst, verbose= verbose)
+        elif it%4 == 2:
+            # even t swap
+            for hid in range(nh):
+                # up to down
+                for tid in range(nt,-1,2):
+                    swaptemps(tid, hid, statesen, betas, hfields, ids2walker,
+                              walker2ids, walker2params, swapst, verbose= verbose)
+        elif it%4 == 3:    
+            # odd t swap
+            for hid in range(nh):
+                # up to down
+                for tid in range(nt-1,-1,2):
+                    swaptemps(tid, hid, statesen, betas, hfields, ids2walker,
+                              walker2ids, walker2params, swapst, verbose= verbose)
 
 
 # In[ ]:
 
 
 def swaptemps(tid, hid, statesen, betas, hfields,
-              ids2walker, walker2ids, walker2params, swapst):
+              ids2walker, walker2ids, walker2params, swapst, verbose = False):
     '''
         Offers to swap temperatures and accepts or reject based on
         detailed balance
@@ -902,6 +920,12 @@ def swaptemps(tid, hid, statesen, betas, hfields,
     wid2 = ids2walker[tid+1, hid]
     
     swap = False
+    if verbose and ((statesen[tid+1, hid] - statesen[tid, hid])*
+        (betas[tid+1] - betas[tid]))< 0:
+        print(np.exp((statesen[tid+1, hid] - statesen[tid,hid])
+                 * (betas[tid+1] - betas[tid])))
+    elif verbose:
+        print(" DE ", (statesen[tid+1, hid] - statesen[tid, hid]), "Dbeta", (betas[tid+1] - betas[tid]))
     if ((statesen[tid+1, hid] - statesen[tid, hid])*
         (betas[tid+1] - betas[tid]))> 0:
         swap = True
@@ -1167,9 +1191,11 @@ def mcs_swaps(states, spinstates, statesen,
         #### TEMPERING perform "parallel" tempering ( actually, replicas)
         # if nh == 1, we only do replica in temperature
         for riter in range(nrps):
+            if verbose:
+                print("replicat iter = ", it + riter)
             replicas(it+riter, nt, nh, statesen, betas, hfields, states, 
                      spinstates, swapst, swapsh, ids2walker,
-                     walker2ids, walker2params)
+                     walker2ids, walker2params, verbose)
     
         t3 = time()
         t_tempering +=(t3-t2)/itermcs
