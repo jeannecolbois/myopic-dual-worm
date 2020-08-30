@@ -57,8 +57,13 @@ def SimulationParameters(args, backup, loadfromfile, d_ijl,
     J1 = args.J1
     J2 = args.J2
     J3 = args.J3
-    J3st = J3
+    #check if J3st given as option, otherwise give it J3 value.
+    if "J3st" in args:
+        J3st = args.J3st
+    else:
+        J3st = J3
     J4 = args.J4
+    
     print('J1 ', J1)
     print('J2 ', J2)
     print('J3 ', J3)
@@ -318,42 +323,49 @@ def ObservablesInit(args, backup, s_ijl, ijl_s, L):
         cfuncid = observableslist.index('Charges')
     else:
         cfuncid = -1
+    nfr = args.frustratedT
+    if nfr:
+        observables.append(obs.frustratedTriangles)
+        observableslist.append('FrustratedTriangles')
+        cfuncid = observableslist.index('FrustratedTriangles')
+    else:
+        cfuncid = -1
     correlations = args.correlations
-    all_correlations = args.all_correlations
     firstcorrelations = args.firstcorrelations
+    both = args.both
     if correlations:
         observables.append(obs.si)
         observableslist.append('Si')
-        if all_correlations:
-            observables.append(obs.allcorrelations)
-            observableslist.append('All_Correlations')
-        else:
-            if firstcorrelations:
-                nnlists = [dw.NNpairs(ijl_s, s_ijl, L), dw.NN2pairs(ijl_s, s_ijl, L),
-                           dw.NN3parpairs(ijl_s, s_ijl, L), dw.NN3starpairs(ijl_s, s_ijl, L)]
-                print("Check: length of s_ijl", len(s_ijl))
-                print("Check: length of NN pairslist:", len(nnlists[0]))
-                print("Check: length of 2ndNN pairs list: ", len(nnlists[1]))
-                print("Check: length of 3rd//NN pairs list: ", len(nnlists[2]))
-                print("Check: length of 3rd*NN pairs list: ", len(nnlists[3]))
-               
-                observables.append(obs.firstcorrelations)
-                observableslist.append('FirstCorrelations')
-            else:
-                observables.append(obs.centralcorrelations)
-                observableslist.append('Central_Correlations')
 
-    print('List of measurements to be performed:', observableslist)
+        if firstcorrelations or both:
+            nnlists = [dw.NNpairs(ijl_s, s_ijl, L), dw.NN2pairs(ijl_s, s_ijl, L),
+                       dw.NN3parpairs(ijl_s, s_ijl, L), dw.NN3starpairs(ijl_s, s_ijl, L)]
+            print("Check: length of s_ijl", len(s_ijl))
+            print("Check: length of NN pairslist:", len(nnlists[0]))
+            print("Check: length of 2ndNN pairs list: ", len(nnlists[1]))
+            print("Check: length of 3rd//NN pairs list: ", len(nnlists[2]))
+            print("Check: length of 3rd*NN pairs list: ", len(nnlists[3]))
+
+            observables.append(obs.firstcorrelations)
+            observableslist.append('FirstCorrelations')
+        if (not firstcorrelations) or both:
+            observables.append(obs.centralcorrelations)
+            observableslist.append('Central_Correlations')
     
+    srefs = [ijl_s[tuple(args.sref0)], ijl_s[tuple(args.sref1)],ijl_s[tuple(args.sref2)]]
+    
+    print('List of measurements to be performed:', observableslist)
+    x = (not firstcorrelations) or both;
     obsparams = {'energy':energy, 'magnetisation':magnetisation,
-                'charges':charges, 'correlations':correlations,
-                'all_correlations':all_correlations,
+                'charges':charges, 'frustrated triangles': nfr, 'correlations':correlations,
                  'firstcorrelations':firstcorrelations,
-                'observableslist': observableslist}
+                 'central_correlations':x,
+                'observableslist': observableslist,
+                'srefs': srefs}
     hkl.dump(obsparams, backup+".hkl", path = "/parameters/obsparams", mode = 'r+')
     
     return [nnlists, observables, observableslist, magnfuncid,
-            cfuncid] 
+            cfuncid, srefs] 
 
 
 # In[ ]:

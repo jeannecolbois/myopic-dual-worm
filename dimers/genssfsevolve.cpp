@@ -4,7 +4,7 @@
 using namespace std;
 void genssfsevolve(double J1, std::vector<std::tuple<double, int*, int, int>> interactions,
   int* states, int statesize, int* spinstates, int spinstatesize, int* s2p,
-  int nd,  double* walker2params, double* walker2ids, double* energies, int* failedupdates,
+  int nd,  double* walker2params, int* walker2ids, double* energies, int* failedupdates,
   int nbwalkers, int nthreads, int iters, int nt, int nh, bool fullstateupdate) {
     #pragma omp parallel for schedule(dynamic, 1) num_threads(nthreads)
     for(int walker = 0; walker < nbwalkers; walker++) {

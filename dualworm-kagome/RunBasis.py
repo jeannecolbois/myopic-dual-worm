@@ -90,7 +90,7 @@ def main(args):
 
     ### INITIALISATION FOR THE MEASUREMENTS
     # Observables to measure
-    [nnlists, observables, observableslist, magnfuncid,cfuncid]  =    rbf.ObservablesInit(args, backup, s_ijl, ijl_s, L)
+    [nnlists, observables, observableslist, magnfuncid,cfuncid,srefs]  =    rbf.ObservablesInit(args, backup, s_ijl, ijl_s, L)
 
     # Temperatures to measure
     stat_temps = rbf.Temperatures2MeasureInit(args, backup,
@@ -138,14 +138,15 @@ def main(args):
 
 
     t1 = time()
-    (statstableth, swapst_th, swapsh_th, failedupdatesth) =     dw.mcs_swaps(states, spinstates, energies, betas, [],[], **kw)
+    (statstableth, swapst_th, swapsh_th, failedupdatesth, failedssfupdatesth) =     dw.mcs_swaps(states, spinstates, energies, betas, [],[], **kw)
     t2 = time()
 
     print('Time for all thermalisation steps = ', t2-t1)
 
 
     thermres = {'swapst_th':swapst_th, 'swapsh_th':swapsh_th,
-               'failedupdatesth':failedupdatesth, 'totaltime':t2-t1}
+               'failedupdatesth':failedupdatesth,
+                'failedssfupdatesth':failedssfupdatesth, 'totaltime':t2-t1}
     hkl.dump(thermres,backup+".hkl",
              path = "/results/thermres", mode = 'r+')
 
@@ -189,21 +190,29 @@ def main(args):
     measperiod = args.measperiod
     print('Measurement period:', measperiod)
     measupdate = args.measupdate
+    
     if measupdate:
         nnspins, s2p = dw.spin2plaquette(ijl_s, s_ijl, s2_d,L)
         p = args.p
+        measupdatev = args.measupdatev
+        measupdatesave = args.measupdatesave
     else:
         if not (ssf or alternate):
             nnspins = []
             s2p = []
             p = 0
+            measupdatev = 0
+            measupdatesave = False
         else:
             nnspins = []
             p = 0
+            measupdatev = 0
+            measupdatesave = False
 
     kwmeas = {'nb':nb, 'num_in_bin':num_in_bin,'nips':nips,
               'nrps':nrps,
              'measperiod':measperiod, 'measupdate':measupdate,
+              'measupdatev' : measupdatev, 'measupdatesave': measupdatesave,
              'nnspins':nnspins, 's2p': s2p}
     hkl.dump(kwmeas, backup+".hkl", path = "/parameters/measurements", mode = 'r+')
     kw = {'nb':nb,'num_in_bin':num_in_bin, 'iterworm':iterworm,
@@ -214,27 +223,32 @@ def main(args):
           'nnlists':nnlists,
           'd_nd':d_nd,'d_vd':d_vd,'d_wn':d_wn, 'd_2s':d_2s, 's2_d':s2_d,
           'sidlist':sidlist,'didlist':didlist,'s_ijl':s_ijl,'ijl_s':ijl_s,'L':L,
-          'ncores':ncores, 'measupdate': measupdate, 'nnspins': nnspins, 's2p':s2p,
+          'ncores':ncores, 
+          'measupdate': measupdate, 'measupdatev' : measupdatev, 'measupdatesave': measupdatesave,
+          'nnspins': nnspins, 's2p':s2p,
           'magnfuncid':magnfuncid, 'p':p,
           'c2s':c2s, 'csign':csign, 'measperiod':measperiod,
           'nh':nh, 'hfields':hfields, 'walker2params':walker2params,
           'walker2ids':walker2ids,'ids2walker':ids2walker,
           'ssf':ssf, 'ssffurther': ssffurther, 
           'alternate':alternate, 'randspinupdate': False,
-         'namefunctions': namefunctions, 'backup': backup,
-          'genMode': genMode, 'fullstateupdate': fullssf}
+          'namefunctions': namefunctions, 'srefs':srefs,
+          'backup': backup,
+          'genMode': genMode, 'fullstateupdate': fullssf, 'verbose':args.verbose}
         # Run measurements
 
     t1 = time()
-    (statstable, swapst, swapsh, failedupdates) =    dw.mcs_swaps(states, spinstates, energies, betas, stat_temps, stat_hfields,**kw)
+    (statstable, swapst, swapsh, failedupdates, failedssfupdates) =    dw.mcs_swaps(states, spinstates, energies, betas, stat_temps, stat_hfields,**kw)
     #print("Energies = ", energies)
     t2 = time()
 
     print('Time for all measurements steps = ', t2-t1)
     print("Energies size: ", energies.shape)
 
+    totupdates = nips*num_in_bin*nb*measperiod*len(s_ijl)
     measurementsres = {'swapst': swapst, 'swapsh': swapsh,
-                       'failedupdates':failedupdates}
+                       'failedupdates':failedupdates,'totupdates':totupdates, 
+                       'failedssfupdates':failedssfupdates}
 
     hkl.dump(measurementsres, backup+".hkl", path = "/results/measurements", mode = 'r+')
 
@@ -257,7 +271,7 @@ def main(args):
     hkl.dump(spinstates, backup+"_spinstates.hkl")
     
     print("Job done")
-    return statstable, swapst, swapsh, failedupdatesth, failedupdates
+    return statstable, swapst, swapsh, failedupdatesth, failedupdates, failedssfupdates
 
 
 # In[ ]:
@@ -269,7 +283,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--L', type = int, default = 4, help = 'Lattice side size')
-
+    
     # COUPLINGS
     parser.add_argument('--J1', type = float, default = 1.0,
                         help = 'NN coupling') # nearest-neighbour coupling
@@ -277,6 +291,8 @@ if __name__ == "__main__":
                         help = '2nd NN coupling') # 2nd NN coupling
     parser.add_argument('--J3', type = float, default = 0.0,
                         help = '3rd NN coupling') # 3rd NN coupling
+    parser.add_argument('--J3st', type = float, default=argparse.SUPPRESS,
+                       help = '3rd star NN coupling. If not given, set to J3 value. If given, can be different from J3.')
     parser.add_argument('--J4', type = float, default = 0.0,
                         help = '4th NN coupling')
     
@@ -328,6 +344,10 @@ if __name__ == "__main__":
                         lattice)''')
     parser.add_argument('--measupdate', default = False, action = 'store_true',
                        help = '''activate to mimic the action of the measuring tip''')
+    parser.add_argument('--measupdatev', type = int, default = 0,
+                       help = '''select the version of measupdate''')
+    parser.add_argument('--measupdatesave', default = False, action = 'store_true',
+                       help = '''activate to cancel measurement update before continuing''')
     parser.add_argument('--p', type = float, default = 0.0, 
                        help = '''prob of the measuring tip flipping the spin (number between 0 and 1)''')
     parser.add_argument('--ssf', default = False, action = 'store_true',
@@ -373,13 +393,17 @@ if __name__ == "__main__":
                        help = 'activate if you want to compute the magnetisation statistics')
     parser.add_argument('--charges', default = False, action = 'store_true',
                         help = 'activate if you want to save the charges')
+    parser.add_argument('--frustratedT', default = False, action = 'store_true',
+                        help = 'activate if you want to save the frustrated triangles')
     parser.add_argument('--correlations', default = False, action = 'store_true',
                         help = 'activate if you want to save either central or all correlations')
-    parser.add_argument('--all_correlations', default = False, action = 'store_true',
-                        help = '''activate if you want to save the correlations for all non-equivalent
-                        pairs of sites. Otherwise, will save central correlations.''')
+    parser.add_argument('--both', default = False, action = 'store_true',
+                        help = '''activate if you want to save both''')
     parser.add_argument('--firstcorrelations', default = False, action = 'store_true',
                         help = 'activate if you want to save first correlations, otherwise will save central')
+    parser.add_argument('--sref0', nargs = '+', type = int, default = [], help = 'ref spin 0')
+    parser.add_argument('--sref1', nargs = '+', type = int, default = [], help = 'ref spin 1')
+    parser.add_argument('--sref2', nargs = '+', type = int, default = [], help = 'ref spin 2')
     #SAVE
     parser.add_argument('--output', type = str, default = "randomoutput.dat", help = 'saving filename (.pkl will be added)')
     parser.add_argument('--verbose', default = False, action = 'store_true', help = 'verbose')
