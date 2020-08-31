@@ -239,9 +239,9 @@ def Binning(t_h_mean, t_h_varmean, stattuple, nb, stat_temps,stat_hfields, **kwa
         for reshid, h in enumerate(stat_hfields[minhplt:maxhplt]):
             for resid, t in enumerate(stat_temps[minplt:maxplt]):
                 if len(t_h_vars.shape) ==3:
-                    plt.plot(range(len(t_h_vars[:,resid,reshid])), t_h_vars[:,resid,reshid], '.-', label = 't = {0}'.format(t))
+                    plt.plot(range(len(t_h_vars[:,resid,reshid])), t_h_vars[:,resid,reshid], '.', label = 't = {0}'.format(t))
                 else:
-                    plt.plot(range(len(t_h_vars[:,resid,reshid,0])), t_h_vars[:,resid,reshid,0], '.-', label = 't = {0}'.format(t))
+                    plt.plot(range(len(t_h_vars[:,resid,reshid,0])), t_h_vars[:,resid,reshid,0], '.', label = 't = {0}'.format(t))
             plt.title('h = {0}'.format(h))
             plt.grid(which='both')
             plt.legend()
@@ -871,7 +871,7 @@ def SwapsAnalysis(L, n, tidmin, tidmax, temperatures, hfields, foldername, resul
 
     for i in range(n):
         plt.figure()
-        plt.loglog(temperatures[i][tidmin:tidmax[i]-1], swapst[i][tidmin:tidmax[i]-1], '.-', color = 'green')
+        plt.loglog(temperatures[i][tidmin:tidmax[i]-1], swapst[i][tidmin:tidmax[i]-1], '.', color = 'green')
         plt.xlabel('Temperature')
         plt.ylabel('Ratio of swaps')
         plt.title('Ratio of swaps as a function of the temperature')
@@ -880,7 +880,7 @@ def SwapsAnalysis(L, n, tidmin, tidmax, temperatures, hfields, foldername, resul
         nh = len(hfields[i])
         if nh > 1:
             plt.figure()
-            plt.semilogy(hfields[i], swapsh[i], '.-', color = 'orange')
+            plt.semilogy(hfields[i], swapsh[i], '.', color = 'orange')
             plt.xlabel('Magnetic field')
             plt.ylabel('Ratio of swaps')
             plt.title('Ratio of swaps as a function of the magnetic field')
@@ -895,8 +895,8 @@ def FailedAnalysis(L, n, tidmin, tidmax, temperatures, hfields, foldername, resu
 
     for i in range(n):
         plt.figure()
-        plt.semilogx(temperatures[i][tidmin:tidmax[i]-1], failed[i][tidmin:tidmax[i]-1], '.-',label = 'worms')
-        plt.semilogx(temperatures[i][tidmin:tidmax[i]-1], failedssf[i][tidmin:tidmax[i]-1], '.-', label = 'ssf')
+        plt.semilogx(temperatures[i][tidmin:tidmax[i]-1], failed[i][tidmin:tidmax[i]-1], '.',label = 'worms')
+        plt.semilogx(temperatures[i][tidmin:tidmax[i]-1], failedssf[i][tidmin:tidmax[i]-1], '.', label = 'ssf')
         plt.xlabel('Temperature')
         plt.ylabel('Ratio of failed attemps')
         plt.legend()
@@ -927,41 +927,43 @@ def BasicPlotsFirstCorrelations(L, i, t_h_MeanFc, temperatures_plots, t_h_varMea
                                 figsize=(11,9), dpi = 200, ax = [],**kwargs):
     
     createfig = kwargs.get('createfig', True)
+    markersize = kwargs.get('markersize', 10)
+    alpha = kwargs.get('alpha', 0.3)
     print(createfig)
     if createfig:
-        fig, ax = plt.figure(figsize=figsize, dpi = dpi)
+        fig, ax = plt.subplots(1,1,figsize=figsize, dpi = dpi)
     
     if log:
-        ax.semilogx(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,0],'.',label = r'$c_1$')
+        ax.semilogx(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,0],'.',markersize = markersize,label = r'$c_1$')
     else:
-        ax.plot(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,0],'.',label = r'$c_1$')
+        ax.plot(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,0],'.',markersize = markersize,label = r'$c_1$')
     
     ax.fill_between(temperatures_plots[i][tmin:],
                     t_h_MeanFc[i][tmin:,0,0]-np.sqrt(t_h_varMeanFc[i][tmin:,0,0]),
-                    t_h_MeanFc[i][tmin:,0,0]+np.sqrt(t_h_varMeanFc[i][tmin:,0,0]), alpha = 0.2)
+                    t_h_MeanFc[i][tmin:,0,0]+np.sqrt(t_h_varMeanFc[i][tmin:,0,0]), alpha = alpha)
     if log:
-        ax.semilogx(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,1],'x',label = r'$c_2$')
+        ax.semilogx(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,1],'x',markersize = markersize,label = r'$c_2$')
     else: 
-        ax.plot(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,1],'x',label = r'$c_2$')
+        ax.plot(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,1],'x',markersize = markersize,label = r'$c_2$')
     
     ax.fill_between(temperatures_plots[i][tmin:],
                     t_h_MeanFc[i][tmin:,0,1]-np.sqrt(t_h_varMeanFc[i][tmin:,0,1]),
-                    t_h_MeanFc[i][tmin:,0,1]+np.sqrt(t_h_varMeanFc[i][tmin:,0,1]), alpha = 0.2)
+                    t_h_MeanFc[i][tmin:,0,1]+np.sqrt(t_h_varMeanFc[i][tmin:,0,1]), alpha = alpha)
     if log:
-        ax.semilogx(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,2],'v',label = r'$c_{3||}$')
+        ax.semilogx(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,2],'v',markersize = markersize,label = r'$c_{3||}$')
     else:
-        ax.plot(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,2],'v',label = r'$c_{3||}$')
+        ax.plot(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,2],'v',markersize = markersize,label = r'$c_{3||}$')
     ax.fill_between(temperatures_plots[i][tmin:],
                     t_h_MeanFc[i][tmin:,0,2]-np.sqrt(t_h_varMeanFc[i][tmin:,0,2]),
-                    t_h_MeanFc[i][tmin:,0,2]+np.sqrt(t_h_varMeanFc[i][tmin:,0,2]), alpha = 0.2)
+                    t_h_MeanFc[i][tmin:,0,2]+np.sqrt(t_h_varMeanFc[i][tmin:,0,2]), alpha = alpha)
     if log:
-        ax.semilogx(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,3],'*',label =r'$c_{3\star}$ ')
+        ax.semilogx(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,3],'*',markersize = markersize,label =r'$c_{3\star}$ ')
     else:
-        ax.plot(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,3],'*',label =r'$c_{3\star}$ ')
+        ax.plot(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,3],'*',markersize = markersize,label =r'$c_{3\star}$ ')
     
     ax.fill_between(temperatures_plots[i][tmin:],
                     t_h_MeanFc[i][tmin:,0,3]-np.sqrt(t_h_varMeanFc[i][tmin:,0,3]),
-                    t_h_MeanFc[i][tmin:,0,3]+np.sqrt(t_h_varMeanFc[i][tmin:,0,3]), alpha = 0.2)
+                    t_h_MeanFc[i][tmin:,0,3]+np.sqrt(t_h_varMeanFc[i][tmin:,0,3]), alpha = alpha)
     if createfig:
         ax.set_title(addtitle)
         ax.set_xlabel(r"$T/J_1$")
@@ -1037,7 +1039,7 @@ def BasicPlotsTriangles(L, n, tidmin, tidmax, temperatures_plots, hfields_plots,
                 if tid >= tidmin and tid <= tidmax[i]:
                     col = [0 + tid/mt, (1 - tid/mt)**2, 1 - tid/mt]
                     plt.plot(hfields_plots[i],
-                                     t_h_MeanFrustratedTriangles[i][tid, :],'.-',\
+                                     t_h_MeanFrustratedTriangles[i][tid, :],'.',\
                                       label = r'$T$ = {0}'.format(t), color = col)
                     plt.fill_between(hfields_plots[i],
                                      (t_h_MeanFrustratedTriangles[i][tid,:]
@@ -1061,7 +1063,7 @@ def BasicPlotsTriangles(L, n, tidmin, tidmax, temperatures_plots, hfields_plots,
             for hid, h in enumerate(hfields_plots[i]):
                 col = [0 + hid/mh, (1 - hid/mh)**2, 1 - hid/mh]
                 plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]],
-                                 t_h_MeanFrustratedTriangles[i][tidmin:tidmax[i]][:,hid],'.-',\
+                                 t_h_MeanFrustratedTriangles[i][tidmin:tidmax[i]][:,hid],'.',\
                                   label = r'$h$ = {0}'.format(h), color = col)
                 plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]],
                                  (t_h_MeanFrustratedTriangles[i][tidmin:tidmax[i]][:,hid]
@@ -1107,7 +1109,7 @@ def BasicPlotsE(L, n, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
                 if tid >= tidmin and tid <= tidmax[i]:
                     col = [0 + tid/mt, (1 - tid/mt)**2, 1 - tid/mt]
                     plt.plot(hfields_plots[i],
-                                     t_h_MeanE[i][tid, :],'.-',\
+                                     t_h_MeanE[i][tid, :],'.',\
                                       label = r'$T$ = {0}'.format(t), color = col)
                     plt.fill_between(hfields_plots[i],
                                      (t_h_MeanE[i][tid,:]
@@ -1131,7 +1133,7 @@ def BasicPlotsE(L, n, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
             for hid, h in enumerate(hfields_plots[i]):
                 col = [0 + hid/mh, (1 - hid/mh)**2, 1 - hid/mh]
                 plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]],
-                                 t_h_MeanE[i][tidmin:tidmax[i]][:,hid],'.-',\
+                                 t_h_MeanE[i][tidmin:tidmax[i]][:,hid],'.',\
                                   label = r'$h$ = {0}'.format(h), color = col)
                 plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]],
                                  (t_h_MeanE[i][tidmin:tidmax[i]][:,hid]
@@ -1160,7 +1162,7 @@ def BasicPlotsE(L, n, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
                 if tid >= tidmin and tid <= tidmax[i]:
                     col = [0 + tid/mt, (1 - tid/mt)**2, 1 - tid/mt]
                     plt.plot(hfields_plots[i],
-                             C[i][tid,:],'.-',\
+                             C[i][tid,:],'.',\
                                       label = r'$T$ = {0}'.format(t), color = col)
                     plt.fill_between(hfields_plots[i],
                                      ( C[i][tid,:]
@@ -1186,7 +1188,7 @@ def BasicPlotsE(L, n, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
                 if tid >= tidmin and tid <= tidmax[i]:
                     col = [0 + tid/mt, (1 - tid/mt)**2, 1 - tid/mt]
                     plt.plot(hfields_plots[i][hidmin:hidmax],
-                             C[i][tid,hidmin:hidmax],'.-',\
+                             C[i][tid,hidmin:hidmax],'.',\
                                       label = r'$T$ = {0}'.format(t), color = col)
                     plt.fill_between(hfields_plots[i][hidmin:hidmax],
                                      ( C[i][tid,hidmin:hidmax]
@@ -1211,7 +1213,7 @@ def BasicPlotsE(L, n, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
                 if tid >= tidmin and tid <= tidmax[i]:
                     col = [0 + tid/mt, (1 - tid/mt)**2, 1 - tid/mt]
                     plt.plot(hfields_plots[i],
-                             C[i][tid,:]/t,'.-',\
+                             C[i][tid,:]/t,'.',\
                                       label = r'$T$ = {0}'.format(t), color = col)
                     plt.fill_between(hfields_plots[i],
                                      ( C[i][tid,:]/t
@@ -1235,7 +1237,7 @@ def BasicPlotsE(L, n, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
                 if tid >= tidmin and tid <= tidmax[i]:
                     col = [0 + tid/mt, (1 - tid/mt)**2, 1 - tid/mt]
                     plt.plot(hfields_plots[i][hidmin:hidmax],
-                             C[i][tid,hidmin:hidmax]/t,'.-',\
+                             C[i][tid,hidmin:hidmax]/t,'.',\
                                       label = r'$T$ = {0}'.format(t), color = col)
                     plt.fill_between(hfields_plots[i][hidmin:hidmax],
                                      ( C[i][tid,hidmin:hidmax]/t
@@ -1259,7 +1261,7 @@ def BasicPlotsE(L, n, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
             for hid, h in enumerate(hfields_plots[i]):
                 col = [0 + hid/mh, (1 - hid/mh)**2, 1 - hid/mh]
                 plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]],
-                             C[i][tidmin:tidmax[i]][:,hid], '.-',\
+                             C[i][tidmin:tidmax[i]][:,hid], '.',\
                              label = r'$h$ = {0}'.format(h), color = col)
                 plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]],
                                  C[i][tidmin:tidmax[i]][:,hid]
@@ -1288,7 +1290,7 @@ def BasicPlotsE(L, n, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
                 col = [0 + hid/mh, (1 - hid/mh)**2, 1 - hid/mh]
                 plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]],
                              C[i][tidmin:tidmax[i]][:,hid] / temperatures_plots[i][tidmin:tidmax[i]],
-                             '.-', label = r'$h$ = {0}'.format(h), color = col)
+                             '.', label = r'$h$ = {0}'.format(h), color = col)
                 plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]],
                                  (C[i][tidmin:tidmax[i]][:,hid]
                                   - ErrC[i][tidmin:tidmax[i]][:,hid]
@@ -1336,7 +1338,7 @@ def BasicPlotsE(L, n, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
                 for hid, h in enumerate(hfields_plots[i]):
                     col = [0 + hid/mh, (1 - hid/mh)**2, 1 - hid/mh] 
                     plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]]  , S[i][:,hid],
-                                 '.-', label = r'$h$ = {0}'.format(h), color = col)
+                                 '.', label = r'$h$ = {0}'.format(h), color = col)
                     plt.xlabel(r'Temperature $T$ ')
                 plt.ylabel(r'$S$')
                 plt.grid(which='both')
@@ -1377,7 +1379,7 @@ def BasicPlotsE(L, n, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
             ratios = np.array(ratios)
             E = np.array(E)
             correction = np.array(correction)
-            plt.plot(ratios, E, '.-', label = r'Energy at $T = 0.05$ (N)')
+            plt.plot(ratios, E, '.', label = r'Energy at $T = 0.05$ (N)')
             plt.fill_between(ratios , E - correction, E + correction, alpha = 0.5, color = 'lightblue')
             #plt.plot(ratios, [0 for r in ratios], '.')
             plt.xlabel(r'$\frac{J_3}{J_2}$', size = 22)
@@ -1433,7 +1435,7 @@ def BasicPlotsM(L, n, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
                 if tid >= tidmin and tid <= tidmax[i]:
                     col = [0 + tid/mt, (1 - tid/mt)**2, 1 - tid/mt]
                     plt.plot(hfields_plots[i],
-                                     t_h_MeanM[i][tid, :],'.-',\
+                                     t_h_MeanM[i][tid, :],'.',\
                                       label = r'$T$ = {0}'.format(t), color = col)
                     plt.fill_between(hfields_plots[i],
                                      (t_h_MeanM[i][tid,:]
@@ -1458,7 +1460,7 @@ def BasicPlotsM(L, n, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
             for hid, h in enumerate(hfields_plots[i]):
                     col = [0 + hid/mh, (1 - hid/mh)**2, 1 - hid/mh]
                     plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]], t_h_MeanM[i][tidmin:tidmax[i]][:,hid], 
-                                 '.-',label = r'$h$ = {0}'.format(h), color = col)
+                                 '.',label = r'$h$ = {0}'.format(h), color = col)
                     plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]],
                                      (t_h_MeanM[i][tidmin:tidmax[i]][:,hid]
                                       - np.sqrt(t_h_varMeanM[i][tidmin:tidmax[i]][:,hid])),
@@ -1483,7 +1485,7 @@ def BasicPlotsM(L, n, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
                 if tid >= tidmin and tid <= tidmax[i]:
                     col = [0 + tid/mt, (1 - tid/mt)**2, 1 - tid/mt]
                     plt.plot(hfields_plots[i],
-                                     Chi[i][tid, :],'.-',\
+                                     Chi[i][tid, :],'.',\
                                       label = r'$T$ = {0}'.format(t), color = col)
                     plt.fill_between(hfields_plots[i],
                                      (Chi[i][tid,:]
@@ -1507,7 +1509,7 @@ def BasicPlotsM(L, n, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
             for hid, h in enumerate(hfields_plots[i]):
                 col = [0 + hid/mh, (1 - hid/mh)**2, 1 - hid/mh]
                 plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]],
-                             Chi[i][tidmin:tidmax[i]][:,hid], '.-',\
+                             Chi[i][tidmin:tidmax[i]][:,hid], '.',\
                              label = r'$h$ = {0}'.format(h), color = col)
                 plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]],
                                  Chi[i][tidmin:tidmax[i]][:,hid]
