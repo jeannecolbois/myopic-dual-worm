@@ -747,7 +747,7 @@ static PyObject* dimers_genssfsevolve(PyObject *self, PyObject *args) {
      int fullstateupdate;
 
      // take the arguments as pointers + int
-     if(!PyArg_ParseTuple(args,"OOOOOOOOiii", &list_obj,
+     if(!PyArg_ParseTuple(args,"OOOOOOOOiip", &list_obj,
      &states_obj, &spinstates_obj, &s2p_obj,
      &walker2params_obj, &walker2ids_obj,
      &energies_obj, &failedupdates_obj,
@@ -980,9 +980,15 @@ static PyObject* dimers_updatespinstates(PyObject *self, PyObject *args) {
      int nthreads;
      int randspinstate; // to catch a python boolean
      // take the arguments as pointers + int
-     if(!PyArg_ParseTuple(args,"OOOOOii", &states_obj, &spinstates_obj, &stat_walkers_obj, &sidlist_obj, &didlist_obj, &nthreads, &randspinstate))
+     if(!PyArg_ParseTuple(args,"OOOOOip", &states_obj, &spinstates_obj, &stat_walkers_obj, &sidlist_obj, &didlist_obj, &nthreads, &randspinstate))
 	   return nullptr;
 
+    if(!randspinstate){
+	PyErr_Format(PyExc_ValueError,
+                         "DIMERS.cpp : randspinsstate is False at line %d, please check and remove this if consistent", \
+                         __LINE__);
+        return nullptr;
+    }
     //-------------------------------//
     /* Interpret the table of states */
     //-------------------------------//
@@ -1100,17 +1106,24 @@ static PyObject* dimers_measupdates(PyObject *self, PyObject *args) {
      //------------------------------------------------------INPUT INTERPRETATION---------------------------------------------------------------------//
     double J1;
     double htip;
+    double Ttip;
+    double pswitch;
+    int uponly; // to catch a python boolean
     PyObject *states_obj, *spinstates_obj, *energies_obj;
-    PyObject *s2p_obj, *sidlist_obj, *walker2ids_obj;
+    PyObject *s2p_obj, *sidlist_obj, *walker2ids_obj, *updatelists_obj;
     int nthreads;
+    int saveupdates;
 
-    if(!PyArg_ParseTuple(args,"ddOOOOOOi", &J1, &htip,
-    &states_obj, &spinstates_obj, &energies_obj,
-    &s2p_obj, &sidlist_obj, &walker2ids_obj,
-    &nthreads))
+    if(!PyArg_ParseTuple(args,"ddddpOOOOOOOip", &J1, &htip, &Ttip, &pswitch,&uponly, &states_obj,
+    &spinstates_obj, &energies_obj, &s2p_obj, &sidlist_obj, &walker2ids_obj, 
+    &updatelists_obj, &nthreads, &saveupdates)){
+    PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with measupdates args parsing");
     return nullptr;
-
-
+    }
+   if (!uponly){
+	PyErr_Format(PyExc_ValueError, "DIMERS.cpp : uponly is False at line %d, please check", __LINE__);
+        return nullptr;
+    }
     // //-------------------------------//
     // /* Interpret the table of states */
     // //-------------------------------//
@@ -1205,12 +1218,6 @@ static PyObject* dimers_measupdates(PyObject *self, PyObject *args) {
         return nullptr;
     }
     int nbitscan = get<1>(sidlisttuple);
-    if(nbitscan != spinstatesize){
-      Py_XDECREF(sidlist_array);
-      PyErr_Format(PyExc_ValueError, "DIMERS.cpp : Inconsistent sidlist size and statesize at line %d", __LINE__);
-      return nullptr;
-
-    }
 
     //--------------------------------------//
     /* Interpret the table of walker2ids*/
@@ -1232,11 +1239,35 @@ static PyObject* dimers_measupdates(PyObject *self, PyObject *args) {
     //get pointer as Ctype
     int *walker2ids = (int*)PyArray_DATA(walker2ids_array);
 
+    //---------------------------------//
+    /* Interpret the table of updates */
+    //---------------------------------//
 
+    PyArrayObject* updatelists_array = (PyArrayObject*) PyArray_FROM_OTF(updatelists_obj, NPY_INT32, NPY_ARRAY_INOUT_ARRAY);
+    if(updatelists_array == nullptr) {
+        Py_XDECREF(updatelists_array);
+        PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d (NPY array?)", __LINE__);
+        return nullptr;
+    }
+    //check that state has the dimensions expected
+    if(PyArray_NDIM(updatelists_array) != 3) {
+        PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue with line %d", __LINE__);
+        return nullptr;
+    }
+    int ntupd = (int)PyArray_DIM(updatelists_array, 0);
+    int nhupd = (int)PyArray_DIM(updatelists_array,1);
+    int nbsid = (int)PyArray_DIM(updatelists_array, 2);
+    if(saveupdates && ((nt != ntupd) || (nh != nhupd)  ||(nbsid != nbitscan) )) {
+        PyErr_Format(PyExc_ValueError, "DIMERS.cpp : There was an issue: nbsid %d, nbitscan %d", nbsid, nbitscan);
+        return nullptr;
+    }
+    //get pointer as Ctype
+    int *updatelists = (int*)PyArray_DATA(updatelists_array);
     //-------------------------------------------------------CALL C++ FUNCTION -----------------------------------------------------------------------//
     PyThreadState* threadState = PyEval_SaveThread(); // release the GIL
-    measupdates(J1, htip, states, statesize, spinstates, spinstatesize,
-     s2p, ndimers, sidlist, nbitscan, walker2ids, energies, nbwalkers, nthreads, nt, nh);
+    measupdates(J1, htip, Ttip, pswitch, uponly, states, statesize, spinstates, spinstatesize,
+    s2p, ndimers, sidlist, nbitscan, walker2ids, energies, nbwalkers, nthreads, nt, nh,
+    updatelists, saveupdates);
     PyEval_RestoreThread(threadState); // claim the GIL
 
 
@@ -1258,6 +1289,9 @@ static PyObject* dimers_measupdates(PyObject *self, PyObject *args) {
     }
     if( s2p_array != nullptr){
       Py_DECREF(s2p_array); // decrement the reference
+    }
+    if( updatelists_array != nullptr){
+      Py_DECREF(updatelists_array); // decrement the reference
     }
     /* Build the output */
 

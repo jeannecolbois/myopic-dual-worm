@@ -201,6 +201,211 @@ def spin2plaquette(ijl_s, s_ijl, s2_d, L):
 # In[ ]:
 
 
+def path_for_measupdate(s_ijl, ijl_s, s2_d, L, version = 0):
+    '''
+        Returns a list of spin site indices to update the state
+        based on a tip magnetic field.
+    '''
+    path = []
+        
+    if version == 0:
+        for j in range(0, 2*L): # simple scan
+            for twice in range(2):
+                for i in range(max(0,L-1-j),min(2*L, 3*L-1-j)):
+                    if twice == 0:
+                        path.append(ijl_s[(i,j,0)])
+                    else:
+                        path.append(ijl_s[(i,j,2)])
+                        path.append(ijl_s[(i,j,1)])
+    elif version == 1: # scan following kagome
+        for j in range(0, 2*L):
+            for i in range(max(0,L-1-j),min(2*L, 3*L-1-j)):
+                for l in range(2,-1,-1):
+                    path.append(ijl_s[(i,j,l)])
+    elif version == 2: # scan following 2nd neighbour axis
+        for const in range(0, 5*L-2):
+            if const%2 == 0:
+                irange = range(0, 2*L, 2)
+            else:
+                irange = range(1, 2*L, 2)
+            for line in range(2):
+                for i in irange:
+                    j = (const - i)//2
+                    if (i+j > L-2) and (i+j < 3*L-1) and j>= 0 and j < 2*L :
+                        if line == 0:
+                            for l in [2,0]:
+                                path.append(ijl_s[(i,j,l)])
+                        else:
+                            path.append(ijl_s[(i,j,1)])
+
+    elif version == 3: # VERSION 0 WITH COMING BACK
+        order = [True, False]
+        for j in range(0, 2*L):
+            for twice in range(2):
+                for forward in order:
+                    if forward:
+                        for i in range(max(0,L-1-j),min(2*L, 3*L-1-j)):
+                            if twice == 0:
+                                path.append(ijl_s[(i,j,0)])
+                            else:
+                                path.append(ijl_s[(i,j,2)])
+                                path.append(ijl_s[(i,j,1)])
+                    elif not forward:
+                        for i in range(min(2*L, 3*L-1-j)-1,max(0,L-1-j)-1,-1):
+                            if twice == 0:
+                                path.append(ijl_s[(i,j,0)])
+                            else:
+                                path.append(ijl_s[(i,j,1)])
+                                path.append(ijl_s[(i,j,2)])
+    elif version == 4: # VERSION 1 WITH COMING BACK
+        order = [True, False]
+        for j in range(0, 2*L):
+            for forward in order:
+                if forward:
+                    for i in range(max(0,L-1-j),min(2*L, 3*L-1-j)):
+                        for l in range(2,-1,-1):
+                            path.append(ijl_s[(i,j,l)])
+                elif not forward:
+                    for i in range(min(2*L, 3*L-1-j)-1,max(0,L-1-j)-1,-1):
+                        for l in range(0,3,1):
+                            path.append(ijl_s[(i,j,l)])
+    elif version == 5: # VERSION 2 WITH COMING BACK
+        order = [True, False]
+        for const in range(0, 5*L-2):
+            for line in range(2):
+                for forward in order:
+                    if forward:
+                        if const%2 == 0:
+                            irange = range(0, 2*L, 2)
+                        else:
+                            irange = range(1, 2*L, 2)
+                    else:
+                        if const%2 == 0:
+                            irange = range(2*L -2, -1, -2)
+                        else:
+                            irange = range(2*L-1, -1, -2)
+                    for i in irange:
+                        j = (const - i)//2
+                        if (i+j > L-2) and (i+j < 3*L-1) and j>= 0 and j < 2*L :
+                            if line == 0:
+                                if forward:
+                                    for l in [2,0]:
+                                        path.append(ijl_s[(i,j,l)])
+                                else:
+                                    for l in [0,2]:
+                                        path.append(ijl_s[(i,j,l)])
+                            else:
+                                path.append(ijl_s[(i,j,1)])
+    elif version == 6: # VERSION 2 WITH COMING BACK twice
+        order = [True, False]
+        #scanning from bottom to top
+        for const in range(0, 5*L-2):
+            for line in range(2):
+                for forward in order:
+                    if forward:
+                        if const%2 == 0:
+                            irange = range(0, 2*L, 2)
+                        else:
+                            irange = range(1, 2*L, 2)
+                    else:
+                        if const%2 == 0:
+                            irange = range(2*L -2, -1, -2)
+                        else:
+                            irange = range(2*L-1, -1, -2)
+                    for i in irange:
+                        j = (const - i)//2
+                        if (i+j > L-2) and (i+j < 3*L-1) and j>= 0 and j < 2*L :
+                            if line == 0:
+                                if forward:
+                                    for l in [2,0]:
+                                        path.append(ijl_s[(i,j,l)])
+                                else:
+                                    for l in [0,2]:
+                                        path.append(ijl_s[(i,j,l)])
+                            else:
+                                path.append(ijl_s[(i,j,1)]) 
+        #scanning from top to bottom, again:
+        for const in range(5*L-1, -1, -1):
+            for line in range(1,-1,-1):
+                for forward in order:
+                    if forward:
+                        if const%2 == 0:
+                            irange = range(0, 2*L, 2)
+                        else:
+                            irange = range(1, 2*L, 2)
+                    else:
+                        if const%2 == 0:
+                            irange = range(2*L -2, -1, -2)
+                        else:
+                            irange = range(2*L-1, -1, -2)
+                    for i in irange:
+                        j = (const - i)//2
+                        if (i+j > L-2) and (i+j < 3*L-1) and j>= 0 and j < 2*L :
+                            if line == 0:
+                                if forward:
+                                    for l in [2,0]:
+                                        path.append(ijl_s[(i,j,l)])
+                                else:
+                                    for l in [0,2]:
+                                        path.append(ijl_s[(i,j,l)])
+                            else:
+                                path.append(ijl_s[(i,j,1)])
+    elif version == 7: # overlapping tip 1 - variant on path 5
+        order = [True, False]
+        for const in range(0, 5*L):
+            for line in range(2):
+                for forward in order:
+                    if forward:
+                        irange = range(0, 2*L, 1)
+                    else:
+                        irange = range(2*L -1, -1, -1)
+                    for i in irange:
+                        j = (const - i)//2 # twice same j in a row
+                        jmax = (const-i)/2
+
+                        if (i+j > L-2) and (i+j < 3*L-1) and j>= 0 and j < 2*L :
+                            if line == 0: # going through 0 and 2, do triangles
+                                if j == jmax: # doing the triangle corners
+                                    if forward:
+                                        for l in [2,0]:
+                                            path.append(ijl_s[(i,j,l)])
+                                    else:
+                                        for l in [0,2]:
+                                            path.append(ijl_s[(i,j,l)])
+                                else: # doing the bottom part
+                                    if forward:
+                                        for l in [2,1,0]:
+                                            path.append(ijl_s[(i,j,l)])
+                                    else:
+                                        for l in [0,1,2]:
+                                            path.append(ijl_s[(i,j,l)])
+                            else: # going through 1, do wiggly lines
+                                if j == jmax: # doing the top part
+                                    if forward:
+                                        for l in [2,1,0]:
+                                            path.append(ijl_s[(i,j,l)])
+                                    else:
+                                        for l in [0,1,2]:
+                                            path.append(ijl_s[(i,j,l)])
+                                else: # doing the bottom corner
+                                    path.append(ijl_s[(i,j,1)])
+    #elif version == 7: # some variant on version 1 (PBC)
+    #    path, bonus = spins_dimers_for_update(s_ijl, ijl_s, s2_d, L)
+    #elif version == 8: #some variant on version 0 (PBC)
+    #    for i in range(0,2*L):
+    #        for even in range(2):
+    #            for j in range(max(0, L-1-i), min(2*L, 3*L-1-i)):
+    #                if even == 0:
+    #                    path.append(ijl_s[(i,j,2)])
+    #                    path.append(ijl_s[fixbc(i-1,j+1,0,L)])
+    #                else:
+    #                    path.append(ijl_s[(i,j,1)])
+    return np.array(path, dtype='int32')
+
+
+# In[ ]:
+
+
 def spins_dimers_for_update(s_ijl, ijl_s, s2_d, L):
     '''
         Returns a list of spin site indices and a list of dual bond indices. 

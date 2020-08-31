@@ -113,6 +113,17 @@ def charge2spins(c_ijl, ijl_s, L):
 # In[ ]:
 
 
+def path_for_measupdate(s_ijl, ijl_s, s2_d, L, version = 0):
+    '''
+        Returns a list of spin site indices to update the state
+        based on a tip magnetic field.
+    '''
+    return lattice.path_for_measupdate(s_ijl, ijl_s, s2_d, L, version = version)
+
+
+# In[ ]:
+
+
 def spins_dimers_for_update(s_ijl, ijl_s, s2_d, L):
     '''
         Returns a list of spin site indices and a list of dual bond indices. 
@@ -1070,10 +1081,11 @@ def mcs_swaps(states, spinstates, statesen,
     magnfuncid = kwargs.get('magnfuncid', -1)
     measupdate = kwargs.get('measupdate', False)
     measupdatev = kwargs.get('measupdatev', 0)
-    p = kwargs.get('p', 1)
-    if p == 0:
-        measupdate = False
-    measupdatesave = kwargs.get('measupdatesave', False)
+    path = kwargs.get('path',[])
+    htip = kwargs.get('htip', 0)
+    Ttip = kwargs.get('Ttip', 0)
+    pswitch = kwargs.get('pswitch', 1)
+    uponly = kwargs.get('uponly', False)
     nnspins = kwargs.get('nnspins',None)
     s2p = kwargs.get('s2p', None)
     nt = kwargs.get('nt',None)
@@ -1091,6 +1103,9 @@ def mcs_swaps(states, spinstates, statesen,
     alternate = kwargs.get('alternate', False)
     
     genMode = kwargs.get('genMode', False)
+    saveupdates = kwargs.get('saveupdates', False)
+    if not (genMode and saveupdates and measupdate):
+        saveupdates = False
     fullstateupdate = kwargs.get('fullstateupdate', True) # by default, the ssf updates the whole state.
     #save
     backup = kwargs.get('backup', "")
@@ -1122,27 +1137,38 @@ def mcs_swaps(states, spinstates, statesen,
     print("alternate = ", alternate)
     print("ssffurther = ", ssffurther)
     print("genMode = ", genMode)
+    print("saveupdates = ", saveupdates)
     print("fullstateupdate = ", fullstateupdate)
     print("measupdate = ", measupdate)
     if measupdate:
-        print("p = ", p)
-        print("v = ", measupdatev)
-        print("save = ", measupdatesave)
-        #if measupdatesave:
-        #    savestates = np.zeros(states.shape)
-        #    savespinstates = np.zeros(spinstates.shape)
+        print("htip = ", htip)
+        print("Ttip = ", Ttip)
+        print("version : ", measupdatev)
+        print("switching probability : ", pswitch)
+        print("uponly : ", uponly)
     swapst = np.array([0 for tid in range(nt)], dtype='int32')
     swapsh = np.array([0 for hid in range(nh)], dtype='int32')
     
     failedupdates = np.array([[0 for hid in range(nh)] for bid in range(nt)],dtype ='int32')
     failedssfupdates = np.array([[0 for hid in range(nh)] for bid in range(nt)],dtype ='int32')
-    
+    if saveupdates:
+        updatelists = np.array([[[0 for sid in range(len(path))] for hid in range(nh)] for bid in range(nt)],dtype ='int32')
+        print("shape of updatelists :", updatelists.shape)
+        print("length of path: ", len(path))
+    else:
+        updatelists = np.zeros((1,1,1), dtype = 'int32')
     t_join = 0
     t_spins = 0
     t_tempering = 0
     t_stat = 0
     
     print("statsfunctions", statsfunctions)
+
+    # save initiali states
+    if genMode:
+        wid = ids2walker[0, 0]
+        hkl.dump(states[wid], backup+"_groundstate_it{0}.hkl".format(0))
+        hkl.dump(spinstates[wid], backup+"_groundspinstate_it{0}.hkl".format(0))
 
 
     for it in range(itermcs):
@@ -1225,12 +1251,27 @@ def mcs_swaps(states, spinstates, statesen,
                     
                     # note that the states energy is not updated here, so it only is affected
                     # in the statistics
-                    dim.measupdates(hamiltonian[0], p,
+                    if verbose:
+                        print(hamiltonian[0])
+                        print(htip)
+                        print(Ttip)
+                        print(pswitch)
+                        print(uponly)
+                        print(states.shape)
+                        print(spinstates.shape)
+                        print(statesen.shape)
+                        print(np.array(s2p, dtype='int32').shape)
+                        print(path.shape)
+                        print(walker2ids.shape)
+                        print(updatelists.shape)
+                        print(ncores)
+                        print(saveupdates)
+                   
+                    dim.measupdates(hamiltonian[0], htip, Ttip, pswitch, uponly,
                                     states, spinstates, statesen,
-                                    np.array(s2p, dtype='int32'),
-                                    np.array(sidlist, dtype='int32'),
-                                    walker2ids, ncores);
-
+                                    np.array(s2p, dtype='int32'), path,
+                                   walker2ids, updatelists, 4, saveupdates)
+                    
 
                 for resid,tid in enumerate(stat_temps):
                     for reshid, hid in enumerate(stat_fields):
@@ -1242,14 +1283,12 @@ def mcs_swaps(states, spinstates, statesen,
                                    c2s = c2s, csign = csign,nnlists = nnlists, srefs = srefs)
                 if genMode:
                     wid = ids2walker[0, 0]
-                    hkl.dump(states[wid], backup+"_groundstate_it{0}.hkl".format(it//measperiod))
-                    hkl.dump(spinstates[wid], backup+"_groundspinstate_it{0}.hkl".format(it//measperiod))
+                    hkl.dump(states[wid], backup+"_groundstate_it{0}.hkl".format(it//measperiod+1))
+                    hkl.dump(spinstates[wid], backup+"_groundspinstate_it{0}.hkl".format(it//measperiod+1))
                 # it would probably be worth it to parallelise this in c++
                 # ideally I should do it before the spins update, then 
                 # perform the spin update and possibly the replicas in c++.
                 
-                #states = np.copy(states)
-                #spinstates = np.copy(spinstates)
                 
  
             if backup and (it//measperiod)/num_in_bin == binid:
@@ -1292,7 +1331,13 @@ def mcs_swaps(states, spinstates, statesen,
                     backup+"_"+namefunctions[funcid]+"_final.hkl",
                     mode = 'w')
         
-    return statstables, swapst, swapsh, failedupdates, failedssfupdates
+    return statstables, swapst, swapsh,            failedupdates, failedssfupdates, updatelists
     
     
+
+
+# In[ ]:
+
+
+
 
