@@ -1138,6 +1138,7 @@ def BasicPlotsE(L, i, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
     ploth = kwargs.get('ploth', False)
     pgf = kwargs.get('pgf', False)
     addsave = kwargs.get('addsave', "")
+    alpha = kwargs.get('alpha', 0.2)
     t_h_MeanE = np.array(t_h_MeanE)
     t_h_MeanEsq =  np.array(t_h_MeanEsq)
     t_h_varMeanE =  np.array(t_h_varMeanE)
@@ -1263,9 +1264,9 @@ def BasicPlotsE(L, i, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
                                   label = r'$T$ = {0}'.format(t), color = col)
                 plt.fill_between(hfields_plots[i],
                                  ( C[i][tid,:]/t
-                                  - ErrC[i][tid,:]),
+                                  - ErrC[i][tid,:]/t),
                                  ( C[i][tid,:]/t
-                                  + ErrC[i][tid,:]),\
+                                  + ErrC[i][tid,:]/t),\
                              alpha=0.4, color = col)
         plt.xlabel(r'Magnetic field $h$')
         plt.ylabel(r'Heat capacity $C/T$ ')
@@ -1286,9 +1287,9 @@ def BasicPlotsE(L, i, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
                                   label = r'$T$ = {0}'.format(t), color = col)
                 plt.fill_between(hfields_plots[i][hidmin:hidmax],
                                  ( C[i][tid,hidmin:hidmax]/t
-                                  - ErrC[i][tid,hidmin:hidmax]),
+                                  - ErrC[i][tid,hidmin:hidmax]/t),
                                  ( C[i][tid,hidmin:hidmax]/t
-                                  + ErrC[i][tid,hidmin:hidmax]),\
+                                  + ErrC[i][tid,hidmin:hidmax]/t),\
                                  alpha=0.4, color = col)
         plt.xlabel(r'Magnetic field $h$')
         plt.ylabel(r'Heat capacity $C$ ')
@@ -1312,7 +1313,7 @@ def BasicPlotsE(L, i, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
                              - ErrC[i][tidmin:tidmax[i]][:,hid],
                              C[i][tidmin:tidmax[i]][:,hid]
                              + ErrC[i][tidmin:tidmax[i]][:,hid],\
-                             alpha = 0.5, color = col)
+                             alpha = alpha, color = col)
             #print('Error on the heat capacity for file ', filenamelist[i])
             #print(ErrC[i])
         plt.xlabel(r'Temperature $T$ ')
@@ -1341,7 +1342,7 @@ def BasicPlotsE(L, i, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
                              (C[i][tidmin:tidmax[i]][:,hid]
                               + ErrC[i][tidmin:tidmax[i]][:,hid]
                              )/temperatures_plots[i][tidmin:tidmax[i]],\
-                             alpha = 0.5, color = col)
+                             alpha = alpha, color = col)
         plt.xlabel(r'Temperature $T$ ')
         plt.ylabel(r'$\frac{c}{k_B T}$')
         plt.grid(which='both')
@@ -1353,35 +1354,43 @@ def BasicPlotsE(L, i, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
         # Residual entropy
         RS = kwargs.get('RS', False)
         if RS:
-            S = [[] for i in range(n)]
-            DeltaS = [[[0 for hid in range(len(hfields_plots[i]))]
-                       for tid in range(tidmax[i]-tidmin)] for i in range(n)]
-
+            S = 0
+            DeltaSmin = np.zeros((tidmax[i]-tidmin, len(hfields_plots[i])))
+            DeltaS = np.zeros((tidmax[i]-tidmin, len(hfields_plots[i])))
+            DeltaSmax = np.zeros((tidmax[i]-tidmin, len(hfields_plots[i])))
             
             Carray = np.array(C[i][tidmin:tidmax[i]])
             CoverT = np.copy(Carray)
+            CminoverT = np.copy(np.array(C[i][tidmin:tidmax[i]]
+                              - ErrC[i][tidmin:tidmax[i]]))
+            CmaxoverT = np.copy(np.array(C[i][tidmin:tidmax[i]]
+                              + ErrC[i][tidmin:tidmax[i]]))
             for tid in range(tidmin, tidmax[i]):
+                CminoverT[tid,:]= CminoverT[tid,:]/temperatures_plots[i][tid]
                 CoverT[tid,:]= Carray[tid,:]/temperatures_plots[i][tid]
-
+                CmaxoverT[tid,:]= CmaxoverT[tid,:]/temperatures_plots[i][tid]
             #going through the temperatures in decreasing order
             for tid in range(tidmax[i]-tidmin-2, -1, -1):
                 for hid, h in enumerate(hfields_plots[i]):
-                    DeltaS[i][tid][hid] =                    DeltaS[i][tid+1][hid] + np.trapz(CoverT[tid:tid+2, hid],
+                    DeltaSmin[tid,hid] =                    DeltaSmin[tid+1,hid] + np.trapz(CminoverT[tid:tid+2, hid],
                                temperatures_plots[i][tid+tidmin:tid+2+tidmin])
-
-            DeltaS[i] = np.array(DeltaS[i])
-            for tid in range(0, tidmax[i]-tidmin):    
-                S[i].append(S0 - DeltaS[i][tid])
-
-            S[i] = np.array(S[i])
-
-            
+                    DeltaS[tid,hid] =                    DeltaS[tid+1,hid] + np.trapz(CoverT[tid:tid+2, hid],
+                               temperatures_plots[i][tid+tidmin:tid+2+tidmin])
+                    DeltaSmax[tid,hid] =                    DeltaSmax[tid+1,hid] + np.trapz(CmaxoverT[tid:tid+2, hid],
+                               temperatures_plots[i][tid+tidmin:tid+2+tidmin])
+           
+            Smin = S0*np.ones((tidmax[i]-tidmin, len(hfields_plots[i]))) - DeltaSmax;
+            S = S0*np.ones((tidmax[i]-tidmin, len(hfields_plots[i]))) - DeltaS;
+            Smax = S0*np.ones((tidmax[i]-tidmin, len(hfields_plots[i]))) - DeltaSmin;
             plt.figure(figsize=(12, 8), dpi=300)
             plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
             for hid, h in enumerate(hfields_plots[i]):
                 col = [0 + hid/mh, (1 - hid/mh)**2, 1 - hid/mh] 
-                plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]]  , S[i][:,hid],
-                             '.-', label = r'$h$ = {0}'.format(h), color = col)
+                plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]]  , S[:,hid],
+                             '.', label = r'$h$ = {0}'.format(h), color = col)
+                plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]],
+                            Smin[:,hid],Smax[:,hid],\
+                             alpha = alpha, color = col)
                 plt.xlabel(r'Temperature $T$ ')
             plt.ylabel(r'$S$')
             plt.grid(which='both')
@@ -1423,7 +1432,7 @@ def BasicPlotsE(L, i, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
             E = np.array(E)
             correction = np.array(correction)
             plt.plot(ratios, E, '.', label = r'Energy at $T = 0.05$ (N)')
-            plt.fill_between(ratios , E - correction, E + correction, alpha = 0.5, color = 'lightblue')
+            plt.fill_between(ratios , E - correction, E + correction, alpha = alpha, color = 'lightblue')
             #plt.plot(ratios, [0 for r in ratios], '.')
             plt.xlabel(r'$\frac{J_3}{J_2}$', size = 22)
             plt.ylabel(r'$\frac{E - E_{NN}}{J_2}$', size = 22)
@@ -1447,6 +1456,8 @@ def BasicPlotsE(L, i, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
             print("Phase 9: ",testPhase(t_h_MeanE[i][0],   (2/3 * J1[i] - 2/3 * J2[i] + 1/3 * J3[i])))
             print("Phase 10: ",testPhase(t_h_MeanE[i][0],   (6/7 * J1[i] - 2/7 * J2[i] - J3[i])))
             print("Phase 11: ",testPhase(t_h_MeanE[i][0],   (2 * J1[i] + 2 * J2[i] + 3 * J3[i])))
+
+    return S, Smin, Smax
 
 
 # In[ ]:
