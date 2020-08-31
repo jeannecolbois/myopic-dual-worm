@@ -24,6 +24,8 @@ tuple<double, bool> manydualworms(double J1,
     int w2 = 0;
 
     int totlength = 0;
+    // idea: limit the total length to a number of updates of the system.
+    // idea of worm iter: limit the number of attempts of equivalent single spin flips, in case the system is having trouble
     for(int wormiter = 0; totlength < iterworm*statesize && (wormiter < nmaxiter*statesize) && loopclosed; wormiter++ ) { // we only continue if the loops we are building are closed
         tuple<double, int> oneworm = dualworm(&loopclosed, &w1, &w2, J1, interactions, state, statesize, d_nd, n_nd, d_vd, n_vd, d_wn, beta, nmaxiter);
        	deltaE += get<0>(oneworm);

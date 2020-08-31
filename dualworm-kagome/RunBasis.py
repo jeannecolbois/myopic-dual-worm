@@ -25,7 +25,7 @@ import argparse
 
 
 def main(args):
-    
+    verbose = args.verbose
     print("-------------------Initialisation--------------------")
     ### PREPARE SAVING
     backup = rbf.SafePreparation(args)
@@ -69,11 +69,15 @@ def main(args):
         try:
             ids2walker = hkl.load(loadbackup+"/backup_ids2walker.hkl")
         except OSError:
+            warnings.warn("error ids2walker load")
             [walker2params, walker2ids, ids2walker] =            dw.walkerstable(betas, nt, hfields, nh)
+            
+       
     else:
         [walker2params, walker2ids, ids2walker] =        dw.walkerstable(betas, nt, hfields, nh)
+    print("ids2walker shape", ids2walker.shape)
     # Saving the status:
-
+    
     ## SIMULATION INITIALISATION
     (states, energies, spinstates, ref_energies, checkgsid)=    rbf.StatesAndEnergyInit(args, backup, loadbackup,hamiltonian,
                             ids2walker, nt, nh, hfields, d_ijl,
@@ -133,12 +137,14 @@ def main(args):
           'ids2walker':ids2walker,
           's2p':s2p, 'ssf':ssf, 'ssffurther': ssffurther,
           'alternate':alternate, 'fullstateupdate': True,
-          'verbose':args.verbose
+          'verbose':verbose
          }
 
 
     t1 = time()
-    (statstableth, swapst_th, swapsh_th, failedupdatesth, failedssfupdatesth) =     dw.mcs_swaps(states, spinstates, energies, betas, [],[], **kw)
+    (statstableth, swapst_th, swapsh_th, failedupdatesth, 
+     failedssfupdatesth, updateliststh) = \
+    dw.mcs_swaps(states, spinstates, energies, betas, [],[], **kw)
     t2 = time()
 
     print('Time for all thermalisation steps = ', t2-t1)
@@ -159,9 +165,9 @@ def main(args):
     
     rbf.CheckStates(spinstates, states, d_2s)
     print("States Checked")
-
+    measupdate = args.measupdate
     
-    if genMode and not ok:
+    if genMode and not ok and not measupdate:
         # save status and throw an error
         hkl.dump(states, backup+"_states.hkl")
         hkl.dump(spinstates, backup+"_spinstates.hkl")
@@ -189,32 +195,39 @@ def main(args):
     check = True #turn to spins and check match works
     measperiod = args.measperiod
     print('Measurement period:', measperiod)
-    measupdate = args.measupdate
+    
     
     if measupdate:
         nnspins, s2p = dw.spin2plaquette(ijl_s, s_ijl, s2_d,L)
-        p = args.p
+        htip = args.htip
+        Ttip = args.Ttip
+        pswitch = args.pswitch
+        uponly = args.uponly
         measupdatev = args.measupdatev
-        measupdatesave = args.measupdatesave
+        saveupdates = args.saveupdates
+        path = dw.path_for_measupdate(s_ijl, ijl_s, s2_d, L, version = measupdatev)
     else:
         if not (ssf or alternate):
-            nnspins = []
             s2p = []
-            p = 0
-            measupdatev = 0
-            measupdatesave = False
-        else:
-            nnspins = []
-            p = 0
-            measupdatev = 0
-            measupdatesave = False
+            
+        nnspins = []
+        htip = 0
+        Ttip = 0
+        measupdatev = 0
+        saveupdates = False
+        pswitch = 1
+        uponly = False
+        path = []
 
     kwmeas = {'nb':nb, 'num_in_bin':num_in_bin,'nips':nips,
               'nrps':nrps,
-             'measperiod':measperiod, 'measupdate':measupdate,
-              'measupdatev' : measupdatev, 'measupdatesave': measupdatesave,
-             'nnspins':nnspins, 's2p': s2p}
+              'measperiod':measperiod, 
+              'measupdate':measupdate, 'measupdatev' : measupdatev,
+              'htip': htip, 'Ttip':Ttip, 'pswitch': pswitch, 'uponly': uponly,
+              'nnspins':nnspins, 's2p': s2p}
     hkl.dump(kwmeas, backup+".hkl", path = "/parameters/measurements", mode = 'r+')
+    if verbose:
+        print("uponly: ", uponly)
     kw = {'nb':nb,'num_in_bin':num_in_bin, 'iterworm':iterworm,
           'nrps': nrps,
           'nitermax':nmaxiter,'check':check,
@@ -224,9 +237,10 @@ def main(args):
           'd_nd':d_nd,'d_vd':d_vd,'d_wn':d_wn, 'd_2s':d_2s, 's2_d':s2_d,
           'sidlist':sidlist,'didlist':didlist,'s_ijl':s_ijl,'ijl_s':ijl_s,'L':L,
           'ncores':ncores, 
-          'measupdate': measupdate, 'measupdatev' : measupdatev, 'measupdatesave': measupdatesave,
+          'measupdate': measupdate, 'measupdatev' : measupdatev, 'path': path,
+          'htip':htip, 'Ttip':Ttip,'pswitch': pswitch, 'uponly':uponly,
           'nnspins': nnspins, 's2p':s2p,
-          'magnfuncid':magnfuncid, 'p':p,
+          'magnfuncid':magnfuncid,
           'c2s':c2s, 'csign':csign, 'measperiod':measperiod,
           'nh':nh, 'hfields':hfields, 'walker2params':walker2params,
           'walker2ids':walker2ids,'ids2walker':ids2walker,
@@ -234,11 +248,13 @@ def main(args):
           'alternate':alternate, 'randspinupdate': False,
           'namefunctions': namefunctions, 'srefs':srefs,
           'backup': backup,
-          'genMode': genMode, 'fullstateupdate': fullssf, 'verbose':args.verbose}
+          'genMode': genMode, 'fullstateupdate': fullssf,
+          'saveupdates': saveupdates,
+          'verbose':verbose}
         # Run measurements
 
     t1 = time()
-    (statstable, swapst, swapsh, failedupdates, failedssfupdates) =    dw.mcs_swaps(states, spinstates, energies, betas, stat_temps, stat_hfields,**kw)
+    (statstable, swapst, swapsh, failedupdates, failedssfupdates, updatelists) =    dw.mcs_swaps(states, spinstates, energies, betas, stat_temps, stat_hfields,**kw)
     #print("Energies = ", energies)
     t2 = time()
 
@@ -248,7 +264,7 @@ def main(args):
     totupdates = nips*num_in_bin*nb*measperiod*len(s_ijl)
     measurementsres = {'swapst': swapst, 'swapsh': swapsh,
                        'failedupdates':failedupdates,'totupdates':totupdates, 
-                       'failedssfupdates':failedssfupdates}
+                       'failedssfupdates':failedssfupdates, 'updatelists':updatelists}
 
     hkl.dump(measurementsres, backup+".hkl", path = "/results/measurements", mode = 'r+')
 
@@ -267,6 +283,7 @@ def main(args):
     hkl.dump(walker2ids, backup+"_walker2ids.hkl")
     hkl.dump(ids2walker, backup+"_ids2walker.hkl")
     
+    print("ids2walker shape", ids2walker.shape)
     hkl.dump(states, backup+"_states.hkl")
     hkl.dump(spinstates, backup+"_spinstates.hkl")
     
@@ -346,10 +363,16 @@ if __name__ == "__main__":
                        help = '''activate to mimic the action of the measuring tip''')
     parser.add_argument('--measupdatev', type = int, default = 0,
                        help = '''select the version of measupdate''')
-    parser.add_argument('--measupdatesave', default = False, action = 'store_true',
-                       help = '''activate to cancel measurement update before continuing''')
-    parser.add_argument('--p', type = float, default = 0.0, 
-                       help = '''prob of the measuring tip flipping the spin (number between 0 and 1)''')
+    parser.add_argument('--saveupdates', default = False, action = 'store_true',
+                       help = '''activate to save the effect of the measuring tip (only genMode)''')
+    parser.add_argument('--htip', type = float, default = 0.0, 
+                       help = '''magnetic field associated with the tip''')
+    parser.add_argument('--Ttip', type = float, default = 0.0, 
+                       help = '''temperature associated with the tip measurements''')
+    parser.add_argument('--pswitch', type = float, default = 1, 
+                       help = '''tip switching probability''')
+    parser.add_argument('--uponly', default = False, action = 'store_true',
+                       help = '''Only switching down spins to up spins in measupdate''')
     parser.add_argument('--ssf', default = False, action = 'store_true',
                         help = 'activate for single spin flip update')
     parser.add_argument('--notfullssfupdate', default = False, action = 'store_true',

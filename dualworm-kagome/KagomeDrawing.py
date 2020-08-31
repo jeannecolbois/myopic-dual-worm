@@ -390,6 +390,8 @@ def plotstate(temp_id, L, d_ijl, ijl_s, sidlist, didlist, s2_d, states, spinstat
         left = False,
         right = False,
         labelleft = False) # labels along the bottom edge are off
+    
+    return fig, ax
 
 
 # In[ ]:

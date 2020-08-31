@@ -3,6 +3,7 @@ tests/
 test_random/
 dimers/*.txt
 dualworm-kagome/ProfilingAndTesting/PlotsResults/
+dualworm-kagome/ProfilingAndTesting/TipTestsAnalysis/
 dualworm-kagome/Profiling_Folder/
 dualworm-kagome/prun*
 dualworm-kagome/*.png
@@ -22,7 +23,10 @@ dualworm-kagome/ProfilingAndTesting/*.png
 dualworm-kagome/ProfilingAndTesting/*Results/*
 dualworm-kagome/GroundStates/*/
 dualworm-kagome/GroundStates/*.mat
-
+dualworm-kagome/AnalysisCode_PSI/*_folder
+dualworm-kagome/AnalysisCode_PSI/*.gif
+dualworm-kagome/AnalysisCode_PSI/*.pdf
+dualworm-kagome/AnalysisCode_PSI/*.pgf
 ANALYSIS_CSCS/
 Analysis_CSCS/
 Analysis_PSI/
