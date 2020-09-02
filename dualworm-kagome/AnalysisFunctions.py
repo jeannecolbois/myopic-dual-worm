@@ -567,13 +567,14 @@ def LoadEnergy(foldername, filenamelist, numsites,
             if nf == 0:
                 Merged_t_h_varMeanE = (t_h_MeanE[0]-Merged_t_h_MeanE)**2 / (n*(n-1))
                 Merged_t_h_varMeanEsq = (t_h_MeanEsq[0]-Merged_t_h_MeanEsq)**2 / (n*(n-1))
-                Merged_ErrC =(C[0]-Merged_C)**2 / (n*(n-1))
+                Merged_ErrC =(C[0]-Merged_C)**2 /(n*(n-1))
             else:
                 Merged_t_h_varMeanE += (t_h_MeanE[nf]-Merged_t_h_MeanE)**2 / (n*(n-1))
                 Merged_t_h_varMeanEsq += (t_h_MeanEsq[nf]-Merged_t_h_MeanEsq)**2 / (n*(n-1))
-                Merged_ErrC +=(C[nf]-Merged_C)**2 / (n*(n-1)) ## check if variance or std in normal case!!!
+                Merged_ErrC +=(C[nf]-Merged_C)**2 /(n*(n-1)) ## check if variance or std in normal case!!!
     
         # So that ErrC is in the right form
+
         Merged_ErrC = np.sqrt(Merged_ErrC)
         
         # Compute S:
@@ -607,9 +608,6 @@ def LoadEnergy(foldername, filenamelist, numsites,
             Merged_t_h_S = S0*np.ones((len(stat_temps[0]), len(stat_hfields[0]))) - DeltaS;
             Merged_t_h_Smax = S0*np.ones((len(stat_temps[0]), len(stat_hfields[0]))) - DeltaSmin;
 
-            
-    print(Merged_t_h_S.shape)
-    
     MergedData = [[Merged_t_h_MeanE], [Merged_t_h_MeanEsq], 
         [Merged_t_h_varMeanE], [Merged_t_h_varMeanEsq],
         [Merged_C],[Merged_ErrC], [Merged_t_h_S],[Merged_t_h_Smin],
@@ -1571,13 +1569,18 @@ def BulkPlotsE(L, n, hid, tidmin, tidmax, temperatures_plots, foldername,
                 t_h_varMeanEsq, C, ErrC, J1, J2, J3, J4, t_h_S, t_h_Smin, t_h_Smax, **kwargs):
     
     margin = [0.08, 0.08, 0.02, 0.1]
-    hid = 0
-    alpha = 0.2
-    plt.figure(figsize=(12, 8),dpi=300)
+    addsave = kwargs.get('addsave', "")
+    alpha = kwargs.get('alpha', 0.2)
+    figsize = kwargs.get('figsize', (6,4))
+    markersize = kwargs.get('markersize', 10)
+    put_legend = kwargs.get('put_legend', True)
+    ncol = kwargs.get('ncol', 1)
+    loc = kwargs.get('loc', 'best')
+    plt.figure(figsize=figsize,dpi=300)
     plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
     for i in range(n):
         plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]],
-                         t_h_MeanE[i][tidmin:tidmax[i]][:,hid],'.',\
+                         t_h_MeanE[i][tidmin:tidmax[i]][:,hid],'.', markersize=markersize,\
                           label = r'$it$ = {0}'.format(i))
         plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]],
                          (t_h_MeanE[i][tidmin:tidmax[i]][:,hid]
@@ -1587,10 +1590,13 @@ def BulkPlotsE(L, n, hid, tidmin, tidmax, temperatures_plots, foldername,
                          alpha=alpha)
     plt.xlabel(r'Temperature $T$')
     plt.ylabel(r'$E$')
-    plt.grid(which='both')
-    plt.legend(loc= 'best', framealpha=0.5)
-
-    plt.figure(figsize=(12, 8), dpi=300)
+    plt.grid(which = 'both', linestyle = '--', alpha = 0.3)
+    if put_legend:
+        plt.legend(loc= loc, ncol = ncol, framealpha=0.5)
+    
+    plt.savefig('./' + foldername  + results_foldername+ '/Energy'+addsave+'.png')
+            
+    plt.figure(figsize=figsize, dpi=300)
     plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
 
     for i in range(n):
@@ -1599,7 +1605,7 @@ def BulkPlotsE(L, n, hid, tidmin, tidmax, temperatures_plots, foldername,
         #col = [0 + i/n, (1 - i/n)**2, 1 - i/n]
         plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]],
                      C[i][tidmin:tidmax[i]][:,hid],
-                     '.', label = r'$it$ = {0}'.format(i))
+                     '.', markersize=markersize, label = r'$it$ = {0}'.format(i))
         plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]],
                          (C[i][tidmin:tidmax[i]][:,hid]
                           - ErrC[i][tidmin:tidmax[i]][:,hid]),
@@ -1608,11 +1614,13 @@ def BulkPlotsE(L, n, hid, tidmin, tidmax, temperatures_plots, foldername,
                          alpha = alpha)
     plt.xlabel(r'Temperature $T$ ')
     plt.ylabel(r'$c$')
-    plt.grid(which='both')
-    plt.legend(loc= 'best', framealpha=0.5)
+    plt.grid(which = 'both', linestyle = '--', alpha = 0.3)
+    if put_legend:
+        plt.legend(loc= loc, ncol = ncol, framealpha=0.5)
+    plt.savefig('./' + foldername  + results_foldername+ '/SpecificHeat'+addsave+'.png')
 
 
-    plt.figure(figsize=(12, 8), dpi=300)
+    plt.figure(figsize=figsize, dpi=300)
     plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
 
     for i in range(n):
@@ -1621,7 +1629,7 @@ def BulkPlotsE(L, n, hid, tidmin, tidmax, temperatures_plots, foldername,
         #col = [0 + i/n, (1 - i/n)**2, 1 - i/n]
         plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]],
                      C[i][tidmin:tidmax[i]][:,hid] / temperatures_plots[i][tidmin:tidmax[i]],
-                     '.', label = r'$it$ = {0}'.format(i))
+                     '.', markersize=markersize, label = r'$it$ = {0}'.format(i))
         plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]],
                          (C[i][tidmin:tidmax[i]][:,hid]
                           - ErrC[i][tidmin:tidmax[i]][:,hid]
@@ -1632,31 +1640,34 @@ def BulkPlotsE(L, n, hid, tidmin, tidmax, temperatures_plots, foldername,
                          alpha = alpha)
     plt.xlabel(r'Temperature $T$ ')
     plt.ylabel(r'$\frac{c}{T}$')
-    plt.grid(which='both')
-    plt.legend(loc= 'best', framealpha=0.5)
+    plt.grid(which = 'both', linestyle = '--', alpha = 0.3)
+    if put_legend:
+        plt.legend(loc= loc, ncol = ncol, framealpha=0.5)
+    plt.savefig('./' + foldername  + results_foldername+ '/SpecificHeatOverT'+addsave+'.png')
 
 
 
-    plt.figure(figsize=(12, 8), dpi=300)
+    plt.figure(figsize=figsize, dpi=300)
     plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
 
     for i in range(n):
-        C[i] = np.array(C[i])
-        ErrC[i] = np.array(ErrC[i])
         #col = [0 + i/n, (1 - i/n)**2, 1 - i/n]
         plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]],
                      t_h_S[i][tidmin:tidmax[i]][:,hid],
-                     '.', label = r'$it$ = {0}'.format(i))
+                     '.', markersize=markersize, label = r'$it$ = {0}'.format(i))
         plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]],
                          t_h_Smin[i][tidmin:tidmax[i]][:,hid],
                          t_h_Smax[i][tidmin:tidmax[i]][:,hid],\
                          alpha = alpha)
     plt.xlabel(r'Temperature $T$ ')
     plt.ylabel(r'$S$')
-    plt.grid(which='both')
-    plt.legend(loc= 'best', framealpha=0.5)
+    plt.ylim([0,0.7])
+    plt.grid(which = 'both', linestyle = '--', alpha = 0.3)
+    if put_legend:
+        plt.legend(loc= loc, ncol = ncol, framealpha=0.5)
+    plt.savefig('./' + foldername  + results_foldername+ '/Entropy'+addsave+'.png')
 
-    plt.figure(figsize=(12, 8), dpi=300)
+    plt.figure(figsize=figsize, dpi=300)
     plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
 
     for i in range(n):
@@ -1665,7 +1676,7 @@ def BulkPlotsE(L, n, hid, tidmin, tidmax, temperatures_plots, foldername,
         #col = [0 + i/n, (1 - i/n)**2, 1 - i/n]
         plt.plot(temperatures_plots[i][tidmin:tidmax[i]],
                      C[i][tidmin:tidmax[i]][:,hid] / temperatures_plots[i][tidmin:tidmax[i]],
-                     '.', label = r'$it$ = {0}'.format(i))
+                     '.', markersize=markersize, label = r'$it$ = {0}'.format(i))
         plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]],
                          (C[i][tidmin:tidmax[i]][:,hid]
                           - ErrC[i][tidmin:tidmax[i]][:,hid]
@@ -1677,11 +1688,13 @@ def BulkPlotsE(L, n, hid, tidmin, tidmax, temperatures_plots, foldername,
     plt.xlabel(r'Temperature $T$ ')
     plt.xlim([0,40])
     plt.ylabel(r'$\frac{c}{T}$')
-    plt.grid(which='both')
-    plt.legend(loc= 'best', framealpha=0.5)
+    plt.grid(which = 'both', linestyle = '--', alpha = 0.3)
+    if put_legend:
+        plt.legend(loc= loc, ncol = ncol, framealpha=0.5)
+    plt.savefig('./' + foldername  + results_foldername+ '/SpecificHeatOverT_Linear_'+addsave+'.png')
 
 
-    plt.figure(figsize=(12, 8), dpi=300)
+    plt.figure(figsize=figsize, dpi=300)
     plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
 
     for i in range(n):
@@ -1690,7 +1703,7 @@ def BulkPlotsE(L, n, hid, tidmin, tidmax, temperatures_plots, foldername,
         #col = [0 + i/n, (1 - i/n)**2, 1 - i/n]
         plt.plot(temperatures_plots[i][tidmin:tidmax[i]],
                      t_h_S[i][tidmin:tidmax[i]][:,hid],
-                     '.', label = r'$it$ = {0}'.format(i))
+                     '.', markersize=markersize, label = r'$it$ = {0}'.format(i))
         plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]],
                          t_h_Smin[i][tidmin:tidmax[i]][:,hid],
                          t_h_Smax[i][tidmin:tidmax[i]][:,hid],\
@@ -1699,9 +1712,12 @@ def BulkPlotsE(L, n, hid, tidmin, tidmax, temperatures_plots, foldername,
     plt.plot([0, 40], [np.log(2), np.log(2)], '--')
     plt.xlabel(r'Temperature $T$ ')
     plt.xlim([0,40])
+    plt.ylim([0,0.7])
     plt.ylabel(r'$S$')
-    plt.grid(which='both')
-    plt.legend(loc= 'best', framealpha=0.5)
+    plt.grid(which = 'both', linestyle = '--', alpha = 0.3)
+    if put_legend:
+        plt.legend(loc= loc, ncol = ncol, framealpha=0.5)
+    plt.savefig('./' + foldername  + results_foldername+ '/Entropy_Linear'+addsave+'.png')
 
 
 # In[ ]:
