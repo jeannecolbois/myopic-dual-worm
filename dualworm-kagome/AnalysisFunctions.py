@@ -192,10 +192,12 @@ def ExtractStatistics(backup, idfunc, name,
         sq = 0 -> not square stats
         sq = 1 -> square stats
     '''
+    nb_drop = kwargs.get('nb_drop', 0)
     
     nb_stattuple = hkl.load(backup+"_"+name+"_final.hkl")
     
-    t_h_meanfunc = nb_stattuple.sum(0)/nb
+    
+    t_h_meanfunc = nb_stattuple[nb_drop:nb].sum(0)/(nb-nb_drop)
     t_h_meanfunc = t_h_meanfunc[sq]
     
     
@@ -206,15 +208,15 @@ def ExtractStatistics(backup, idfunc, name,
     
     for resid, t in enumerate(stat_temps):
         for reshid, h in enumerate(stat_hfields):
-            for b in range(nb):
-                t_h_varmeanfunc[resid,reshid] += ((nb_stattuple[b, sq, resid, reshid] - t_h_meanfunc[resid][reshid]) ** 2)/(nb * (nb - 1))
+            for b in range(nb_drop, nb):
+                t_h_varmeanfunc[resid,reshid] += ((nb_stattuple[b, sq, resid, reshid] - t_h_meanfunc[resid][reshid]) ** 2)/((nb -nb_drop)* (nb -nb_drop - 1))
                 # note that this is like t_h_varmeanfunc[resid,reshid, :]
                     
     if binning:
         print("Binning..." + name)
         #warnings.warn("binning not implemented for the new structure of statstable!")
-        t_h_varmeanfunc = Binning(t_h_meanfunc,t_h_varmeanfunc, nb_stattuple[:,sq,:,:], nb,
-                                stat_temps, stat_hfields, **kwargs)
+        t_h_varmeanfunc = Binning(t_h_meanfunc,t_h_varmeanfunc, nb_stattuple[nb_drop:,sq,:,:], nb-nb_drop,
+                                stat_temps, stat_hfields, name = name, sq = sq, **kwargs)
         
         if name == "FirstCorrelations":
             print(t_h_varmeanfunc[0][0])
@@ -224,20 +226,29 @@ def ExtractStatistics(backup, idfunc, name,
 # In[ ]:
 
 
-def Binning(t_h_mean, t_h_varmean, stattuple, nb, stat_temps,stat_hfields, **kwargs):
+def Binning(t_h_mean, t_h_varmean, stattuple, nb, stat_temps,stat_hfields, name = "", sq = 0, **kwargs):
     '''
         This function implements a binning analysis
     '''
     #raise Exception("Binning not adapted to the new statstable structure!")
-
+    minbin = kwargs.get('minbin', 15)
+    plzplot = kwargs.get('plzplot', False)
+    plotmin = kwargs.get('plotmin', 0)
+    plotmax = kwargs.get('plotmax', 10)
+    plothmin = kwargs.get('plothmin', 0)
+    plothmax = kwargs.get('plothmax', 10)
     
+    minplt = max(0, plotmin)
+    maxplt = min(plotmax, len(stat_temps))
+    minhplt = max(0, plothmin)
+    maxhplt = min(plothmax, len(stat_hfields))
     ### NAIVE IMPLEMENTATION:
     # go through all the measurements and recompute the variance when the bins are grouped
     
     # 1- preparing the list of bins
     nblist = []
     nbb = nb
-    while nbb >= 15:
+    while nbb >= minbin:
         nblist.append(nbb)
         nbb = nbb//2
         
@@ -247,43 +258,57 @@ def Binning(t_h_mean, t_h_varmean, stattuple, nb, stat_temps,stat_hfields, **kwa
     t_h_vars = np.zeros(list(itertools.chain(*[[len(nblist)],t_h_varmean.shape])))#[[[] for reshid in range(len(stat_hfields))] for resid in range(len(stat_temps))]
     
     # go through the measurements
-    for resid, t in enumerate(stat_temps):
-        for reshid, h in enumerate(stat_hfields):
-            # go through the levels of binning
-            for l,nbb in enumerate(nblist): 
-                avg = np.array(stattuple[0:(2**l),resid,reshid]).sum(0)/(2**l)
-                t_h_vars[l,resid,reshid]=((avg - t_h_mean[resid,reshid])**2)/(nbb*(nbb-1))
-                for b in range(1,nbb):
-                    avg = np.array(stattuple[(2**l)*b:(2**l)*(b+1),resid,reshid]).sum(0)/(2**l)
-                    t_h_vars[l,resid,reshid]+=((avg - t_h_mean[resid,reshid])**2)/(nbb*(nbb-1))
-                #if resid == 0:
-                #    print(nbb, " --- ", t_h_vars[l,resid,reshid])
-            
-    plzplot = kwargs.get('plzplot', False)
-    plotmin = kwargs.get('plotmin', 0)
-    plotmax = kwargs.get('plotmax', 10)
-    plothmin = kwargs.get('plothmin', 0)
-    plothmax = kwargs.get('plothmax', 10)
+    #for resid, t in enumerate(stat_temps):
+    #    for reshid, h in enumerate(stat_hfields):
+    #        # go through the levels of binning
+    #        for l,nbb in enumerate(nblist): 
+    #            bin_avg = np.array(stattuple[0:(2**l),resid,reshid]).sum(0)/(2**l) # average the first 2**l bins
+    #            asqbar = bin_avg**2/nbb
+    #            t_h_vars[l,resid,reshid]=((bin_avg - t_h_mean[resid,reshid])**2)/(nbb*(nbb-1))
+    #            for b in range(1,nbb):
+    #                bin_avg = np.array(stattuple[(2**l)*b:(2**l)*(b+1),resid,reshid]).sum(0)/(2**l) # average the current
+    #                #2**l bins
+    #                asqbar += bin_avg**2/nbb
+    #                t_h_vars[l,resid,reshid]+=((bin_avg - t_h_mean[resid,reshid])**2)/(nbb*(nbb-1))
+    #                
+    #            otherError=((asqbar - t_h_mean[resid,reshid]**2)/(nbb-1))
+    #            if resid == minplt:
+    #                print(nbb, " --- bin_avg: ", bin_avg, " --- error: (var)", t_h_vars[l,resid,reshid])#, " -- other: ", otherError)
+    #            t_h_vars[l,resid,reshid] = max(abs(t_h_vars[l,resid,reshid]), abs(otherError))
+    print("NEW IMPLEMENTATION")
+    print(stattuple.shape)
+    
+    t_h_vars_opti = np.zeros(list(itertools.chain(*[[len(nblist)],t_h_varmean.shape])))#[[[] for reshid in range(len(stat_hfields))] for resid in range(len(stat_temps))]
+    for l,nbb in enumerate(nblist): 
+        bin_avg = np.array([stattuple[(2**l)*b:(2**l)*(b+1),:,:].sum(0)/(2**l) for b in range(nbb)])# average the first 2**l bins
+        print(bin_avg.shape)
+        asqbar = np.mean(bin_avg**2, axis = 0) # still elementwise, shape 
+        t_h_vars_opti[l,:,:] = (asqbar - t_h_mean**2)/(nbb-1)
+
+    
     if plzplot:
         print('plotting!')
         plt.figure(figsize=(12, 8),dpi=300)
-        minplt = max(0, plotmin)
-        maxplt = min(plotmax, len(stat_temps))
-        minhplt = max(0, plothmin)
-        maxhplt = min(plothmax, len(stat_hfields))
+        
         for reshid, h in enumerate(stat_hfields[minhplt:maxhplt]):
             for resid, t in enumerate(stat_temps[minplt:maxplt]):
                 if len(t_h_vars.shape) ==3:
-                    plt.plot(range(len(t_h_vars[:,resid,reshid])), t_h_vars[:,resid,reshid], '.', label = 't = {0}'.format(t))
+                    plt.plot(range(len(t_h_vars_opti[:,resid+minplt,reshid])), np.sqrt(t_h_vars_opti[:,resid+minplt,reshid+minhplt]), '.', label = 'tid = {0}'.format(t))
                 else:
-                    plt.plot(range(len(t_h_vars[:,resid,reshid,0])), t_h_vars[:,resid,reshid,0], '.', label = 't = {0}'.format(t))
-            plt.title('h = {0}'.format(h))
-            plt.grid(which='both')
-            plt.legend()
-            plt.show()
+                    plt.plot(range(len(t_h_vars_opti[:,resid+minplt,reshid,0])), np.sqrt(t_h_vars_opti[:,resid+minplt,reshid+minhplt,0]), '.', label = 'tid = {0}'.format(t))
+        #plt.title('h = {0}'.format(h))
+        plt.xlabel('Binning level')
+        if sq == 0:
+            plt.ylabel(r'$\Delta$'+name)
+        else:
+            plt.ylabel(r'$\Delta$'+name+r"$^2$")
+        plt.ylim([0, None])
+        plt.grid(which='both')
+        plt.legend()
+        plt.show()
     
     # taking the max over l:
-    t_h_varmean = np.amax(t_h_vars,0)
+    t_h_varmean = np.amax(t_h_vars_opti,0)
     return np.array(t_h_varmean)
 
 
@@ -625,47 +650,73 @@ def LoadEnergyFromFile(foldername, filename, numsites, nb, stat_temps,
     
     name = "Energy"
     
+    nb_drop = kwargs.get('nb_drop', 0)
+    jackknife = kwargs.get('jackknife', False)
+    
     t_h_MeanE, t_h_varMeanE =    ExtractStatistics(backup, idfunc, name,
                       nb, stat_temps, stat_hfields, **kwargs)
     
     print(t_h_MeanE[0])
     t_h_MeanEsq, t_h_varMeanEsq =    ExtractStatistics(backup, idfunc, name, nb,
                       stat_temps, stat_hfields, sq = 1, **kwargs)
-    
-    C = []
-    for resid, t in enumerate(stat_temps):
-        Ch = []
-        T = temperatures[t]
-        for reshid, h in enumerate(stat_hfields):
-            Ch.append(numsites * (t_h_MeanEsq[resid][reshid] -
-                                  t_h_MeanE[resid][reshid] ** 2) / T ** 2)
-        C.append(Ch)
-    
-    bsth_E = hkl.load(backup+"_"+name+"_final.hkl")
 
-    ErrC = []
-    for resid, t in enumerate(stat_temps):
-        ErrCh = []
-        for reshid, h in enumerate(stat_hfields):
+    if not jackknife:
+        C = []
+        for resid, t in enumerate(stat_temps):
+            Ch = []
             T = temperatures[t]
-            Mean_VarE = 0
-            Mean_VarE_Sq = 0
-            for b in range(nb):
-                    Mean_VarE += (bsth_E[b][1][resid][reshid] - 
-                                  bsth_E[b][0][resid][reshid] ** 2)/nb
-                    Mean_VarE_Sq += ((bsth_E[b][1][resid][reshid] -
-                                      bsth_E[b][0][resid][reshid] ** 2) ** 2)/nb
-            if (Mean_VarE_Sq - Mean_VarE ** 2 >= 0) :
-                ErrCh.append((numsites / (T ** 2)) * np.sqrt((Mean_VarE_Sq 
-                                                           - Mean_VarE ** 2)/(nb-1)))
-            else:
-                assert(Mean_VarE_Sq - Mean_VarE ** 2 >= -1e-15)
-                ErrCh.append(0)
-        ErrC.append(ErrCh)
+            for reshid, h in enumerate(stat_hfields):
+                Ch.append(numsites * (t_h_MeanEsq[resid][reshid] -
+                                      t_h_MeanE[resid][reshid] ** 2) / T ** 2)
+            C.append(Ch)
+
+        bsth_E = hkl.load(backup+"_"+name+"_final.hkl")
+
+        print(bsth_E.shape)
+        ErrC = []
+        for resid, t in enumerate(stat_temps):
+            ErrCh = []
+            for reshid, h in enumerate(stat_hfields):
+                T = temperatures[t]
+                Mean_VarE = 0
+                Mean_VarE_Sq = 0
+                for b in range(nb_drop,nb):
+                        Mean_VarE += (bsth_E[b][1][resid][reshid] - 
+                                      bsth_E[b][0][resid][reshid] ** 2)/(nb - nb_drop)
+                        Mean_VarE_Sq += ((bsth_E[b][1][resid][reshid] -
+                                          bsth_E[b][0][resid][reshid] ** 2) ** 2)/(nb - nb_drop)
+                if (Mean_VarE_Sq - Mean_VarE ** 2 >= 0) :
+                    ErrCh.append((numsites / (T ** 2)) * np.sqrt((Mean_VarE_Sq 
+                                                               - Mean_VarE ** 2)/(nb - nb_drop-1)))
+                else:
+                    assert(Mean_VarE_Sq - Mean_VarE ** 2 >= -1e-15)
+                    ErrCh.append(0)
+            ErrC.append(ErrCh)
+
+        C = np.array(C)
+        ErrC = np.array(ErrC)
+
+    #else:
+    #    # Some time, write this as a standalone, for this is dependent of a function
+    #    # of pre-computed variables
+    #    # Evaluate the function on all but one segment (i.e. all bins but one)
+    #    C0 = np.zeros((stat_temps, stat_hfields))
+    #    Cs = np.zeros((nb-nb_drop, stat_temps, stat_hfields))
+    #    
+    #    
+    #    for resid, t in enumerate(stat_temps):
+    #        Ch = []
+    #        T = temperatures[t]
+    #        for reshid, h in enumerate(stat_hfields):
+    #            Ch.append(numsites * (t_h_MeanEsq[resid][reshid] -
+    #                                  t_h_MeanE[resid][reshid] ** 2) / T ** 2)
+    #        C.append(Ch)
+    #    
+    #    #
+    #    
         
-    C = np.array(C)
-    ErrC = np.array(ErrC)
-    
+
+    # end of the jackknife implementation
     RS = kwargs.get('RS', False)
     if RS and not mergeruns: # if mergeruns, will be computed on average C
         S0 = kwargs.get('S0', np.log(2))
@@ -1568,7 +1619,7 @@ def BulkPlotsE(L, n, hid, tidmin, tidmax, temperatures_plots, foldername,
                 results_foldername, filenamelist, t_h_MeanE, t_h_MeanEsq, t_h_varMeanE,
                 t_h_varMeanEsq, C, ErrC, J1, J2, J3, J4, t_h_S, t_h_Smin, t_h_Smax, **kwargs):
     
-    margin = [0.08, 0.08, 0.02, 0.1]
+    margin = [0.15, 0.15, 0.02, 0.1]
     addsave = kwargs.get('addsave', "")
     alpha = kwargs.get('alpha', 0.2)
     figsize = kwargs.get('figsize', (6,4))
@@ -1588,12 +1639,13 @@ def BulkPlotsE(L, n, hid, tidmin, tidmax, temperatures_plots, foldername,
                          (t_h_MeanE[i][tidmin:tidmax[i]][:,hid]
                           + np.sqrt(t_h_varMeanE[i][tidmin:tidmax[i]][:,hid])),\
                          alpha=alpha)
-    plt.xlabel(r'Temperature $T$')
+    plt.xlabel(r'$T$')
     plt.ylabel(r'$E$')
     plt.grid(which = 'both', linestyle = '--', alpha = 0.3)
     if put_legend:
         plt.legend(loc= loc, ncol = ncol, framealpha=0.5)
     
+    plt.savefig('./' + foldername  + results_foldername+ '/Energy'+addsave+'.pdf')
     plt.savefig('./' + foldername  + results_foldername+ '/Energy'+addsave+'.png')
             
     plt.figure(figsize=figsize, dpi=300)
@@ -1612,11 +1664,12 @@ def BulkPlotsE(L, n, hid, tidmin, tidmax, temperatures_plots, foldername,
                          (C[i][tidmin:tidmax[i]][:,hid]
                           + ErrC[i][tidmin:tidmax[i]][:,hid]),
                          alpha = alpha)
-    plt.xlabel(r'Temperature $T$ ')
+    plt.xlabel(r'$T$ ')
     plt.ylabel(r'$c$')
     plt.grid(which = 'both', linestyle = '--', alpha = 0.3)
     if put_legend:
         plt.legend(loc= loc, ncol = ncol, framealpha=0.5)
+    plt.savefig('./' + foldername  + results_foldername+ '/SpecificHeat'+addsave+'.pdf')
     plt.savefig('./' + foldername  + results_foldername+ '/SpecificHeat'+addsave+'.png')
 
 
@@ -1638,11 +1691,12 @@ def BulkPlotsE(L, n, hid, tidmin, tidmax, temperatures_plots, foldername,
                           + ErrC[i][tidmin:tidmax[i]][:,hid]
                          )/temperatures_plots[i][tidmin:tidmax[i]],\
                          alpha = alpha)
-    plt.xlabel(r'Temperature $T$ ')
+    plt.xlabel(r'$T$ ')
     plt.ylabel(r'$\frac{c}{T}$')
     plt.grid(which = 'both', linestyle = '--', alpha = 0.3)
     if put_legend:
         plt.legend(loc= loc, ncol = ncol, framealpha=0.5)
+    plt.savefig('./' + foldername  + results_foldername+ '/SpecificHeatOverT'+addsave+'.pdf')
     plt.savefig('./' + foldername  + results_foldername+ '/SpecificHeatOverT'+addsave+'.png')
 
 
@@ -1659,12 +1713,13 @@ def BulkPlotsE(L, n, hid, tidmin, tidmax, temperatures_plots, foldername,
                          t_h_Smin[i][tidmin:tidmax[i]][:,hid],
                          t_h_Smax[i][tidmin:tidmax[i]][:,hid],\
                          alpha = alpha)
-    plt.xlabel(r'Temperature $T$ ')
+    plt.xlabel(r'$T$ ')
     plt.ylabel(r'$S$')
     plt.ylim([0,0.7])
     plt.grid(which = 'both', linestyle = '--', alpha = 0.3)
     if put_legend:
         plt.legend(loc= loc, ncol = ncol, framealpha=0.5)
+    plt.savefig('./' + foldername  + results_foldername+ '/Entropy'+addsave+'.pdf')
     plt.savefig('./' + foldername  + results_foldername+ '/Entropy'+addsave+'.png')
 
     plt.figure(figsize=figsize, dpi=300)
@@ -1685,12 +1740,13 @@ def BulkPlotsE(L, n, hid, tidmin, tidmax, temperatures_plots, foldername,
                           + ErrC[i][tidmin:tidmax[i]][:,hid]
                          )/temperatures_plots[i][tidmin:tidmax[i]],\
                          alpha = alpha)
-    plt.xlabel(r'Temperature $T$ ')
+    plt.xlabel(r'$T$ ')
     plt.xlim([0,40])
     plt.ylabel(r'$\frac{c}{T}$')
     plt.grid(which = 'both', linestyle = '--', alpha = 0.3)
     if put_legend:
         plt.legend(loc= loc, ncol = ncol, framealpha=0.5)
+    plt.savefig('./' + foldername  + results_foldername+ '/SpecificHeatOverT_Linear_'+addsave+'.pdf')
     plt.savefig('./' + foldername  + results_foldername+ '/SpecificHeatOverT_Linear_'+addsave+'.png')
 
 
@@ -1710,13 +1766,14 @@ def BulkPlotsE(L, n, hid, tidmin, tidmax, temperatures_plots, foldername,
                          alpha = alpha)
 
     plt.plot([0, 40], [np.log(2), np.log(2)], '--')
-    plt.xlabel(r'Temperature $T$ ')
+    plt.xlabel(r'$T$ ')
     plt.xlim([0,40])
     plt.ylim([0,0.7])
     plt.ylabel(r'$S$')
     plt.grid(which = 'both', linestyle = '--', alpha = 0.3)
     if put_legend:
         plt.legend(loc= loc, ncol = ncol, framealpha=0.5)
+    plt.savefig('./' + foldername  + results_foldername+ '/Entropy_Linear'+addsave+'.pdf')
     plt.savefig('./' + foldername  + results_foldername+ '/Entropy_Linear'+addsave+'.png')
 
 
