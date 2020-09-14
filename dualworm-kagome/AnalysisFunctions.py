@@ -21,7 +21,6 @@ import itertools
 # In[ ]:
 
 
-
 def correlationsTester(state, latsize, d_ijl, ijl_d, L):
     # J1 #
     couplings = {'J1':1.0}
@@ -194,6 +193,7 @@ def ExtractStatistics(backup, idfunc, name,
     '''
     nb_drop = kwargs.get('nb_drop', 0)
     
+    
     nb_stattuple = hkl.load(backup+"_"+name+"_final.hkl")
     
     
@@ -203,15 +203,21 @@ def ExtractStatistics(backup, idfunc, name,
     
     binning = kwargs.get('binning', False)
 
-    #t_h_varmeanfunc = [[0 for h in stat_hfields] for t in stat_temps]
     t_h_varmeanfunc = np.zeros(t_h_meanfunc.shape)
+    #t_h_varmeanfunc_control = np.zeros(t_h_meanfunc.shape)
     
-    for resid, t in enumerate(stat_temps):
-        for reshid, h in enumerate(stat_hfields):
-            for b in range(nb_drop, nb):
-                t_h_varmeanfunc[resid,reshid] += ((nb_stattuple[b, sq, resid, reshid] - t_h_meanfunc[resid][reshid]) ** 2)/((nb -nb_drop)* (nb -nb_drop - 1))
-                # note that this is like t_h_varmeanfunc[resid,reshid, :]
-                    
+    t_h_varmeanfunc =  ((nb_stattuple[nb_drop:nb,sq,:,:] - t_h_meanfunc[np.newaxis,:,:])  ** 2).sum(0)/((nb -nb_drop)* (nb -nb_drop - 1))
+        
+    #for resid, t in enumerate(stat_temps):
+    #    for reshid, h in enumerate(stat_hfields):
+    #        for b in range(nb_drop, nb):
+    #            t_h_varmeanfunc_control[resid,reshid] += ((nb_stattuple[b, sq, resid, reshid] - t_h_meanfunc[resid][reshid]) ** 2)
+    #            # note that this is like t_h_varmeanfunc[resid,reshid, :]
+
+    #        t_h_varmeanfunc_control[resid, reshid] = t_h_varmeanfunc_control[resid, reshid]/((nb -nb_drop)* (nb -nb_drop - 1))
+    #if np.any(np.abs(t_h_varmeanfunc - t_h_varmeanfunc_control)/t_h_varmeanfunc > 1e-15):
+    #    print("!!!!!!!!!!!!!Implementation issue in Extract Statistics")
+        
     if binning:
         print("Binning..." + name)
         #warnings.warn("binning not implemented for the new structure of statstable!")
@@ -275,7 +281,8 @@ def Binning(t_h_mean, t_h_varmean, stattuple, nb, stat_temps,stat_hfields, name 
     #            if resid == minplt:
     #                print(nbb, " --- bin_avg: ", bin_avg, " --- error: (var)", t_h_vars[l,resid,reshid])#, " -- other: ", otherError)
     #            t_h_vars[l,resid,reshid] = max(abs(t_h_vars[l,resid,reshid]), abs(otherError))
-    print("NEW IMPLEMENTATION")
+    
+    #print("NEW IMPLEMENTATION")
     print(stattuple.shape)
     
     t_h_vars_opti = np.zeros(list(itertools.chain(*[[len(nblist)],t_h_varmean.shape])))#[[[] for reshid in range(len(stat_hfields))] for resid in range(len(stat_temps))]
@@ -283,9 +290,10 @@ def Binning(t_h_mean, t_h_varmean, stattuple, nb, stat_temps,stat_hfields, name 
         bin_avg = np.array([stattuple[(2**l)*b:(2**l)*(b+1),:,:].sum(0)/(2**l) for b in range(nbb)])# average the first 2**l bins
         print(bin_avg.shape)
         asqbar = np.mean(bin_avg**2, axis = 0) # still elementwise, shape 
+        
         t_h_vars_opti[l,:,:] = (asqbar - t_h_mean**2)/(nbb-1)
-
-    
+        if np.all(t_h_vars_opti > -1e-15):
+            t_h_vars_opti[l,:,:] = np.abs(t_h_vars_opti[l,:,:])
     if plzplot:
         print('plotting!')
         plt.figure(figsize=(12, 8),dpi=300)
@@ -307,7 +315,7 @@ def Binning(t_h_mean, t_h_varmean, stattuple, nb, stat_temps,stat_hfields, name 
         plt.legend()
         plt.show()
     
-    # taking the max over l:
+    # taking the max over l (i.e. on axis 0)
     t_h_varmean = np.amax(t_h_vars_opti,0)
     return np.array(t_h_varmean)
 
@@ -648,11 +656,15 @@ def LoadEnergyFromFile(foldername, filename, numsites, nb, stat_temps,
     backup = "./"+foldername+filename
     mergeruns = kwargs.get('mergeruns', False)
     
+    nt = len(stat_temps)
+    nh = len(stat_hfields)
     name = "Energy"
     
     nb_drop = kwargs.get('nb_drop', 0)
     jackknife = kwargs.get('jackknife', False)
-    
+    l = kwargs.get('binning_level', 0) # binning level how many bins together for specific heat
+    nbb = nb//(2**l)
+    nbb_drop = nb_drop//(2**l)
     t_h_MeanE, t_h_varMeanE =    ExtractStatistics(backup, idfunc, name,
                       nb, stat_temps, stat_hfields, **kwargs)
     
@@ -660,81 +672,150 @@ def LoadEnergyFromFile(foldername, filename, numsites, nb, stat_temps,
     t_h_MeanEsq, t_h_varMeanEsq =    ExtractStatistics(backup, idfunc, name, nb,
                       stat_temps, stat_hfields, sq = 1, **kwargs)
 
-    if not jackknife:
-        C = []
-        for resid, t in enumerate(stat_temps):
-            Ch = []
-            T = temperatures[t]
-            for reshid, h in enumerate(stat_hfields):
-                Ch.append(numsites * (t_h_MeanEsq[resid][reshid] -
-                                      t_h_MeanE[resid][reshid] ** 2) / T ** 2)
-            C.append(Ch)
-
+    if not jackknife: # aim is to win a bit of time for quick overviews
+        print("No jackknife analysis -- binning level: ", l, " -- number of bins: ", nbb-nbb_drop)
         bsth_E = hkl.load(backup+"_"+name+"_final.hkl")
+        C = np.zeros((nt, nh))
+        
+        if nt == len(temperatures):
+            C = numsites * (t_h_MeanEsq- t_h_MeanE **2)/ (np.array(temperatures)[:,np.newaxis] ** 2)
+        else:
+            for resid, t in enumerate(stat_temps):
+                C[resid,:] = numsites * (t_h_MeanEsq[t,:]- t_h_MeanE[t,:] **2)/ (temperatures[t] ** 2)
 
         print(bsth_E.shape)
-        ErrC = []
-        for resid, t in enumerate(stat_temps):
-            ErrCh = []
-            for reshid, h in enumerate(stat_hfields):
-                T = temperatures[t]
-                Mean_VarE = 0
-                Mean_VarE_Sq = 0
-                for b in range(nb_drop,nb):
-                        Mean_VarE += (bsth_E[b][1][resid][reshid] - 
-                                      bsth_E[b][0][resid][reshid] ** 2)/(nb - nb_drop)
-                        Mean_VarE_Sq += ((bsth_E[b][1][resid][reshid] -
-                                          bsth_E[b][0][resid][reshid] ** 2) ** 2)/(nb - nb_drop)
-                if (Mean_VarE_Sq - Mean_VarE ** 2 >= 0) :
-                    ErrCh.append((numsites / (T ** 2)) * np.sqrt((Mean_VarE_Sq 
-                                                               - Mean_VarE ** 2)/(nb - nb_drop-1)))
-                else:
-                    assert(Mean_VarE_Sq - Mean_VarE ** 2 >= -1e-15)
-                    ErrCh.append(0)
-            ErrC.append(ErrCh)
-
-        C = np.array(C)
-        ErrC = np.array(ErrC)
-
-    #else:
-    #    # Some time, write this as a standalone, for this is dependent of a function
-    #    # of pre-computed variables
-    #    # Evaluate the function on all but one segment (i.e. all bins but one)
-    #    C0 = np.zeros((stat_temps, stat_hfields))
-    #    Cs = np.zeros((nb-nb_drop, stat_temps, stat_hfields))
-    #    
-    #    
-    #    for resid, t in enumerate(stat_temps):
-    #        Ch = []
-    #        T = temperatures[t]
-    #        for reshid, h in enumerate(stat_hfields):
-    #            Ch.append(numsites * (t_h_MeanEsq[resid][reshid] -
-    #                                  t_h_MeanE[resid][reshid] ** 2) / T ** 2)
-    #        C.append(Ch)
-    #    
-    #    #
-    #    
         
+        # This below can still be made much more efficient but definitely not my priority right now
+        
+        ErrC = np.zeros((nt, nh))
+        if nt == len(temperatures):
+            Mean_VarE = np.zeros((nt, nh))
+            Mean_VarE_Sq = np.zeros((nt, nh))
+            
+            for b in range(nbb_drop,nbb):
+                Mean_VarE += (np.mean(bsth_E[(2**l)*b:(2**l)*(b+1),1,:,:], axis = 0) - 
+                                  np.mean(bsth_E[(2**l)*b:(2**l)*(b+1),0,:,:], axis = 0) ** 2)
+                Mean_VarE_Sq += ((np.mean(bsth_E[(2**l)*b:(2**l)*(b+1),1,:,:], axis = 0) -
+                                      np.mean(bsth_E[(2**l)*b:(2**l)*(b+1),0,:,:], axis = 0) ** 2) ** 2)
+            
+            Mean_VarE = Mean_VarE/(nbb - nbb_drop)
+            Mean_VarE_Sq = Mean_VarE_Sq/(nbb - nbb_drop)
+            assert(np.all(Mean_VarE_Sq - Mean_VarE ** 2 >= -1e-15))
+            ErrC = ((numsites) * np.sqrt((Mean_VarE_Sq - Mean_VarE ** 2)/(nbb - nbb_drop-1)))/(np.array(temperatures)[:,np.newaxis] ** 2)
+            
+        else:
+            for resid, t in enumerate(stat_temps):
+                T = temperatures[t]
+                ErrCh = np.zeros(nh)
+                for reshid, h in enumerate(stat_hfields):
+
+                    Mean_VarE = 0
+                    Mean_VarE_Sq = 0
+                    
+                    
+                    for b in range(nbb_drop,nbb):
+                        Mean_VarE += (np.mean(bsth_E[(2**l)*b:(2**l)*(b+1),1,resid,reshid], axis = 0) - 
+                                          np.mean(bsth_E[(2**l)*b:(2**l)*(b+1),0,resid,reshid], axis = 0) ** 2)/(nbb - nbb_drop)
+                        Mean_VarE_Sq += ((np.mean(bsth_E[(2**l)*b:(2**l)*(b+1),1,resid,reshid], axis = 0) -
+                                              np.mean(bsth_E[(2**l)*b:(2**l)*(b+1),0,resid,reshid], axis = 0) ** 2) ** 2)/(nbb - nbb_drop)
+
+                    Mean_VarE = Mean_VarE/(nbb - nbb_drop)
+                    Mean_VarE_Sq = Mean_VarE_Sq/(nbb - nbb_drop)
+                    if (Mean_VarE_Sq - Mean_VarE ** 2 >= 0) :
+                        ErrCh[reshid] = ((numsites / (T ** 2)) * np.sqrt((Mean_VarE_Sq 
+                                                                   - Mean_VarE ** 2)/(nbb - nbb_drop-1)))
+                    else:
+                        assert(Mean_VarE_Sq - Mean_VarE ** 2 >= -1e-15)
+
+                ErrC[resid,:] = ErrCh
+         
+    else:
+        print("Jackknife analysis -- binning level: ", l, " -- number of bins: ", nbb-nbb_drop)
+        # Some time, write this as a standalone, for this is dependent of a function
+        # of pre-computed variables
+        # Evaluate the function on all but one segment (i.e. all bins but one), at the requested binning level
+        # 1- evaluate on all bins
+        C = np.zeros((nt, nh))
+        ErrC = np.zeros((nt, nh))
+        C0 = np.zeros((nt, nh))
+        
+        # Estimator of the specific heat:
+        if nt == len(temperatures):
+            C0 = numsites * ((t_h_MeanEsq- t_h_MeanE **2)/ (np.array(temperatures)[:,np.newaxis] ** 2))
+        else:
+            for resid, t in enumerate(stat_temps):
+                C0[t,:] = numsites * ((t_h_MeanEsq[t,:]- t_h_MeanE[t,:] **2)/ (temperatures[t] ** 2))
+        # 2 - for each bin, evaluate on all but this bin
+         
+        Cs = np.zeros((nbb-nbb_drop, nt, nh))
+        #   load
+        bsth_E = hkl.load(backup+"_"+name+"_final.hkl")
+        Cs = np.zeros((nbb-nbb_drop, nt, nh))
+        for b in range(nbb-nbb_drop):
+            #print("b: ", b, " 2**l: ", 2**l)
+            
+            mE= np.mean(np.delete(bsth_E[:,0,:,:], np.arange((2**l)*(b+nbb_drop),(2**l)*(b+nbb_drop+1)), axis = 0), axis = 0) # mean over all but 1 bin
+            mESq = np.mean(np.delete(bsth_E[:,1,:,:], np.arange((2**l)*(b+nbb_drop),(2**l)*(b+nbb_drop+1)), axis = 0), axis = 0)
+            
+            if nt == len(temperatures):
+                # shape: nbb, nt, nh
+                Cs[b,:,:] =  numsites * ((mESq- mE **2)/ (np.array(temperatures)[:, np.newaxis] ** 2))
+            else:
+                for resid, t in enumerate(stat_temps):
+                    Cs[b,resid,:] = numsites * ((mESq[t,:]- mE[t,:] **2)/ (temperatures[t] ** 2))
+              
+        # 3 - Compute C
+        Cdot = np.mean(Cs, axis = 0);
+        
+        print("Cdot ", Cdot[0])
+        print("C0", C0[0])
+        C = C0 - (nbb - nbb_drop - 1)*(Cdot - C0)
+        if not np.all(np.abs(C - C0)<1e-7):
+            warnings.warn("Significant disagreement on C")
+        
+            plt.figure()
+            plt.semilogx(temperatures, C0[:,0], label = 'C0')
+            plt.semilogx(temperatures, Cdot[:,0], label = 'Cdot')
+            plt.plot(temperatures, C[:,0], label = 'C')
+            plt.legend()
+            plt.show()
+
+
+            plt.figure()
+            plt.semilogx(temperatures, C0[:,0]-Cdot[:,0], label = 'C0 - Cdot')
+            plt.semilogx(temperatures, C[:,0]-C0[:,0], label = 'C - C0')
+            plt.legend()
+            plt.show()
+        
+        
+        # 4 - Compute the statistical error on C:
+        print("Cs.shape : ", Cs.shape)
+        print("Cdot : ", Cdot.shape)
+        print("Cs-Cdot shape:", (Cs - Cdot).shape)
+        VarEstimC = np.mean((Cs-Cdot)**2, axis = 0)
+        ErrC = np.sqrt((nbb - nbb_drop - 1)*VarEstimC)
+        print("Shape of ErrC : ", ErrC.shape)
+        #print(ErrC)
 
     # end of the jackknife implementation
     RS = kwargs.get('RS', False)
     if RS and not mergeruns: # if mergeruns, will be computed on average C
         S0 = kwargs.get('S0', np.log(2))
         
-        DeltaSmin = np.zeros((len(stat_temps), len(stat_hfields)))
-        DeltaS = np.zeros((len(stat_temps), len(stat_hfields)))
-        DeltaSmax = np.zeros((len(stat_temps), len(stat_hfields)))
+        DeltaSmin = np.zeros((nt, nh))
+        DeltaS = np.zeros((nt, nh))
+        DeltaSmax = np.zeros((nt, nh))
             
         Carray = np.array(C)
         CoverT = np.copy(Carray)
         CminoverT = np.copy(np.array(C - ErrC))
         CmaxoverT = np.copy(np.array(C + ErrC))
-        for tid in range(len(stat_temps)):
+        for tid in range(nt):
             CminoverT[tid,:]= CminoverT[tid,:]/temperatures[tid]
             CoverT[tid,:]= Carray[tid,:]/temperatures[tid]
             CmaxoverT[tid,:]= CmaxoverT[tid,:]/temperatures[tid]
         #going through the temperatures in decreasing order
-        for tid in range(len(stat_temps)-2, -1, -1):
+        for tid in range(nt-2, -1, -1):
             for hid, h in enumerate(stat_hfields):
                 DeltaSmin[tid,hid] =                DeltaSmin[tid+1,hid] + np.trapz(CminoverT[tid:tid+2, hid],
                            temperatures[tid:tid+2])
@@ -743,9 +824,9 @@ def LoadEnergyFromFile(foldername, filename, numsites, nb, stat_temps,
                 DeltaSmax[tid,hid] =                DeltaSmax[tid+1,hid] + np.trapz(CmaxoverT[tid:tid+2, hid],
                            temperatures[tid:tid+2])
 
-        t_h_Smin = S0*np.ones((len(stat_temps), len(stat_hfields))) - DeltaSmax;
-        t_h_S = S0*np.ones((len(stat_temps), len(stat_hfields))) - DeltaS;
-        t_h_Smax = S0*np.ones((len(stat_temps), len(stat_hfields))) - DeltaSmin;
+        t_h_Smin = S0*np.ones((nt, nh)) - DeltaSmax;
+        t_h_S = S0*np.ones((nt, nh)) - DeltaS;
+        t_h_Smax = S0*np.ones((nt, nh)) - DeltaSmin;
     else:
         t_h_Smin = []
         t_h_S = []
