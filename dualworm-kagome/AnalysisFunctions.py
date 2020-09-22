@@ -409,7 +409,7 @@ def LoadUpdatesFromFile(foldername, filename, nb, num_in_bin, size):
     meas = hkl.load(backup, path = "/results/measurements")
     failedupdates = meas['failedupdates']
     failedssfupdates = meas['failedssfupdates']
-    failedupdates = failedupdates/nsteps
+    failedupdates = failedupdates/(measperiod*nsms)
     failedssfupdates = failedssfupdates/(nsteps*size)
     
     
@@ -558,6 +558,8 @@ def LoadEnergy(foldername, filenamelist, numsites,
     t_h_S = [[] for _ in range(n)]
     t_h_Smin = [[] for _ in range(n)]
     t_h_Smax = [[] for _ in range(n)]
+    t_h_VarE= [[] for _ in range(n)]
+    t_h_ErrVarE= [[] for _ in range(n)]
     C = [[] for _ in range(n)]
     ErrC = [[] for _ in range(n)]
     
@@ -568,7 +570,7 @@ def LoadEnergy(foldername, filenamelist, numsites,
         if 'Energy' in listfunctions[nf]:
             idfunc = listfunctions[nf].index('Energy')
             [t_h_MeanE[nf], t_h_MeanEsq[nf], t_h_varMeanE[nf], t_h_varMeanEsq[nf],
-             C[nf], ErrC[nf], t_h_S[nf], t_h_Smin[nf], t_h_Smax[nf]] = \
+             t_h_VarE[nf], t_h_ErrVarE[nf], C[nf], ErrC[nf], t_h_S[nf], t_h_Smin[nf], t_h_Smax[nf]] = \
                 LoadEnergyFromFile(foldername, filename, numsites[nf], nb[nf], stat_temps[nf],
                                    temperatures[nf], stat_hfields[nf], idfunc, **kwargs)
         else:
@@ -645,7 +647,7 @@ def LoadEnergy(foldername, filenamelist, numsites,
         [Merged_t_h_varMeanE], [Merged_t_h_varMeanEsq],
         [Merged_C],[Merged_ErrC], [Merged_t_h_S],[Merged_t_h_Smin],
         [Merged_t_h_Smax]]
-    return t_h_MeanE, t_h_MeanEsq, t_h_varMeanE, t_h_varMeanEsq, C, ErrC,            t_h_S, t_h_Smin, t_h_Smax, MergedData
+    return t_h_MeanE, t_h_MeanEsq, t_h_varMeanE, t_h_varMeanEsq,  t_h_VarE, t_h_ErrVarE,C, ErrC,            t_h_S, t_h_Smin, t_h_Smax, MergedData
 
 
 # In[ ]:
@@ -672,61 +674,70 @@ def LoadEnergyFromFile(foldername, filename, numsites, nb, stat_temps,
     t_h_MeanEsq, t_h_varMeanEsq =    ExtractStatistics(backup, idfunc, name, nb,
                       stat_temps, stat_hfields, sq = 1, **kwargs)
 
+    
     if not jackknife: # aim is to win a bit of time for quick overviews
         print("No jackknife analysis -- binning level: ", l, " -- number of bins: ", nbb-nbb_drop)
         bsth_E = hkl.load(backup+"_"+name+"_final.hkl")
         C = np.zeros((nt, nh))
+        VarE = (t_h_MeanEsq - t_h_MeanE**2)*((nbb - nbb_drop)/(nbb-nbb_drop-1)) # unbiased estimator
         
         if nt == len(temperatures):
-            C = numsites * (t_h_MeanEsq- t_h_MeanE **2)/ (np.array(temperatures)[:,np.newaxis] ** 2)
+            
+            C = numsites * (VarE/ (np.array(temperatures)[:,np.newaxis] ** 2))
         else:
             for resid, t in enumerate(stat_temps):
-                C[resid,:] = numsites * (t_h_MeanEsq[t,:]- t_h_MeanE[t,:] **2)/ (temperatures[t] ** 2)
+                C[resid,:] = numsites * (VarE[t,:]/ (temperatures[t] ** 2))
 
+        if np.any(VarE < 0) :
+            err = np.max(np.abs(VarE - np.abs(VarE)))/2
+            warnings.warn("Negative variances num error: %E" % err)
+            # set to zero
+            C[C<0] = 0
+            VarE[VarE<0] = 0
         print(bsth_E.shape)
         
         # This below can still be made much more efficient but definitely not my priority right now
-        
+        ErrVarE = np.zeros((nt, nh))
         ErrC = np.zeros((nt, nh))
         if nt == len(temperatures):
-            Mean_VarE = np.zeros((nt, nh))
-            Mean_VarE_Sq = np.zeros((nt, nh))
+            Sum_VarE = np.zeros((nt, nh))
+            Sum_VarE_Sq = np.zeros((nt, nh))
             
             for b in range(nbb_drop,nbb):
-                Mean_VarE += (np.mean(bsth_E[(2**l)*b:(2**l)*(b+1),1,:,:], axis = 0) - 
+                Sum_VarE += (np.mean(bsth_E[(2**l)*b:(2**l)*(b+1),1,:,:], axis = 0) - 
                                   np.mean(bsth_E[(2**l)*b:(2**l)*(b+1),0,:,:], axis = 0) ** 2)
-                Mean_VarE_Sq += ((np.mean(bsth_E[(2**l)*b:(2**l)*(b+1),1,:,:], axis = 0) -
+                Sum_VarE_Sq += ((np.mean(bsth_E[(2**l)*b:(2**l)*(b+1),1,:,:], axis = 0) -
                                       np.mean(bsth_E[(2**l)*b:(2**l)*(b+1),0,:,:], axis = 0) ** 2) ** 2)
             
-            Mean_VarE = Mean_VarE/(nbb - nbb_drop)
-            Mean_VarE_Sq = Mean_VarE_Sq/(nbb - nbb_drop)
-            assert(np.all(Mean_VarE_Sq - Mean_VarE ** 2 >= -1e-15))
-            ErrC = ((numsites) * np.sqrt((Mean_VarE_Sq - Mean_VarE ** 2)/(nbb - nbb_drop-1)))/(np.array(temperatures)[:,np.newaxis] ** 2)
+            
+            assert(np.all(Sum_VarE_Sq/(nbb-nbb_drop) - (Sum_VarE/(nbb-nbb_drop)) ** 2 >= -1e-15))
+            ErrVarE = np.sqrt(((nbb-nbb_drop)/(nbb-nbb_drop-1)**3)*Sum_VarE_Sq - 1/(nbb-nbb_drop-1)**3 * Sum_VarE**2)
+            ErrC = ((numsites) * ErrVarE)/(np.array(temperatures)[:,np.newaxis] ** 2)
             
         else:
             for resid, t in enumerate(stat_temps):
                 T = temperatures[t]
                 ErrCh = np.zeros(nh)
+                ErrVarEh = np.zeros(nh)
                 for reshid, h in enumerate(stat_hfields):
 
-                    Mean_VarE = 0
-                    Mean_VarE_Sq = 0
+                    Sum_VarE = 0
+                    Sum_VarE_Sq = 0
                     
                     
                     for b in range(nbb_drop,nbb):
-                        Mean_VarE += (np.mean(bsth_E[(2**l)*b:(2**l)*(b+1),1,resid,reshid], axis = 0) - 
-                                          np.mean(bsth_E[(2**l)*b:(2**l)*(b+1),0,resid,reshid], axis = 0) ** 2)/(nbb - nbb_drop)
-                        Mean_VarE_Sq += ((np.mean(bsth_E[(2**l)*b:(2**l)*(b+1),1,resid,reshid], axis = 0) -
-                                              np.mean(bsth_E[(2**l)*b:(2**l)*(b+1),0,resid,reshid], axis = 0) ** 2) ** 2)/(nbb - nbb_drop)
+                        Sum_VarE += (np.mean(bsth_E[(2**l)*b:(2**l)*(b+1),1,resid,reshid], axis = 0) - 
+                                          np.mean(bsth_E[(2**l)*b:(2**l)*(b+1),0,resid,reshid], axis = 0) ** 2)
+                        Sum_VarE_Sq += ((np.mean(bsth_E[(2**l)*b:(2**l)*(b+1),1,resid,reshid], axis = 0) -
+                                              np.mean(bsth_E[(2**l)*b:(2**l)*(b+1),0,resid,reshid], axis = 0) ** 2) ** 2)
 
-                    Mean_VarE = Mean_VarE/(nbb - nbb_drop)
-                    Mean_VarE_Sq = Mean_VarE_Sq/(nbb - nbb_drop)
                     if (Mean_VarE_Sq - Mean_VarE ** 2 >= 0) :
-                        ErrCh[reshid] = ((numsites / (T ** 2)) * np.sqrt((Mean_VarE_Sq 
-                                                                   - Mean_VarE ** 2)/(nbb - nbb_drop-1)))
+                        ErrVarEh[reshid] = np.sqrt(((nbb-nbb_drop)/(nbb-nbb_drop-1)**3)*Sum_VarE_Sq - 1/(nbb-nbb_drop-1)**3 * Sum_VarE**2)
+                        ErrCh[reshid] = (numsites / (T ** 2)) * ErrVarEh
                     else:
                         assert(Mean_VarE_Sq - Mean_VarE ** 2 >= -1e-15)
 
+                ErrVarE[resid, :] = ErrVarEh
                 ErrC[resid,:] = ErrCh
          
     else:
@@ -735,22 +746,27 @@ def LoadEnergyFromFile(foldername, filename, numsites, nb, stat_temps,
         # of pre-computed variables
         # Evaluate the function on all but one segment (i.e. all bins but one), at the requested binning level
         # 1- evaluate on all bins
+        VarE = np.zeros((nt, nh))
+        ErrVarE = np.zeros((nt, nh))
+        VarE0 = np.zeros((nt, nh))
+        
         C = np.zeros((nt, nh))
         ErrC = np.zeros((nt, nh))
         C0 = np.zeros((nt, nh))
         
         # Estimator of the specific heat:
         if nt == len(temperatures):
-            C0 = numsites * ((t_h_MeanEsq- t_h_MeanE **2)/ (np.array(temperatures)[:,np.newaxis] ** 2))
+            VarE0 = (t_h_MeanEsq - t_h_MeanE**2)
+            C0 = numsites * (VarE0/ (np.array(temperatures)[:,np.newaxis] ** 2))
         else:
             for resid, t in enumerate(stat_temps):
-                C0[t,:] = numsites * ((t_h_MeanEsq[t,:]- t_h_MeanE[t,:] **2)/ (temperatures[t] ** 2))
+                C0[t,:] = numsites * (VarE0[t,:]/ (temperatures[t] ** 2))
         # 2 - for each bin, evaluate on all but this bin
          
+        VarEs = np.zeros((nbb-nbb_drop, nt, nh))
         Cs = np.zeros((nbb-nbb_drop, nt, nh))
         #   load
         bsth_E = hkl.load(backup+"_"+name+"_final.hkl")
-        Cs = np.zeros((nbb-nbb_drop, nt, nh))
         for b in range(nbb-nbb_drop):
             #print("b: ", b, " 2**l: ", 2**l)
             
@@ -759,16 +775,21 @@ def LoadEnergyFromFile(foldername, filename, numsites, nb, stat_temps,
             
             if nt == len(temperatures):
                 # shape: nbb, nt, nh
-                Cs[b,:,:] =  numsites * ((mESq- mE **2)/ (np.array(temperatures)[:, np.newaxis] ** 2))
+                VarEs[b,:,:] =  (mESq- mE **2)
+                Cs[b,:,:] =  numsites * (VarEs[b,:,:]/ (np.array(temperatures)[:, np.newaxis] ** 2))
             else:
                 for resid, t in enumerate(stat_temps):
-                    Cs[b,resid,:] = numsites * ((mESq[t,:]- mE[t,:] **2)/ (temperatures[t] ** 2))
+                    VarEs[b,resid,:]=(mESq[t,:]- mE[t,:] **2)
+                    Cs[b,resid,:] = numsites * (VarEs[b,resid,:]/ (temperatures[t] ** 2))
               
         # 3 - Compute C
+        VarEdot = np.mean(VarEs,axis = 0)
         Cdot = np.mean(Cs, axis = 0);
         
         print("Cdot ", Cdot[0])
         print("C0", C0[0])
+        
+        VarE = VarE0 - (nbb - nbb_drop - 1)*(VarEdot - VarE0)
         C = C0 - (nbb - nbb_drop - 1)*(Cdot - C0)
         if not np.all(np.abs(C - C0)<1e-7):
             warnings.warn("Significant disagreement on C")
@@ -792,8 +813,11 @@ def LoadEnergyFromFile(foldername, filename, numsites, nb, stat_temps,
         print("Cs.shape : ", Cs.shape)
         print("Cdot : ", Cdot.shape)
         print("Cs-Cdot shape:", (Cs - Cdot).shape)
+        
+        VarEstimVarE = np.mean((VarEs-VarEdot)**2, axis = 0)
+        ErrVarE = np.sqrt((nbb - nbb_drop - 1)*VarEstimVarE)
         VarEstimC = np.mean((Cs-Cdot)**2, axis = 0)
-        ErrC = np.sqrt((nbb - nbb_drop - 1)*VarEstimC)
+        ErrC = np.sqrt((nbb - nbb_drop - 1)*VarEstimC) # check this!
         print("Shape of ErrC : ", ErrC.shape)
         #print(ErrC)
 
@@ -832,7 +856,7 @@ def LoadEnergyFromFile(foldername, filename, numsites, nb, stat_temps,
         t_h_S = []
         t_h_Smax = []
     
-    return t_h_MeanE, t_h_MeanEsq, t_h_varMeanE, t_h_varMeanEsq,            C, ErrC, t_h_S, t_h_Smin, t_h_Smax
+    return t_h_MeanE, t_h_MeanEsq, t_h_varMeanE, t_h_varMeanEsq,            VarE, ErrVarE, C, ErrC, t_h_S, t_h_Smin, t_h_Smax
 
 
 # In[ ]:
@@ -1698,7 +1722,7 @@ def BasicPlotsE(L, i, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
 
 def BulkPlotsE(L, n, hid, tidmin, tidmax, temperatures_plots, foldername,
                 results_foldername, filenamelist, t_h_MeanE, t_h_MeanEsq, t_h_varMeanE,
-                t_h_varMeanEsq, C, ErrC, J1, J2, J3, J4, t_h_S, t_h_Smin, t_h_Smax, **kwargs):
+                t_h_varMeanEsq, t_h_VarE, t_h_ErrVarE, C, ErrC, J1, J2, J3, J4, t_h_S, t_h_Smin, t_h_Smax, **kwargs):
     
     margin = [0.15, 0.15, 0.02, 0.1]
     addsave = kwargs.get('addsave', "")
@@ -1731,7 +1755,24 @@ def BulkPlotsE(L, n, hid, tidmin, tidmax, temperatures_plots, foldername,
             
     plt.figure(figsize=figsize, dpi=300)
     plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
-
+    for i in range(n):
+        plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]],
+                     t_h_VarE[i][tidmin:tidmax[i]][:,hid],
+                     '.', markersize=markersize, label = r'$it$ = {0}'.format(i))
+        plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]],
+                     t_h_VarE[i][tidmin:tidmax[i]][:,hid]- t_h_ErrVarE[i][tidmin:tidmax[i]][:,hid],
+                     t_h_VarE[i][tidmin:tidmax[i]][:,hid]+ t_h_ErrVarE[i][tidmin:tidmax[i]][:,hid],    
+                     alpha = alpha)
+    plt.xlabel(r'$T$ ')
+    plt.ylabel(r'Var($E$)')
+    plt.grid(which = 'both', linestyle = '--', alpha = 0.3)
+    if put_legend:
+        plt.legend(loc= loc, ncol = ncol, framealpha=0.5)
+    plt.savefig('./' + foldername  + results_foldername+ '/VarianceE'+addsave+'.pdf')
+    plt.savefig('./' + foldername  + results_foldername+ '/VarianceE'+addsave+'.png')
+        
+    plt.figure(figsize=figsize, dpi=300)
+    plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
     for i in range(n):
         C[i] = np.array(C[i])
         ErrC[i] = np.array(ErrC[i])
@@ -1784,7 +1825,8 @@ def BulkPlotsE(L, n, hid, tidmin, tidmax, temperatures_plots, foldername,
 
     plt.figure(figsize=figsize, dpi=300)
     plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
-
+    plt.plot([temperatures_plots[0][tidmin],temperatures_plots[0][tidmax[0]-1]], [np.log(2), np.log(2)], '--')
+    plt.gca().set_prop_cycle(None)
     for i in range(n):
         #col = [0 + i/n, (1 - i/n)**2, 1 - i/n]
         plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]],
@@ -1822,7 +1864,7 @@ def BulkPlotsE(L, n, hid, tidmin, tidmax, temperatures_plots, foldername,
                          )/temperatures_plots[i][tidmin:tidmax[i]],\
                          alpha = alpha)
     plt.xlabel(r'$T$ ')
-    plt.xlim([0,40])
+    plt.xlim([0,None])
     plt.ylabel(r'$\frac{c}{T}$')
     plt.grid(which = 'both', linestyle = '--', alpha = 0.3)
     if put_legend:
@@ -1833,7 +1875,9 @@ def BulkPlotsE(L, n, hid, tidmin, tidmax, temperatures_plots, foldername,
 
     plt.figure(figsize=figsize, dpi=300)
     plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
-
+    plt.plot([0,temperatures_plots[0][tidmax[0]-1]], [np.log(2), np.log(2)], '--')
+    
+    plt.gca().set_prop_cycle(None)
     for i in range(n):
         C[i] = np.array(C[i])
         ErrC[i] = np.array(ErrC[i])
@@ -1846,9 +1890,8 @@ def BulkPlotsE(L, n, hid, tidmin, tidmax, temperatures_plots, foldername,
                          t_h_Smax[i][tidmin:tidmax[i]][:,hid],\
                          alpha = alpha)
 
-    plt.plot([0, 40], [np.log(2), np.log(2)], '--')
     plt.xlabel(r'$T$ ')
-    plt.xlim([0,40])
+    plt.xlim([0,temperatures_plots[0][tidmax[0]-1]])
     plt.ylim([0,0.7])
     plt.ylabel(r'$S$')
     plt.grid(which = 'both', linestyle = '--', alpha = 0.3)
