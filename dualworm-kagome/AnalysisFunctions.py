@@ -409,6 +409,7 @@ def LoadUpdatesFromFile(foldername, filename, nb, num_in_bin, size):
     meas = hkl.load(backup, path = "/results/measurements")
     failedupdates = meas['failedupdates']
     failedssfupdates = meas['failedssfupdates']
+    print(failedssfupdates)
     failedupdates = failedupdates/(measperiod*nsms)
     failedssfupdates = failedssfupdates/(nsteps*size)
     
