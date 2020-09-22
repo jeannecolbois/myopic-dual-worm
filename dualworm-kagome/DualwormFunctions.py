@@ -1131,6 +1131,7 @@ def mcs_swaps(states, spinstates, statesen,
     
     ## Iterate
     itermcs = nb*num_in_bin*measperiod
+    print("ncores = ", ncores)
     print("itermcs = ", itermcs)
     print("iterreplicas = ", nrps)
     print("ssf = ", ssf)
