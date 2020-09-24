@@ -713,6 +713,10 @@ def LoadEnergyFromFile(foldername, filename, numsites, nb, stat_temps,
             
             assert(np.all(Sum_VarE_Sq/(nbb-nbb_drop) - (Sum_VarE/(nbb-nbb_drop)) ** 2 >= -1e-15))
             ErrVarE = np.sqrt(((nbb-nbb_drop)/(nbb-nbb_drop-1)**3)*Sum_VarE_Sq - 1/(nbb-nbb_drop-1)**3 * Sum_VarE**2)
+            # Momentaneously: we want the variance of the population, and not the error on the mean, because we expect it
+            # could be shifted...
+            #ErrVarE = np.sqrt(((nbb-nbb_drop)/(nbb-nbb_drop-1)**2)*Sum_VarE_Sq - 1/(nbb-nbb_drop-1)**2 * Sum_VarE**2)
+            
             ErrC = ((numsites) * ErrVarE)/(np.array(temperatures)[:,np.newaxis] ** 2)
             
         else:
@@ -1826,7 +1830,8 @@ def BulkPlotsE(L, n, hid, tidmin, tidmax, temperatures_plots, foldername,
 
     plt.figure(figsize=figsize, dpi=300)
     plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
-    plt.plot([temperatures_plots[0][tidmin],temperatures_plots[0][tidmax[0]-1]], [np.log(2), np.log(2)], '--')
+    if n == 1:
+        plt.plot([temperatures_plots[0][tidmin],temperatures_plots[0][tidmax[0]-1]], [np.log(2), np.log(2)], '--')
     plt.gca().set_prop_cycle(None)
     for i in range(n):
         #col = [0 + i/n, (1 - i/n)**2, 1 - i/n]
@@ -1839,7 +1844,8 @@ def BulkPlotsE(L, n, hid, tidmin, tidmax, temperatures_plots, foldername,
                          alpha = alpha)
     plt.xlabel(r'$T$ ')
     plt.ylabel(r'$S$')
-    plt.ylim([0,0.7])
+    if n == 1:
+        plt.ylim([0,0.7])
     plt.grid(which = 'both', linestyle = '--', alpha = 0.3)
     if put_legend:
         plt.legend(loc= loc, ncol = ncol, framealpha=0.5)
