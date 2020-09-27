@@ -88,8 +88,11 @@ def LoadParameters(foldername, filenamelist, **kwargs):
     
         
     merge = kwargs.get('mergeruns', False)
+    pair = kwargs.get('pairruns', False)
     if merge:
         okformerge = True
+    if pair:
+        okforpair = True
     for nf, filename in enumerate(filenamelist):
         [L[nf], numsites[nf], J1[nf], J2[nf], J3[nf], J3st[nf], J4[nf], nb[nf], 
          num_in_bin[nf], htip[nf], Ttip[nf], pswitch[nf],uponly[nf], path[nf],
@@ -107,7 +110,18 @@ def LoadParameters(foldername, filenamelist, **kwargs):
             if not test:
                 okformerge = False
                 raise Exception(" You required merging the runs but run 0 and " + nf + "are not compatible")
-                
+        if pair and nf > 0 and (nf-1)%2 == 0:
+            test = (L[nf] == L[nf-1] and
+                    J1[nf] == J1[nf-1] and J2[nf] == J2[nf-1] and 
+                    J3[nf] == J3[nf-1] and J3st[nf] == J3st[nf-1] and 
+                    J4[nf] == J4[nf-1] and 
+                    htip[nf] == htip[nf-1] and Ttip[nf] == Ttip[nf-1] and
+                    pswitch[nf] == pswitch[nf-1] and uponly[nf] == uponly[nf-1] and
+                    temperatures[nf] == temperatures[nf-1]);
+            if not test:
+                okformerge = False
+                raise Exception(" You required pairing the runs but runs "+ nf-1 +" and " + nf + "are not compatible")
+           
     return L, numsites, J1, J2, J3, J3st, J4, nb, num_in_bin,             htip, Ttip, pswitch, uponly, path,             temperatures, nt,             stat_temps, temperatures_plots, hfields, nh,             stat_hfields, hfields_plots, listfunctions, sref, ids2walker
 
 
@@ -546,6 +560,7 @@ def LoadEnergy(foldername, filenamelist, numsites,
                nb, stat_temps, temperatures, stat_hfields,
                listfunctions, **kwargs):
     mergeruns = kwargs.get('mergeruns', False)
+    pair = kwargs.get('pairruns', False)
     RS = kwargs.get('RS', False)
     if RS:
         S0 = kwargs.get('S0', np.log(2))
@@ -581,11 +596,86 @@ def LoadEnergy(foldername, filenamelist, numsites,
             [[],[],[],[],[],[],[],[],[]]
      
 
+    
+    
+    if pair and not mergeruns: # otherwise directly merge
+        # Recompute averages
+        pair_t_h_MeanE = [[] for _ in range(n//2)]
+        pair_t_h_MeanEsq = [[] for _ in range(n//2)]
+        pair_t_h_varMeanE = [[] for _ in range(n//2)]
+        pair_t_h_varMeanEsq = [[] for _ in range(n//2)]
+        pair_t_h_S = [[] for _ in range(n//2)]
+        pair_t_h_Smin = [[] for _ in range(n//2)]
+        pair_t_h_Smax = [[] for _ in range(n//2)]
+        pair_t_h_VarE= [[] for _ in range(n//2)]
+        pair_t_h_ErrVarE= [[] for _ in range(n//2)]
+        pair_C = [[] for _ in range(n//2)]
+        pair_ErrC = [[] for _ in range(n//2)]
+    
+        for nf in range(n//2):
+            pair_t_h_MeanE[nf]= (t_h_MeanE[2*nf] + t_h_MeanE[2*nf+1])/2
+            pair_t_h_MeanEsq[nf]= (t_h_MeanEsq[2*nf] + t_h_MeanEsq[2*nf+1])/2
+            pair_C[nf] = (C[2*nf] + C[2*nf+1])/2
+            pair_t_h_VarE[nf] =  (t_h_VarE[2*nf]+t_h_VarE[2*nf+1])/2
+            
+            pair_t_h_varMeanE[nf] = (t_h_varMeanE[2*nf]+t_h_varMeanE[2*nf+1])/2
+            pair_t_h_varMeanEsq[nf] = (t_h_varMeanEsq[2*nf]+t_h_varMeanEsq[2*nf+1])/2
+            pair_ErrC[nf] =  (ErrC[2*nf] + ErrC[2*nf+1])/2
+            pair_t_h_ErrVarE[nf] =  (t_h_ErrVarE[2*nf] + t_h_ErrVarE[2*nf+1])/2
+            
+            if RS: # if pair, we compute on average C
+                S0 = kwargs.get('S0', np.log(2))
+
+                DeltaSmin = np.zeros((len(stat_temps[0]), len(stat_hfields[0])))
+                DeltaS = np.zeros((len(stat_temps[0]), len(stat_hfields[0])))
+                DeltaSmax = np.zeros((len(stat_temps[0]), len(stat_hfields[0])))
+
+
+                CoverT = np.copy(pair_C[nf])
+                CminoverT = np.copy(pair_C[nf] - pair_ErrC[nf])
+                CmaxoverT = np.copy(pair_C[nf] + pair_ErrC[nf])
+
+                for tid in range(len(stat_temps[0])):
+                    CminoverT[tid,:]= CminoverT[tid,:]/temperatures[2*nf][tid]
+                    CoverT[tid,:]= CoverT[tid,:]/temperatures[2*nf][tid]
+                    CmaxoverT[tid,:]= CmaxoverT[tid,:]/temperatures[2*nf][tid]
+                #going through the temperatures in decreasing order
+                for tid in range(len(stat_temps[0])-2, -1, -1):
+                    for hid, h in enumerate(stat_hfields[0]):
+                        DeltaSmin[tid,hid] =                        DeltaSmin[tid+1,hid] + np.trapz(CminoverT[tid:tid+2, hid],
+                                   temperatures[0][tid:tid+2])
+                        DeltaS[tid,hid] =                        DeltaS[tid+1,hid] + np.trapz(CoverT[tid:tid+2, hid],
+                                   temperatures[0][tid:tid+2])
+                        DeltaSmax[tid,hid] =                        DeltaSmax[tid+1,hid] + np.trapz(CmaxoverT[tid:tid+2, hid],
+                                   temperatures[0][tid:tid+2])
+
+                pair_t_h_Smin[nf] = S0*np.ones((len(stat_temps[0]), len(stat_hfields[0]))) - DeltaSmax;
+                pair_t_h_S[nf] = S0*np.ones((len(stat_temps[0]), len(stat_hfields[0]))) - DeltaS;
+                pair_t_h_Smax[nf] = S0*np.ones((len(stat_temps[0]), len(stat_hfields[0]))) - DeltaSmin;
+
+            
+            print("pair_t_h_S[0].shape: ",pair_t_h_S[0].shape)
+        t_h_MeanE = pair_t_h_MeanE 
+        t_h_MeanEsq = pair_t_h_MeanEsq
+        t_h_varMeanE = pair_t_h_varMeanE
+        t_h_varMeanEsq = pair_t_h_varMeanEsq
+        t_h_S = pair_t_h_S
+        t_h_Smin = pair_t_h_Smin
+        t_h_Smax = pair_t_h_Smax
+        t_h_VarE= pair_t_h_VarE
+        t_h_ErrVarE= pair_t_h_ErrVarE
+        C = pair_C
+        ErrC = pair_ErrC
+    
+        print("t_h_S[0].shape: ",t_h_S[0].shape)
+    
+    ####
     [Merged_t_h_MeanE, Merged_t_h_MeanEsq, 
     Merged_t_h_varMeanE, Merged_t_h_varMeanEsq,
-    Merged_C, Merged_ErrC, Merged_t_h_S, Merged_t_h_Smin,
+    Merged_t_h_VarE, Merged_t_h_ErrVarE,Merged_C, Merged_ErrC, Merged_t_h_S, Merged_t_h_Smin,
     Merged_t_h_Smax] = \
-    [[],[],[],[],[],[],[],[],[]]
+    [[],[],[],[],[],[],[],[],[],[],[]]
+    
     if mergeruns:
         # Recompute averages
         for nf in range(n):
@@ -593,10 +683,12 @@ def LoadEnergy(foldername, filenamelist, numsites,
                 Merged_t_h_MeanE = np.copy(t_h_MeanE[0])/n
                 Merged_t_h_MeanEsq = np.copy(t_h_MeanEsq[0])/n
                 Merged_C = np.copy(C[0])/n
+                Merged_t_h_VarE = np.copy(t_h_VarE[0])/n
             else:
                 Merged_t_h_MeanE += t_h_MeanE[nf]/n
                 Merged_t_h_MeanEsq += t_h_MeanEsq[nf]/n
                 Merged_C += C[nf]/n
+                Merged_t_h_VarE += t_h_VarE[nf]/n
     
         # Recompute errors
         for nf in range(n):
@@ -604,17 +696,19 @@ def LoadEnergy(foldername, filenamelist, numsites,
                 Merged_t_h_varMeanE = (t_h_MeanE[0]-Merged_t_h_MeanE)**2 / (n*(n-1))
                 Merged_t_h_varMeanEsq = (t_h_MeanEsq[0]-Merged_t_h_MeanEsq)**2 / (n*(n-1))
                 Merged_ErrC =(C[0]-Merged_C)**2 /(n*(n-1))
+                Merged_t_h_ErrVarE = (t_h_VarE[0]-Merged_t_h_VarE)**2 /(n*(n-1))
             else:
                 Merged_t_h_varMeanE += (t_h_MeanE[nf]-Merged_t_h_MeanE)**2 / (n*(n-1))
                 Merged_t_h_varMeanEsq += (t_h_MeanEsq[nf]-Merged_t_h_MeanEsq)**2 / (n*(n-1))
                 Merged_ErrC +=(C[nf]-Merged_C)**2 /(n*(n-1)) ## check if variance or std in normal case!!!
-    
+                Merged_t_h_ErrVarE +=(t_h_VarE[nf]-Merged_t_h_VarE)**2 /(n*(n-1)) ## check if variance or std in normal case!!!
+                
         # So that ErrC is in the right form
 
         Merged_ErrC = np.sqrt(Merged_ErrC)
         
         # Compute S:
-        if RS: # if mergeruns, will be computed on average C
+        if RS: # if mergeruns, we compute on average C
             S0 = kwargs.get('S0', np.log(2))
 
             DeltaSmin = np.zeros((len(stat_temps[0]), len(stat_hfields[0])))
@@ -643,11 +737,16 @@ def LoadEnergy(foldername, filenamelist, numsites,
             Merged_t_h_Smin = S0*np.ones((len(stat_temps[0]), len(stat_hfields[0]))) - DeltaSmax;
             Merged_t_h_S = S0*np.ones((len(stat_temps[0]), len(stat_hfields[0]))) - DeltaS;
             Merged_t_h_Smax = S0*np.ones((len(stat_temps[0]), len(stat_hfields[0]))) - DeltaSmin;
-
+    
     MergedData = [[Merged_t_h_MeanE], [Merged_t_h_MeanEsq], 
-        [Merged_t_h_varMeanE], [Merged_t_h_varMeanEsq],
+        [Merged_t_h_varMeanE], [Merged_t_h_varMeanEsq],[Merged_t_h_VarE],[Merged_t_h_ErrVarE],
         [Merged_C],[Merged_ErrC], [Merged_t_h_S],[Merged_t_h_Smin],
         [Merged_t_h_Smax]]
+    
+    #####
+    
+    
+    
     return t_h_MeanE, t_h_MeanEsq, t_h_varMeanE, t_h_varMeanEsq,  t_h_VarE, t_h_ErrVarE,C, ErrC,            t_h_S, t_h_Smin, t_h_Smax, MergedData
 
 
@@ -658,7 +757,7 @@ def LoadEnergyFromFile(foldername, filename, numsites, nb, stat_temps,
                        temperatures, stat_hfields, idfunc, **kwargs):
     backup = "./"+foldername+filename
     mergeruns = kwargs.get('mergeruns', False)
-    
+    pair = kwargs.get('pairruns', False)
     nt = len(stat_temps)
     nh = len(stat_hfields)
     name = "Energy"
@@ -828,7 +927,7 @@ def LoadEnergyFromFile(foldername, filename, numsites, nb, stat_temps,
 
     # end of the jackknife implementation
     RS = kwargs.get('RS', False)
-    if RS and not mergeruns: # if mergeruns, will be computed on average C
+    if RS and not mergeruns and not pair: # if mergeruns / pair, will be computed on average C
         S0 = kwargs.get('S0', np.log(2))
         
         DeltaSmin = np.zeros((nt, nh))
