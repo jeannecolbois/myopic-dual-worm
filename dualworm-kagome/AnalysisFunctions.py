@@ -472,18 +472,20 @@ def LoadStatesFromFile(foldername, filename, L, nh, **kwargs):
     
     t_h_spinstates = hkl.load(backup+"_spinstates.hkl")
     t_h_states = hkl.load(backup+"_states.hkl")
-    if nh == 1:
-        t_h_charges = np.array([obs.charges(len(s_ijl),[],[],
-                                             spinstate, s_ijl, ijl_s,c2s,
-                                             csign)
-                                 for spinstate in t_h_spinstates])
-    else:
-        t_h_charges = np.array([[obs.charges(len(s_ijl),[],[],
-                                             spinstate, s_ijl, ijl_s,c2s,
-                                             csign)
-                                 for spinstate in h_spinstates]
-                                for h_spinstates in t_h_spinstates])
-        
+    t_h_charges = []
+
+    #if nh == 1:
+    #    t_h_charges = np.array([obs.charges(len(s_ijl),[],[],
+    #                                         spinstate, s_ijl, ijl_s,c2s,
+    #                                         csign)
+    #                             for spinstate in t_h_spinstates])
+    #else:
+    #    t_h_charges = np.array([[obs.charges(len(s_ijl),[],[],
+    #                                         spinstate, s_ijl, ijl_s,c2s,
+    #                                         csign)
+    #                             for spinstate in h_spinstates]
+    #                            for h_spinstates in t_h_spinstates])
+    #    
     return t_h_spinstates, t_h_states, t_h_charges
 
 
@@ -679,6 +681,7 @@ def LoadEnergyFromFile(foldername, filename, numsites, nb, stat_temps,
         print("No jackknife analysis -- binning level: ", l, " -- number of bins: ", nbb-nbb_drop)
         bsth_E = hkl.load(backup+"_"+name+"_final.hkl")
         C = np.zeros((nt, nh))
+        print(t_h_MeanE.shape)
         VarE = (t_h_MeanEsq - t_h_MeanE**2)*((nbb - nbb_drop)/(nbb-nbb_drop-1)) # unbiased estimator
         
         if nt == len(temperatures):
@@ -1254,7 +1257,7 @@ def BasicPlotsFirstCorrelations(L, i, t_h_MeanFc, temperatures_plots, t_h_varMea
                                 foldername, results_foldername, filenamelist, 
                                 tmin = 0, setyticks = None, addtitle = "", addsave = "",
                                 save = True, log = True,
-                                figsize=(11,9), dpi = 200, ax = [],**kwargs):
+                                figsize=(11,9), dpi = 200, ax = [],hid = 0, **kwargs):
     
     createfig = kwargs.get('createfig', True)
     markersize = kwargs.get('markersize', 10)
@@ -1264,36 +1267,36 @@ def BasicPlotsFirstCorrelations(L, i, t_h_MeanFc, temperatures_plots, t_h_varMea
         fig, ax = plt.subplots(1,1,figsize=figsize, dpi = dpi)
     
     if log:
-        ax.semilogx(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,0],'.',markersize = markersize,label = r'$c_1$')
+        ax.semilogx(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,hid,0],'.',markersize = markersize,label = r'$c_1$')
     else:
-        ax.plot(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,0],'.',markersize = markersize,label = r'$c_1$')
+        ax.plot(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,hid,0],'.',markersize = markersize,label = r'$c_1$')
     
     ax.fill_between(temperatures_plots[i][tmin:],
-                    t_h_MeanFc[i][tmin:,0,0]-np.sqrt(t_h_varMeanFc[i][tmin:,0,0]),
-                    t_h_MeanFc[i][tmin:,0,0]+np.sqrt(t_h_varMeanFc[i][tmin:,0,0]), alpha = alpha)
+                    t_h_MeanFc[i][tmin:,hid,0]-np.sqrt(t_h_varMeanFc[i][tmin:,hid,0]),
+                    t_h_MeanFc[i][tmin:,hid,0]+np.sqrt(t_h_varMeanFc[i][tmin:,hid,0]), alpha = alpha)
     if log:
-        ax.semilogx(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,1],'x',markersize = markersize,label = r'$c_2$')
+        ax.semilogx(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,hid,1],'x',markersize = markersize,label = r'$c_2$')
     else: 
-        ax.plot(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,1],'x',markersize = markersize,label = r'$c_2$')
+        ax.plot(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,hid,1],'x',markersize = markersize,label = r'$c_2$')
     
     ax.fill_between(temperatures_plots[i][tmin:],
-                    t_h_MeanFc[i][tmin:,0,1]-np.sqrt(t_h_varMeanFc[i][tmin:,0,1]),
-                    t_h_MeanFc[i][tmin:,0,1]+np.sqrt(t_h_varMeanFc[i][tmin:,0,1]), alpha = alpha)
+                    t_h_MeanFc[i][tmin:,hid,1]-np.sqrt(t_h_varMeanFc[i][tmin:,hid,1]),
+                    t_h_MeanFc[i][tmin:,hid,1]+np.sqrt(t_h_varMeanFc[i][tmin:,hid,1]), alpha = alpha)
     if log:
-        ax.semilogx(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,2],'v',markersize = markersize,label = r'$c_{3||}$')
+        ax.semilogx(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,hid,2],'v',markersize = markersize,label = r'$c_{3||}$')
     else:
-        ax.plot(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,2],'v',markersize = markersize,label = r'$c_{3||}$')
+        ax.plot(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,hid,2],'v',markersize = markersize,label = r'$c_{3||}$')
     ax.fill_between(temperatures_plots[i][tmin:],
-                    t_h_MeanFc[i][tmin:,0,2]-np.sqrt(t_h_varMeanFc[i][tmin:,0,2]),
-                    t_h_MeanFc[i][tmin:,0,2]+np.sqrt(t_h_varMeanFc[i][tmin:,0,2]), alpha = alpha)
+                    t_h_MeanFc[i][tmin:,hid,2]-np.sqrt(t_h_varMeanFc[i][tmin:,hid,2]),
+                    t_h_MeanFc[i][tmin:,hid,2]+np.sqrt(t_h_varMeanFc[i][tmin:,hid,2]), alpha = alpha)
     if log:
-        ax.semilogx(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,3],'*',markersize = markersize,label =r'$c_{3\star}$ ')
+        ax.semilogx(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,hid,3],'*',markersize = markersize,label =r'$c_{3\star}$ ')
     else:
-        ax.plot(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,0,3],'*',markersize = markersize,label =r'$c_{3\star}$ ')
+        ax.plot(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,hid,3],'*',markersize = markersize,label =r'$c_{3\star}$ ')
     
     ax.fill_between(temperatures_plots[i][tmin:],
-                    t_h_MeanFc[i][tmin:,0,3]-np.sqrt(t_h_varMeanFc[i][tmin:,0,3]),
-                    t_h_MeanFc[i][tmin:,0,3]+np.sqrt(t_h_varMeanFc[i][tmin:,0,3]), alpha = alpha)
+                    t_h_MeanFc[i][tmin:,hid,3]-np.sqrt(t_h_varMeanFc[i][tmin:,hid,3]),
+                    t_h_MeanFc[i][tmin:,hid,3]+np.sqrt(t_h_varMeanFc[i][tmin:,hid,3]), alpha = alpha)
     if createfig:
         ax.set_title(addtitle)
         ax.set_xlabel(r"$T/J_1$")
@@ -1441,7 +1444,7 @@ def BasicPlotsE(L, i, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
             if tid >= tidmin and tid <= tidmax[i]:
                 col = [0 + tid/mt, (1 - tid/mt)**2, 1 - tid/mt]
                 plt.plot(hfields_plots[i],
-                                 t_h_MeanE[i][tid, :],'.-',\
+                                 t_h_MeanE[i][tid, :],'.',\
                                   label = r'$T$ = {0}'.format(t), color = col)
                 plt.fill_between(hfields_plots[i],
                                  (t_h_MeanE[i][tid,:]
@@ -1465,7 +1468,7 @@ def BasicPlotsE(L, i, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
         for hid, h in enumerate(hfields_plots[i]):
             col = [0 + hid/mh, (1 - hid/mh)**2, 1 - hid/mh]
             plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]],
-                             t_h_MeanE[i][tidmin:tidmax[i]][:,hid],'.-',\
+                             t_h_MeanE[i][tidmin:tidmax[i]][:,hid],'.',\
                               label = r'$h$ = {0}'.format(h), color = col)
             plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]],
                              (t_h_MeanE[i][tidmin:tidmax[i]][:,hid]
@@ -1493,7 +1496,7 @@ def BasicPlotsE(L, i, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
             if tid >= tidmin and tid <= tidmax[i]:
                 col = [0 + tid/mt, (1 - tid/mt)**2, 1 - tid/mt]
                 plt.plot(hfields_plots[i],
-                         C[i][tid,:],'.-',\
+                         C[i][tid,:],'.',\
                                   label = r'$T$ = {0}'.format(t), color = col)
                 plt.fill_between(hfields_plots[i],
                                  ( C[i][tid,:]
@@ -1519,7 +1522,7 @@ def BasicPlotsE(L, i, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
             if tid >= tidmin and tid <= tidmax[i]:
                 col = [0 + tid/mt, (1 - tid/mt)**2, 1 - tid/mt]
                 plt.plot(hfields_plots[i][hidmin:hidmax],
-                         C[i][tid,hidmin:hidmax],'.-',\
+                         C[i][tid,hidmin:hidmax],'.',\
                                   label = r'$T$ = {0}'.format(t), color = col)
                 plt.fill_between(hfields_plots[i][hidmin:hidmax],
                                  ( C[i][tid,hidmin:hidmax]
@@ -1544,7 +1547,7 @@ def BasicPlotsE(L, i, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
             if tid >= tidmin and tid <= tidmax[i]:
                 col = [0 + tid/mt, (1 - tid/mt)**2, 1 - tid/mt]
                 plt.plot(hfields_plots[i],
-                         C[i][tid,:]/t,'.-',\
+                         C[i][tid,:]/t,'.',\
                                   label = r'$T$ = {0}'.format(t), color = col)
                 plt.fill_between(hfields_plots[i],
                                  ( C[i][tid,:]/t
@@ -1567,7 +1570,7 @@ def BasicPlotsE(L, i, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
             if tid >= tidmin and tid <= tidmax[i]:
                 col = [0 + tid/mt, (1 - tid/mt)**2, 1 - tid/mt]
                 plt.plot(hfields_plots[i][hidmin:hidmax],
-                         C[i][tid,hidmin:hidmax]/t,'.-',\
+                         C[i][tid,hidmin:hidmax]/t,'.',\
                                   label = r'$T$ = {0}'.format(t), color = col)
                 plt.fill_between(hfields_plots[i][hidmin:hidmax],
                                  ( C[i][tid,hidmin:hidmax]/t
@@ -1590,7 +1593,7 @@ def BasicPlotsE(L, i, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
         for hid, h in enumerate(hfields_plots[i]):
             col = [0 + hid/mh, (1 - hid/mh)**2, 1 - hid/mh]
             plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]],
-                         C[i][tidmin:tidmax[i]][:,hid], '.-',\
+                         C[i][tidmin:tidmax[i]][:,hid], '.',\
                          label = r'$h$ = {0}'.format(h), color = col)
             plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]],
                              C[i][tidmin:tidmax[i]][:,hid]
@@ -1618,7 +1621,7 @@ def BasicPlotsE(L, i, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
             col = [0 + hid/mh, (1 - hid/mh)**2, 1 - hid/mh]
             plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]],
                          C[i][tidmin:tidmax[i]][:,hid] / temperatures_plots[i][tidmin:tidmax[i]],
-                         '.-', label = r'$h$ = {0}'.format(h), color = col)
+                         '.', label = r'$h$ = {0}'.format(h), color = col)
             plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]],
                              (C[i][tidmin:tidmax[i]][:,hid]
                               - ErrC[i][tidmin:tidmax[i]][:,hid]
@@ -1913,6 +1916,7 @@ def BasicPlotsM(L, i, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
     expm = kwargs.get('expm', 0)
     expmerr = kwargs.get('expmerr', 0)
     addsave = kwargs.get('addsave', "")
+    alpha = kwargs.get('alpha', 0.2)
     ## Magnetisation
     t_h_MeanM = np.array(t_h_MeanM)
     t_h_MeanMsq =  np.array(t_h_MeanMsq)
@@ -1932,22 +1936,22 @@ def BasicPlotsM(L, i, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
             if tid >= tidmin and tid <= tidmax[i]:
                 col = [0 + tid/mt, (1 - tid/mt)**2, 1 - tid/mt]
                 plt.plot(hfields_plots[i],
-                                 t_h_MeanM[i][tid, :],'.-',\
+                                 t_h_MeanM[i][tid, :],'.',\
                                   label = r'$T$ = {0}'.format(t), color = col)
                 plt.fill_between(hfields_plots[i],
                                  (t_h_MeanM[i][tid,:]
                                   - np.sqrt(t_h_varMeanM[i][tid,:])),
                                  (t_h_MeanM[i][tid,:]
                                   + np.sqrt(t_h_varMeanM[i][tid,:])),\
-                                 alpha=0.4, color = col)
+                                 alpha = alpha, color = col)
                 if expm != 0:
                     plt.fill_between([min(hfileds_plots[i]),max(hfields_plots[i])],[expm-expmerr,expm-expmerr],
-                                     [expm+expmerr, expm+expmerr], alpha = 0.2, label = r'$m$ - exp')
+                                     [expm+expmerr, expm+expmerr], alpha = alpha, label = r'$m$ - exp')
 
         plt.xlabel(r'Magnetic field $h$')
         plt.ylabel(r'Magnetisation per site $m$')
         plt.grid(which='both')
-        plt.legend(loc= 'best', framealpha=0.5)
+        plt.legend(loc= 'best', framealpha = alpha)
         plt.title('Filename: '+filenamelist[i])
         plt.savefig('./' + foldername  + results_foldername
                     + '/h_M'+addsave+".png")
@@ -1961,22 +1965,22 @@ def BasicPlotsM(L, i, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
         for hid, h in enumerate(hfields_plots[i]):
                 col = [0 + hid/mh, (1 - hid/mh)**2, 1 - hid/mh]
                 plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]], t_h_MeanM[i][tidmin:tidmax[i]][:,hid], 
-                             '.-',label = r'$h$ = {0}'.format(h), color = col)
+                             '.',label = r'$h$ = {0}'.format(h), color = col)
                 plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]],
                                  (t_h_MeanM[i][tidmin:tidmax[i]][:,hid]
                                   - np.sqrt(t_h_varMeanM[i][tidmin:tidmax[i]][:,hid])),
                                  (t_h_MeanM[i][tidmin:tidmax[i]][:,hid]
                                   + np.sqrt(t_h_varMeanM[i][tidmin:tidmax[i]][:,hid])),\
-                                 alpha = 0.5, color = col)
+                                 alpha = alpha, color = col)
                 if expm != 0:
                     plt.fill_between([temperatures_plots[i][tidmin],temperatures_plots[i][tidmax[i]-1]],
                                      [expm-expmerr,expm-expmerr],
-                                     [expm+expmerr, expm+expmerr], alpha = 0.2, label = r'$m$ - exp')
+                                     [expm+expmerr, expm+expmerr], alpha = alpha, label = r'$m$ - exp')
         plt.xlabel(r'Temperature $T$ ')
         plt.ylabel('Magnetisation per site')
         plt.title('Filename: '+filenamelist[i])
         plt.grid(which='both')
-        plt.legend(loc= 'best', framealpha=0.5)
+        plt.legend(loc= 'best', framealpha = alpha)
         plt.savefig('./' + foldername  + results_foldername+ '/M'+addsave+'.png')
         if pgf:
             plt.savefig('./' + foldername  + results_foldername+ '/M'+addsave+'.pgf')
@@ -1989,14 +1993,14 @@ def BasicPlotsM(L, i, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
             if tid >= tidmin and tid <= tidmax[i]:
                 col = [0 + tid/mt, (1 - tid/mt)**2, 1 - tid/mt]
                 plt.plot(hfields_plots[i],
-                                 Chi[i][tid, :],'.-',\
+                                 Chi[i][tid, :],'.',\
                                   label = r'$T$ = {0}'.format(t), color = col)
                 plt.fill_between(hfields_plots[i],
                                  (Chi[i][tid,:]
                                   - ErrChi[i][tid,:]),
                                  (Chi[i][tid,:]
                                   + ErrChi[i][tid,:]),\
-                                 alpha=0.4, color = col)
+                                 alpha = alpha, color = col)
         plt.xlabel(r'Magnetic field $h$')
         plt.ylabel('Susceptibility')
         plt.grid(which='both')
@@ -2012,14 +2016,14 @@ def BasicPlotsM(L, i, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
         for hid, h in enumerate(hfields_plots[i]):
             col = [0 + hid/mh, (1 - hid/mh)**2, 1 - hid/mh]
             plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]],
-                         Chi[i][tidmin:tidmax[i]][:,hid], '.-',\
+                         Chi[i][tidmin:tidmax[i]][:,hid], '.',\
                          label = r'$h$ = {0}'.format(h), color = col)
             plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]],
                              Chi[i][tidmin:tidmax[i]][:,hid]
                              - ErrChi[i][tidmin:tidmax[i]][:,hid], 
                              Chi[i][tidmin:tidmax[i]][:,hid]
                              + ErrChi[i][tidmin:tidmax[i]][:,hid],
-                             alpha = 0.5, color = col)
+                             alpha = alpha, color = col)
         plt.xlabel(r'Temperature $T$ ')
         plt.ylabel('Susceptibility')
         plt.grid(which='both')
