@@ -19,7 +19,7 @@ dualworm-kagome/*_folder
 dualworm-kagome/prun*
 dualworm-kagome/ProfilingAndTesting/*.pkl
 dualworm-kagome/ProfilingAndTesting/*.png
-dualworm-kagome/ProfilingAndTesting/*Results/*
+dualworm-kagome/ProfilingAndTesting/*Results*/*
 dualworm-kagome/GroundStates/*/
 dualworm-kagome/GroundStates/*.mat
 dualworm-kagome/AnalysisCode_PSI/*_folder
