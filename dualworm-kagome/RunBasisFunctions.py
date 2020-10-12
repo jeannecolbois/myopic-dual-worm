@@ -333,8 +333,8 @@ def ObservablesInit(args, backup, s_ijl, ijl_s, L):
     firstcorrelations = args.firstcorrelations
     both = args.both
     if correlations:
-        observables.append(obs.si)
-        observableslist.append('Si')
+        #observables.append(obs.si)
+        #observableslist.append('Si')
 
         if firstcorrelations or both:
             nnlists = [dw.NNpairs(ijl_s, s_ijl, L), dw.NN2pairs(ijl_s, s_ijl, L),

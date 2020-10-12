@@ -248,9 +248,9 @@ def main(args):
           'alternate':alternate, 'randspinupdate': False,
           'namefunctions': namefunctions, 'srefs':srefs,
           'backup': backup,
-          'genMode': genMode, 'fullstateupdate': fullssf,
-          'saveupdates': saveupdates,
-          'verbose':verbose}
+          'genMode': genMode, 'fullstateupdate': fullssf, 
+          'saveupdates':saveupdates,'verbose':args.verbose}
+          
         # Run measurements
 
     t1 = time()

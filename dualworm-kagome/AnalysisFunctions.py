@@ -941,7 +941,7 @@ def LoadMagnetisationFromFile(foldername, filename, numsites, nb, stat_temps,
 
 
 def LoadFirstCorrelations(foldername, filenamelist, listfunctions, stat_temps,
-                          stat_hfields, nb,t_h_varMeanMsq, **kwargs):
+                          stat_hfields, nb,t_h_MeanM, t_h_varMeanMsq, **kwargs):
     n = len(filenamelist)
     
     ## "First Correlations" (check!!)
@@ -949,58 +949,57 @@ def LoadFirstCorrelations(foldername, filenamelist, listfunctions, stat_temps,
     t_h_varMeanFc = [[] for _ in range(n)]
     
     ## Local spin average
-    t_h_MeanSi = [[] for _ in range(n)]
-    t_h_varMeanSi = [[] for _ in range(n)]
-    
+    #t_h_MeanSi = [[] for _ in range(n)]
+    #t_h_varMeanSi = [[] for _ in range(n)]
+     
     for nf, filename in enumerate(filenamelist):
-        if ('FirstCorrelations' in listfunctions[nf] 
-            and 'Si' in listfunctions[nf]):
+        if ('FirstCorrelations' in listfunctions[nf]):
             # This will be improved when we will work with a more
             # general way of handling the correlations
             idfunc = listfunctions[nf].index('FirstCorrelations')
-            idfuncsi = listfunctions[nf].index('Si')
+            #idfuncsi = listfunctions[nf].index('Si')
 
-            [t_h_MeanFc[nf], t_h_varMeanFc[nf], t_h_MeanSi[nf],
-             t_h_varMeanSi[nf]] =\
-            LoadFirstCorrelationsFromFile(foldername, filename, idfunc,
-                                     idfuncsi, stat_temps[nf],
-                                     stat_hfields[nf], nb[nf],t_h_varMeanMsq[nf], **kwargs)
+            [t_h_MeanFc[nf], t_h_varMeanFc[nf]] =             LoadFirstCorrelationsFromFile(foldername, filename, idfunc,
+                                    stat_temps[nf],
+                                     stat_hfields[nf], nb[nf],t_h_MeanM[nf], t_h_varMeanMsq[nf], **kwargs)
         else:
-            [t_h_MeanFc[nf], t_h_varMeanFc[nf], t_h_MeanSi[nf], t_h_varMeanSi[nf]] = [[],[],[],[]]
-    return t_h_MeanFc, t_h_varMeanFc, t_h_MeanSi, t_h_varMeanSi
+            [t_h_MeanFc[nf], t_h_varMeanFc[nf]] = [[],[]]
+    return t_h_MeanFc, t_h_varMeanFc
 
 
 # In[ ]:
 
 
 def LoadFirstCorrelationsFromFile(foldername, filename, idfunc, 
-                                  idfuncsi, stat_temps, 
-                                  stat_hfields, nb, 
+                                  stat_temps, 
+                                  stat_hfields, nb, t_h_MeanM,
                                   t_h_varMeanMsq,**kwargs):
     
     backup = "./"+foldername+filename
     name = "FirstCorrelations"
-    namesi = "Si"
+    #namesi = "Si"
     rmmag = kwargs.get('rmmag', False)
     
     # Averages and corresponding variances
-    t_h_MeanSi, t_h_varMeanSi =    ExtractStatistics(backup, idfuncsi, namesi, nb, stat_temps,
-                      stat_hfields, **kwargs)
+    #t_h_MeanSi, t_h_varMeanSi =\
+    #ExtractStatistics(backup, idfuncsi, namesi, nb, stat_temps,
+    #                  stat_hfields, **kwargs)
     
     t_h_MeanFc, t_h_varMeanFc =    ExtractStatistics(backup, idfunc, name, nb, stat_temps,
                       stat_hfields, sq=0, **kwargs)
     
     print(t_h_MeanFc.shape)
-    print(t_h_MeanSi.shape)
+    #print(t_h_MeanSi.shape)
     if rmmag:
-        m = t_h_MeanSi.sum(2)/t_h_MeanSi.shape[2] # sample average
+        m = t_h_MeanM
+        #m = t_h_MeanSi.sum(2)/t_h_MeanSi.shape[2] # sample average
         for nni in range(t_h_MeanFc.shape[2]):
             t_h_MeanFc[:,:,nni] = (t_h_MeanFc[:,:,nni] - m**2) #<si sj> - <si> <sj> for j in lattice. /!\ this is ELEMENTWISE
             
     for i in range(t_h_varMeanFc.shape[2]):
         t_h_varMeanFc[:,:,i] = t_h_varMeanFc[:,:,i]+ t_h_varMeanMsq[:,:] # approximately
     
-    return t_h_MeanFc, t_h_varMeanFc, t_h_MeanSi, t_h_varMeanSi
+    return t_h_MeanFc, t_h_varMeanFc#, t_h_MeanSi, t_h_varMeanSi
 
 
 # In[ ]:
@@ -1048,52 +1047,51 @@ def LoadFrustratedTrianglesFromFile(foldername, filename, idfunc,
 # In[ ]:
 
 
-def LoadCentralCorrelations(foldername, filenamelist, listfunctions, srefs, stat_temps, stat_hfields, nb, **kwargs):
+def LoadCentralCorrelations(foldername, filenamelist, listfunctions, srefs, stat_temps, stat_hfields, nb, t_h_MeanM, **kwargs):
     n = len(filenamelist)
     
     ## "Correlations" <sisj>
     t_h_MeanSs = [[] for _ in range(n)]
     t_h_varMeanSs = [[] for _ in range(n)]
     
-    ## Local spin average
-    t_h_MeanSi = [[] for _ in range(n)]
-    t_h_varMeanSi = [[] for _ in range(n)]
+    ### Local spin average
+    #t_h_MeanSi = [[] for _ in range(n)]
+    #t_h_varMeanSi = [[] for _ in range(n)]
     
     ## Correlations
     t_h_MeanCorr = [[] for _ in range(n)]
     t_h_errCorrEstim = [[] for _ in range(n)]
     for nf, filename in enumerate(filenamelist):
-        if ('Central_Correlations' in listfunctions[nf] 
-            and 'Si' in listfunctions[nf]):
+        if ('Central_Correlations' in listfunctions[nf]):
             # This will be improved when we will work with a more
             # general way of handling the correlations
             idfunc = listfunctions[nf].index('Central_Correlations')
-            idfuncsi = listfunctions[nf].index('Si')
+            #idfuncsi = listfunctions[nf].index('Si')
 
-            [t_h_MeanSs[nf], t_h_varMeanSs[nf], t_h_MeanSi[nf],
-             t_h_varMeanSi[nf], t_h_MeanCorr[nf],t_h_errCorrEstim[nf]] =\
-            LoadCorrelationsFromFile(foldername, filename, idfunc,
-                                     idfuncsi, srefs[nf], stat_temps[nf],
-                                     stat_hfields[nf], nb[nf], **kwargs)
+            [t_h_MeanSs[nf], t_h_varMeanSs[nf], t_h_MeanCorr[nf],t_h_errCorrEstim[nf]] =            LoadCorrelationsFromFile(foldername, filename, idfunc,
+                                     srefs[nf], stat_temps[nf],
+                                     stat_hfields[nf], nb[nf],t_h_MeanM[nf], **kwargs)
         else:
-            [t_h_MeanSs[nf], t_h_varMeanSs[nf], t_h_MeanSi[nf], t_h_varMeanSi[nf], t_h_MeanCorr[nf], 
-             t_h_errCorrEstim[nf]] = [[],[],[],[],[]]
-    return t_h_MeanSs, t_h_varMeanSs, t_h_MeanSi, t_h_varMeanSi, t_h_MeanCorr, t_h_errCorrEstim
+            [t_h_MeanSs[nf], t_h_varMeanSs[nf], t_h_MeanCorr[nf], 
+             t_h_errCorrEstim[nf]] = [[],[],[],[]]
+    return t_h_MeanSs, t_h_varMeanSs,t_h_MeanCorr, t_h_errCorrEstim # t_h_MeanSi, t_h_varMeanSi, 
 
 
 # In[ ]:
 
 
-def LoadCorrelationsFromFile(foldername, filename, idfunc, idfuncsi, srefs, stat_temps, stat_hfields, nb, **kwargs):
+def LoadCorrelationsFromFile(foldername, filename, idfunc, srefs, 
+                             stat_temps, stat_hfields, nb, t_h_MeanM,**kwargs):
     
     backup = "./"+foldername+filename
     name = "Central_Correlations"
-    namesi = "Si"
+    #namesi = "Si"
     rmmag = kwargs.get('rmmag', False)
     
     # Averages and corresponding variances
-    t_h_MeanSi, t_h_varMeanSi =    ExtractStatistics(backup, idfuncsi, namesi, nb, stat_temps,
-                      stat_hfields, **kwargs)
+    #t_h_MeanSi, t_h_varMeanSi =\
+    #ExtractStatistics(backup, idfuncsi, namesi, nb, stat_temps,
+    #                  stat_hfields, **kwargs)
     
     t_h_MeanSs, t_h_varMeanSs =    ExtractStatistics(backup, idfunc, name, nb, stat_temps,
                       stat_hfields, **kwargs)
@@ -1101,54 +1099,36 @@ def LoadCorrelationsFromFile(foldername, filename, idfunc, idfuncsi, srefs, stat
     t_h_MeanCorr = []
     assert len(srefs) == 3
     for i in range(len(srefs)):
-        column = t_h_MeanSi[:, :, srefs[i]]
-        column = column[:,:,np.newaxis]
+        
         if rmmag:
-            t_h_MeanCorr.append(t_h_MeanSs[:,:,i,:] - t_h_MeanSi*column) #<si sj> - <si> <sj> for j in lattice. /!\ this is ELEMENTWISE
+            t_h_MeanCorr.append(t_h_MeanSs[:,:,i,:] - t_h_MeanM[:,:,np.newaxis]**2) #<si sj> - <si> <sj> for j in lattice. /!\ this is ELEMENTWISE
         else:
             t_h_MeanCorr.append(t_h_MeanSs[:,:,i,:])
             
     # Estimating the error on <si sj> - <si><sj>
     t_h_errCorrEstim = CorrelErrorEstimator(backup, idfunc,
-                                            idfuncsi, srefs,
-                                            name, namesi,
+                                            srefs,
+                                            name, t_h_MeanM,
                                             nb)   
 
-    return t_h_MeanSs, t_h_varMeanSs, t_h_MeanSi, t_h_varMeanSi, np.array(t_h_MeanCorr), np.array(t_h_errCorrEstim)
+    return t_h_MeanSs, t_h_varMeanSs, np.array(t_h_MeanCorr), np.array(t_h_errCorrEstim)
 
 
 # In[ ]:
 
 
-def CorrelErrorEstimator(backup, idfunc, idfuncsi, sref,
-                         name, namesi,nb):
+def CorrelErrorEstimator(backup, idfunc, sref,
+                         name, t_h_MeanM, nb):
     
     bsth_sisj = hkl.load(backup+"_"+name+"_final.hkl")
     bth_sisj = bsth_sisj[:,0,:,:,:,:] # <s0sj>_b (t,h)
     (nb, ntm, nhm, nrefs, nsites) = bth_sisj.shape
-    #t_h_b_sisj = np.array(statstable[idfunc][0]) # <s0sj>_b (t)
-    #(ntm, nhm, nb, nrefs, nsites) = t_h_b_sisj.shape #getting the system size
-    
-    bsth_sj = hkl.load(backup+"_"+namesi+"_final.hkl")
-    bth_sj = bsth_sj[:,0,:,:,:]# <si>_b (t)
-    bth_s0 = bth_sj[:,:,:,sref]# <s0>_b (t)
-    
-    #t_h_b_s0 = t_h_b_sj[:,:,:,sref]
-    
-    
-    #t_h_b_gamma = [[] for _  in range(nrefs)]
-    #t_h_gamma = [np.zeros((ntm, nhm, nsites)) for _ in range(nrefs)]
+
     sbth_gamma = np.zeros((nrefs,nb,ntm, nhm, nsites))
     sth_gamma = np.zeros((nrefs,ntm, nhm, nsites))
     for i in range(nrefs):
-        bth_s0i = bth_s0[:,:,:,i]
-        bth_s0i = bth_s0i[:,:,:,np.newaxis]
         
-        #t_h_b_s0i = t_h_b_s0[:,:,:,i]
-        #t_h_b_s0i = t_h_b_s0i[:,:,:,np.newaxis]
-
-        
-        sbth_gamma[i] = bth_sisj[:,:,:,i,:] - bth_s0i*bth_sj
+        sbth_gamma[i] = bth_sisj[:,:,:,i,:] - t_h_MeanM[:,:,np.newaxis]**2
         sth_gamma[i] = sbth_gamma[i].sum(0)/nb
     
     
@@ -1164,37 +1144,37 @@ def CorrelErrorEstimator(backup, idfunc, idfuncsi, sref,
 # In[ ]:
 
 
-def LoadSi(foldername, filenamelist, listfunctions, **kwargs):
-    n = len(filenamelist)
-    
-    t_MeanSi = [[] for _ in range(n)]
-    t_varMeanSi = [[] for _ in range(n)]
-
-    for nf, filename in enumerate(filenamelist):
-        if 'Si' in listfunctions[nf]:
-            idfunc = listfunctions[nf].index('Si')
-            [t_MeanSi[nf], t_varMeanSi[nf]] = LoadSiFromFile(foldername, filename, idfunc,stat_temps[nf], **kwargs)
-        else:
-            [t_MeanSi[nf], t_varMeanSi[nf]] = [[],[]]
-            
-    return t_MeanSi, t_varMeanSi
+#def LoadSi(foldername, filenamelist, listfunctions, **kwargs):
+#    n = len(filenamelist)
+#    
+#    t_MeanSi = [[] for _ in range(n)]
+#    t_varMeanSi = [[] for _ in range(n)]
+#
+#    for nf, filename in enumerate(filenamelist):
+#        if 'Si' in listfunctions[nf]:
+#            idfunc = listfunctions[nf].index('Si')
+#            [t_MeanSi[nf], t_varMeanSi[nf]] = LoadSiFromFile(foldername, filename, idfunc,stat_temps[nf], **kwargs)
+#        else:
+#            [t_MeanSi[nf], t_varMeanSi[nf]] = [[],[]]
+#            
+#    return t_MeanSi, t_varMeanSi
 
 
 # In[ ]:
 
 
-def LoadSiFromFile(foldername, filename, idfunc, stat_temps, **kwargs):
-    f = open('./' + foldername + filename +'.pkl', 'rb')
-    backup = pickle.load(f) 
-    
-    statstable = backup.results.statstable
-    
-    t_MeanSi, t_varMeanSi = ExtractStatistics(backup, idfuncsi, name, nb, stat_temps, **kwargs)
-    
-    f.close()
-    
-    return t_MeanSi, t_varMeanSi
-    
+#def LoadSiFromFile(foldername, filename, idfunc, stat_temps, **kwargs):
+#    f = open('./' + foldername + filename +'.pkl', 'rb')
+#    backup = pickle.load(f) 
+#    
+#    statstable = backup.results.statstable
+#    
+#    t_MeanSi, t_varMeanSi = ExtractStatistics(backup, idfuncsi, name, nb, stat_temps, **kwargs)
+#    
+#    f.close()
+#    
+#    return t_MeanSi, t_varMeanSi
+#    
 
 
 # In[ ]:
