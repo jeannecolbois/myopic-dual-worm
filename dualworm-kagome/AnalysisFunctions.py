@@ -88,11 +88,11 @@ def LoadParameters(foldername, filenamelist, **kwargs):
     
         
     merge = kwargs.get('mergeruns', False)
-    pair = kwargs.get('pairruns', False)
+    group = kwargs.get('groupruns', 1)
     if merge:
         okformerge = True
-    if pair:
-        okforpair = True
+    if group > 1:
+        okforgroup = True
     for nf, filename in enumerate(filenamelist):
         [L[nf], numsites[nf], J1[nf], J2[nf], J3[nf], J3st[nf], J4[nf], nb[nf], 
          num_in_bin[nf], htip[nf], Ttip[nf], pswitch[nf],uponly[nf], path[nf],
@@ -110,7 +110,7 @@ def LoadParameters(foldername, filenamelist, **kwargs):
             if not test:
                 okformerge = False
                 raise Exception(" You required merging the runs but run 0 and " + nf + "are not compatible")
-        if pair and nf > 0 and (nf-1)%2 == 0:
+        if group >0  and nf > 0 and nf%group != 0:
             test = (L[nf] == L[nf-1] and
                     J1[nf] == J1[nf-1] and J2[nf] == J2[nf-1] and 
                     J3[nf] == J3[nf-1] and J3st[nf] == J3st[nf-1] and 
@@ -119,8 +119,8 @@ def LoadParameters(foldername, filenamelist, **kwargs):
                     pswitch[nf] == pswitch[nf-1] and uponly[nf] == uponly[nf-1] and
                     temperatures[nf] == temperatures[nf-1]);
             if not test:
-                okformerge = False
-                raise Exception(" You required pairing the runs but runs "+ nf-1 +" and " + nf + "are not compatible")
+                okforgroup = False
+                raise Exception(" You required grouping the runs but runs "+ nf-1 +" and " + nf + "are not compatible")
            
     return L, numsites, J1, J2, J3, J3st, J4, nb, num_in_bin,             htip, Ttip, pswitch, uponly, path,             temperatures, nt,             stat_temps, temperatures_plots, hfields, nh,             stat_hfields, hfields_plots, listfunctions, sref, ids2walker
 
@@ -227,14 +227,10 @@ def ExtractStatistics(backup, idfunc, name,
     #        for b in range(nb_drop, nb):
     #            t_h_varmeanfunc_control[resid,reshid] += ((nb_stattuple[b, sq, resid, reshid] - t_h_meanfunc[resid][reshid]) ** 2)
     #            # note that this is like t_h_varmeanfunc[resid,reshid, :]
-
     #        t_h_varmeanfunc_control[resid, reshid] = t_h_varmeanfunc_control[resid, reshid]/((nb -nb_drop)* (nb -nb_drop - 1))
-    #if np.any(np.abs(t_h_varmeanfunc - t_h_varmeanfunc_control)/t_h_varmeanfunc > 1e-15):
-    #    print("!!!!!!!!!!!!!Implementation issue in Extract Statistics")
         
     if binning:
         print("Binning..." + name)
-        #warnings.warn("binning not implemented for the new structure of statstable!")
         t_h_varmeanfunc = Binning(t_h_meanfunc,t_h_varmeanfunc, nb_stattuple[nb_drop:,sq,:,:], nb-nb_drop,
                                 stat_temps, stat_hfields, name = name, sq = sq, **kwargs)
         
@@ -312,6 +308,10 @@ def Binning(t_h_mean, t_h_varmean, stattuple, nb, stat_temps,stat_hfields, name 
         print('plotting!')
         plt.figure(figsize=(12, 8),dpi=300)
         
+        print(" minhplt: ", minhplt)
+        print(" maxhplt: ", maxhplt)
+        print(" minplt: ", minplt)
+        print(" maxplt: ", maxplt)
         for reshid, h in enumerate(stat_hfields[minhplt:maxhplt]):
             for resid, t in enumerate(stat_temps[minplt:maxplt]):
                 if len(t_h_vars.shape) ==3:
@@ -423,7 +423,7 @@ def LoadUpdatesFromFile(foldername, filename, nb, num_in_bin, size):
     meas = hkl.load(backup, path = "/results/measurements")
     failedupdates = meas['failedupdates']
     failedssfupdates = meas['failedssfupdates']
-    print(failedssfupdates)
+    #print(failedssfupdates)
     failedupdates = failedupdates/(measperiod*nsms)
     failedssfupdates = failedssfupdates/(nsteps*size)
     
@@ -556,238 +556,133 @@ def LoadGroundStatesFromFile(foldername, filename, L, nh,iters, **kwargs):
 # In[ ]:
 
 
-def LoadEnergy(foldername, filenamelist, numsites,
-               nb, stat_temps, temperatures, stat_hfields,
-               listfunctions, **kwargs):
-    mergeruns = kwargs.get('mergeruns', False)
-    pair = kwargs.get('pairruns', False)
+def ComputeEntropy(C, ErrC, temperatures, stat_hfields, nt, nh,**kwargs):
     RS = kwargs.get('RS', False)
-    if RS:
-        S0 = kwargs.get('S0', np.log(2))
-
-    n = len(filenamelist)
-    
-    t_h_MeanE = [[] for _ in range(n)]
-    t_h_MeanEsq = [[] for _ in range(n)]
-    t_h_varMeanE = [[] for _ in range(n)]
-    t_h_varMeanEsq = [[] for _ in range(n)]
-    t_h_S = [[] for _ in range(n)]
-    t_h_Smin = [[] for _ in range(n)]
-    t_h_Smax = [[] for _ in range(n)]
-    t_h_VarE= [[] for _ in range(n)]
-    t_h_ErrVarE= [[] for _ in range(n)]
-    C = [[] for _ in range(n)]
-    ErrC = [[] for _ in range(n)]
-    
-    
-    
-
-    for nf, filename in enumerate(filenamelist):
-        if 'Energy' in listfunctions[nf]:
-            idfunc = listfunctions[nf].index('Energy')
-            [t_h_MeanE[nf], t_h_MeanEsq[nf], t_h_varMeanE[nf], t_h_varMeanEsq[nf],
-             t_h_VarE[nf], t_h_ErrVarE[nf], C[nf], ErrC[nf], t_h_S[nf], t_h_Smin[nf], t_h_Smax[nf]] = \
-                LoadEnergyFromFile(foldername, filename, numsites[nf], nb[nf], stat_temps[nf],
-                                   temperatures[nf], stat_hfields[nf], idfunc, **kwargs)
-        else:
-            [t_h_MeanE[nf], t_h_MeanEsq[nf], t_h_varMeanE[nf],
-             t_h_varMeanEsq[nf], C[nf], ErrC[nf],
-             t_h_S[nf], t_h_Smin[nf], t_h_Smax[nf]] = \
-            [[],[],[],[],[],[],[],[],[]]
-     
-
-    
-    
-    if pair and not mergeruns: # otherwise directly merge
-        # Recompute averages
-        pair_t_h_MeanE = [[] for _ in range(n//2)]
-        pair_t_h_MeanEsq = [[] for _ in range(n//2)]
-        pair_t_h_varMeanE = [[] for _ in range(n//2)]
-        pair_t_h_varMeanEsq = [[] for _ in range(n//2)]
-        pair_t_h_S = [[] for _ in range(n//2)]
-        pair_t_h_Smin = [[] for _ in range(n//2)]
-        pair_t_h_Smax = [[] for _ in range(n//2)]
-        pair_t_h_VarE= [[] for _ in range(n//2)]
-        pair_t_h_ErrVarE= [[] for _ in range(n//2)]
-        pair_C = [[] for _ in range(n//2)]
-        pair_ErrC = [[] for _ in range(n//2)]
-    
-        for nf in range(n//2):
-            pair_t_h_MeanE[nf]= (t_h_MeanE[2*nf] + t_h_MeanE[2*nf+1])/2
-            pair_t_h_MeanEsq[nf]= (t_h_MeanEsq[2*nf] + t_h_MeanEsq[2*nf+1])/2
-            pair_C[nf] = (C[2*nf] + C[2*nf+1])/2
-            pair_t_h_VarE[nf] =  (t_h_VarE[2*nf]+t_h_VarE[2*nf+1])/2
-            
-            pair_t_h_varMeanE[nf] = (t_h_varMeanE[2*nf]+t_h_varMeanE[2*nf+1])/2
-            pair_t_h_varMeanEsq[nf] = (t_h_varMeanEsq[2*nf]+t_h_varMeanEsq[2*nf+1])/2
-            pair_ErrC[nf] =  (ErrC[2*nf] + ErrC[2*nf+1])/2
-            pair_t_h_ErrVarE[nf] =  (t_h_ErrVarE[2*nf] + t_h_ErrVarE[2*nf+1])/2
-            
-            if RS: # if pair, we compute on average C
-                S0 = kwargs.get('S0', np.log(2))
-
-                DeltaSmin = np.zeros((len(stat_temps[0]), len(stat_hfields[0])))
-                DeltaS = np.zeros((len(stat_temps[0]), len(stat_hfields[0])))
-                DeltaSmax = np.zeros((len(stat_temps[0]), len(stat_hfields[0])))
-
-
-                CoverT = np.copy(pair_C[nf])
-                CminoverT = np.copy(pair_C[nf] - pair_ErrC[nf])
-                CmaxoverT = np.copy(pair_C[nf] + pair_ErrC[nf])
-
-                for tid in range(len(stat_temps[0])):
-                    CminoverT[tid,:]= CminoverT[tid,:]/temperatures[2*nf][tid]
-                    CoverT[tid,:]= CoverT[tid,:]/temperatures[2*nf][tid]
-                    CmaxoverT[tid,:]= CmaxoverT[tid,:]/temperatures[2*nf][tid]
-                #going through the temperatures in decreasing order
-                for tid in range(len(stat_temps[0])-2, -1, -1):
-                    for hid, h in enumerate(stat_hfields[0]):
-                        DeltaSmin[tid,hid] =                        DeltaSmin[tid+1,hid] + np.trapz(CminoverT[tid:tid+2, hid],
-                                   temperatures[0][tid:tid+2])
-                        DeltaS[tid,hid] =                        DeltaS[tid+1,hid] + np.trapz(CoverT[tid:tid+2, hid],
-                                   temperatures[0][tid:tid+2])
-                        DeltaSmax[tid,hid] =                        DeltaSmax[tid+1,hid] + np.trapz(CmaxoverT[tid:tid+2, hid],
-                                   temperatures[0][tid:tid+2])
-
-                pair_t_h_Smin[nf] = S0*np.ones((len(stat_temps[0]), len(stat_hfields[0]))) - DeltaSmax;
-                pair_t_h_S[nf] = S0*np.ones((len(stat_temps[0]), len(stat_hfields[0]))) - DeltaS;
-                pair_t_h_Smax[nf] = S0*np.ones((len(stat_temps[0]), len(stat_hfields[0]))) - DeltaSmin;
-
-            
-            print("pair_t_h_S[0].shape: ",pair_t_h_S[0].shape)
-        t_h_MeanE = pair_t_h_MeanE 
-        t_h_MeanEsq = pair_t_h_MeanEsq
-        t_h_varMeanE = pair_t_h_varMeanE
-        t_h_varMeanEsq = pair_t_h_varMeanEsq
-        t_h_S = pair_t_h_S
-        t_h_Smin = pair_t_h_Smin
-        t_h_Smax = pair_t_h_Smax
-        t_h_VarE= pair_t_h_VarE
-        t_h_ErrVarE= pair_t_h_ErrVarE
-        C = pair_C
-        ErrC = pair_ErrC
-    
-        print("t_h_S[0].shape: ",t_h_S[0].shape)
-    
-    ####
-    [Merged_t_h_MeanE, Merged_t_h_MeanEsq, 
-    Merged_t_h_varMeanE, Merged_t_h_varMeanEsq,
-    Merged_t_h_VarE, Merged_t_h_ErrVarE,Merged_C, Merged_ErrC, Merged_t_h_S, Merged_t_h_Smin,
-    Merged_t_h_Smax] = \
-    [[],[],[],[],[],[],[],[],[],[],[]]
-    
-    if mergeruns:
-        # Recompute averages
-        for nf in range(n):
-            if nf == 0:
-                Merged_t_h_MeanE = np.copy(t_h_MeanE[0])/n
-                Merged_t_h_MeanEsq = np.copy(t_h_MeanEsq[0])/n
-                Merged_C = np.copy(C[0])/n
-                Merged_t_h_VarE = np.copy(t_h_VarE[0])/n
-            else:
-                Merged_t_h_MeanE += t_h_MeanE[nf]/n
-                Merged_t_h_MeanEsq += t_h_MeanEsq[nf]/n
-                Merged_C += C[nf]/n
-                Merged_t_h_VarE += t_h_VarE[nf]/n
-    
-        # Recompute errors
-        for nf in range(n):
-            if nf == 0:
-                Merged_t_h_varMeanE = (t_h_MeanE[0]-Merged_t_h_MeanE)**2 / (n*(n-1))
-                Merged_t_h_varMeanEsq = (t_h_MeanEsq[0]-Merged_t_h_MeanEsq)**2 / (n*(n-1))
-                Merged_ErrC =(C[0]-Merged_C)**2 /(n*(n-1))
-                Merged_t_h_ErrVarE = (t_h_VarE[0]-Merged_t_h_VarE)**2 /(n*(n-1))
-            else:
-                Merged_t_h_varMeanE += (t_h_MeanE[nf]-Merged_t_h_MeanE)**2 / (n*(n-1))
-                Merged_t_h_varMeanEsq += (t_h_MeanEsq[nf]-Merged_t_h_MeanEsq)**2 / (n*(n-1))
-                Merged_ErrC +=(C[nf]-Merged_C)**2 /(n*(n-1)) ## check if variance or std in normal case!!!
-                Merged_t_h_ErrVarE +=(t_h_VarE[nf]-Merged_t_h_VarE)**2 /(n*(n-1)) ## check if variance or std in normal case!!!
-                
-        # So that ErrC is in the right form
-
-        Merged_ErrC = np.sqrt(Merged_ErrC)
+    S0 = kwargs.get('S0', np.log(2))
         
-        # Compute S:
-        if RS: # if mergeruns, we compute on average C
-            S0 = kwargs.get('S0', np.log(2))
+    print("CE : nt = ", nt)
+    print("CE : nh = ", nh)
+    DeltaSmin = np.zeros((nt, nh))
+    DeltaS = np.zeros((nt, nh))
+    DeltaSmax = np.zeros((nt, nh))
 
-            DeltaSmin = np.zeros((len(stat_temps[0]), len(stat_hfields[0])))
-            DeltaS = np.zeros((len(stat_temps[0]), len(stat_hfields[0])))
-            DeltaSmax = np.zeros((len(stat_temps[0]), len(stat_hfields[0])))
-            
+    Carray = np.array(C)
+    CoverT = np.copy(Carray)
+    CminoverT = np.copy(np.array(C - ErrC))
+    CmaxoverT = np.copy(np.array(C + ErrC))
+    for tid in range(nt):
+        CminoverT[tid,:]= CminoverT[tid,:]/temperatures[tid]
+        CoverT[tid,:]= Carray[tid,:]/temperatures[tid]
+        CmaxoverT[tid,:]= CmaxoverT[tid,:]/temperatures[tid]
+    
+    for tid in range(nt-2, -1, -1):
+        for hid, h in enumerate(stat_hfields):
+            DeltaSmin[tid,hid] =            DeltaSmin[tid+1,hid] + np.trapz(CminoverT[tid:tid+2, hid],
+                       temperatures[tid:tid+2])
+            DeltaS[tid,hid] =            DeltaS[tid+1,hid] + np.trapz(CoverT[tid:tid+2, hid],
+                       temperatures[tid:tid+2])
+            DeltaSmax[tid,hid] =            DeltaSmax[tid+1,hid] + np.trapz(CmaxoverT[tid:tid+2, hid],
+                       temperatures[tid:tid+2])
 
-            CoverT = np.copy(Merged_C)
-            CminoverT = np.copy(Merged_C - Merged_ErrC)
-            CmaxoverT = np.copy(Merged_C + Merged_ErrC)
-            
-            for tid in range(len(stat_temps[0])):
-                CminoverT[tid,:]= CminoverT[tid,:]/temperatures[0][tid]
-                CoverT[tid,:]= CoverT[tid,:]/temperatures[0][tid]
-                CmaxoverT[tid,:]= CmaxoverT[tid,:]/temperatures[0][tid]
-            #going through the temperatures in decreasing order
-            for tid in range(len(stat_temps[0])-2, -1, -1):
-                for hid, h in enumerate(stat_hfields[0]):
-                    DeltaSmin[tid,hid] =                    DeltaSmin[tid+1,hid] + np.trapz(CminoverT[tid:tid+2, hid],
-                               temperatures[0][tid:tid+2])
-                    DeltaS[tid,hid] =                    DeltaS[tid+1,hid] + np.trapz(CoverT[tid:tid+2, hid],
-                               temperatures[0][tid:tid+2])
-                    DeltaSmax[tid,hid] =                    DeltaSmax[tid+1,hid] + np.trapz(CmaxoverT[tid:tid+2, hid],
-                               temperatures[0][tid:tid+2])
+    t_h_Smin = S0*np.ones((nt, nh)) - DeltaSmax;
+    t_h_S = S0*np.ones((nt, nh)) - DeltaS;
+    t_h_Smax = S0*np.ones((nt, nh)) - DeltaSmin;
 
-            Merged_t_h_Smin = S0*np.ones((len(stat_temps[0]), len(stat_hfields[0]))) - DeltaSmax;
-            Merged_t_h_S = S0*np.ones((len(stat_temps[0]), len(stat_hfields[0]))) - DeltaS;
-            Merged_t_h_Smax = S0*np.ones((len(stat_temps[0]), len(stat_hfields[0]))) - DeltaSmin;
-    
-    MergedData = [[Merged_t_h_MeanE], [Merged_t_h_MeanEsq], 
-        [Merged_t_h_varMeanE], [Merged_t_h_varMeanEsq],[Merged_t_h_VarE],[Merged_t_h_ErrVarE],
-        [Merged_C],[Merged_ErrC], [Merged_t_h_S],[Merged_t_h_Smin],
-        [Merged_t_h_Smax]]
-    
-    #####
-    
-    
-    
-    return t_h_MeanE, t_h_MeanEsq, t_h_varMeanE, t_h_varMeanEsq,  t_h_VarE, t_h_ErrVarE,C, ErrC,            t_h_S, t_h_Smin, t_h_Smax, MergedData
+    return t_h_S, t_h_Smin, t_h_Smax
 
 
 # In[ ]:
 
 
-def LoadEnergyFromFile(foldername, filename, numsites, nb, stat_temps,
-                       temperatures, stat_hfields, idfunc, **kwargs):
-    backup = "./"+foldername+filename
+#def NewLoadEnergy(foldername, filenamelist, numsistes,
+#                 nb, stat_temps, temperatures, stat_hfields,
+#                 listfunction, **kwargs):
+#    mergeruns = kwargs.get('mergeruns', False)
+#    group = kwargs.get('groupruns', 1)
+#    
+#    assert group != 0
+#    
+#    t_h_MeanE = [[] for _ in range(n//group)]
+#    t_h_MeanEsq = [[] for _ in range(n//group)]
+#    t_h_varMeanE = [[] for _ in range(n//group)]
+#    t_h_varMeanEsq = [[] for _ in range(n//group)]
+#    
+#    t_h_VarE= [[] for _ in range(n//group)]
+#    t_h_ErrVarE= [[] for _ in range(n//group)]
+#    C = [[] for _ in range(n//group)]
+#    ErrC = [[] for _ in range(n//group)]
+#    
+#    for nrun in range(n//group):
+#        nmin = group*nrun
+#        nmax = group*(nrun+1)
+#        
+#        if 'Energy' in listfunctions[nmin]:
+#            
+#            idfunc = listfunctions[nmin].index('Energy')
+#            [t_h_MeanE[nrun], t_h_MeanEsq[nrun], t_h_varMeanE[nrun], t_h_varMeanEsq[nrun],
+#             t_h_VarE[nrun], t_h_ErrVarE[nrun], C[nrun], ErrC[nrun],
+#             t_h_S[nrun], t_h_Smin[nrun], t_h_Smax[nrun]] =\
+#            LoadEnergyFromRuns(nmin, nmax, foldername, filenamelist, numsites,
+#                              nb, stat_temps, temperatures, stat_hfields, idfunc, **kwargs)
+
+
+# In[ ]:
+
+
+def LoadEnergyFromRuns(nmin, nmax, foldername, filenamelist, numsites,
+                              nb, stat_temps, temperatures, stat_hfields, idfunc, **kwargs):
+    
+    ## Load, grouping by run
+    backups = ["./"+foldername+filenamelist[nf] for nf in range(nmin, nmax)]
+    
     mergeruns = kwargs.get('mergeruns', False)
-    pair = kwargs.get('pairruns', False)
-    nt = len(stat_temps)
-    nh = len(stat_hfields)
+    name = "Energy"
+    
+    t_h_MeanE, t_h_varMeanE =    ExtractStatisticsEnergy(nmin, nmax, backups, idfunc, name,
+                      nb, stat_temps, stat_hfields, sq = 0, **kwargs)
+    
+    t_h_MeanEsq, t_h_varMeanEsq =    ExtractStatisticsEnergy(nmin, nmax, backups, idfunc, name, nb,
+                      stat_temps, stat_hfields, sq = 1, **kwargs)
+
+    
     name = "Energy"
     
     nb_drop = kwargs.get('nb_drop', 0)
     jackknife = kwargs.get('jackknife', False)
-    l = kwargs.get('binning_level', 0) # binning level how many bins together for specific heat
-    nbb = nb//(2**l)
-    nbb_drop = nb_drop//(2**l)
-    t_h_MeanE, t_h_varMeanE =    ExtractStatistics(backup, idfunc, name,
-                      nb, stat_temps, stat_hfields, **kwargs)
+    l = kwargs.get('binning_level', 0) # binning level: how many bins together for specific heat
     
-    print(t_h_MeanE[0])
-    t_h_MeanEsq, t_h_varMeanEsq =    ExtractStatistics(backup, idfunc, name, nb,
-                      stat_temps, stat_hfields, sq = 1, **kwargs)
-
+    r_bsth_E = [[] for _ in range(nmax-nmin)]
+    nbtot = 0
+    for r in range(nmax-nmin):
+        r_bsth_E[r] = hkl.load(backups[r]+"_"+name+"_final.hkl")
+        nbtot += nb[nmin+r]
+    
+    nt = len(stat_temps[nmin])
+    nh = len(stat_hfields[nmin])
+    print("LoadEnergyFromRuns: nh ", nh)
+    
+    bsth_E = np.array(r_bsth_E).reshape(nbtot, 2, nt, nh) # group all
+    
+    nbb = nbtot//(2**l)
+    nbb_drop = nb_drop//(2**l)
     
     if not jackknife: # aim is to win a bit of time for quick overviews
         print("No jackknife analysis -- binning level: ", l, " -- number of bins: ", nbb-nbb_drop)
-        bsth_E = hkl.load(backup+"_"+name+"_final.hkl")
         C = np.zeros((nt, nh))
         VarE = (t_h_MeanEsq - t_h_MeanE**2)*((nbb - nbb_drop)/(nbb-nbb_drop-1)) # unbiased estimator
-        
-        if nt == len(temperatures):
-            
-            C = numsites * (VarE/ (np.array(temperatures)[:,np.newaxis] ** 2))
+        print("LoadEnergyFromRuns: VarE.shape ", VarE.shape)
+        if nt == len(temperatures[nmin]):
+            print("LoadEnergyFromRuns: nt matches len(temperatures[nmin])")
+            print("--numsites[nmin] ", numsites[nmin])
+            print("--temperatures", (np.array(temperatures[nmin])[:,np.newaxis] ** 2).shape)
+            C = numsites[nmin] * (VarE / (np.array(temperatures[nmin])[:,np.newaxis] ** 2))
         else:
+            print("LoadEnergyFromRuns: nt DOESNT MATCH len(temperatures[nmin])")
+            
             for resid, t in enumerate(stat_temps):
-                C[resid,:] = numsites * (VarE[t,:]/ (temperatures[t] ** 2))
+                C[resid,:] = numsites[nmin] * (VarE[t,:]/ (temperatures[nmin][t] ** 2))
 
+        print("LoadEnergyFromRuns: C.shape ", C.shape)
         if np.any(VarE < 0) :
             err = np.max(np.abs(VarE - np.abs(VarE)))/2
             warnings.warn("Negative variances num error: %E" % err)
@@ -799,7 +694,7 @@ def LoadEnergyFromFile(foldername, filename, numsites, nb, stat_temps,
         # This below can still be made much more efficient but definitely not my priority right now
         ErrVarE = np.zeros((nt, nh))
         ErrC = np.zeros((nt, nh))
-        if nt == len(temperatures):
+        if nt == len(temperatures[nmin]):
             Sum_VarE = np.zeros((nt, nh))
             Sum_VarE_Sq = np.zeros((nt, nh))
             
@@ -816,11 +711,11 @@ def LoadEnergyFromFile(foldername, filename, numsites, nb, stat_temps,
             # could be shifted...
             #ErrVarE = np.sqrt(((nbb-nbb_drop)/(nbb-nbb_drop-1)**2)*Sum_VarE_Sq - 1/(nbb-nbb_drop-1)**2 * Sum_VarE**2)
             
-            ErrC = ((numsites) * ErrVarE)/(np.array(temperatures)[:,np.newaxis] ** 2)
+            ErrC = ((numsites[nmin]) * ErrVarE)/(np.array(temperatures[nmin])[:,np.newaxis] ** 2)
             
         else:
             for resid, t in enumerate(stat_temps):
-                T = temperatures[t]
+                T = temperatures[nmin][t]
                 ErrCh = np.zeros(nh)
                 ErrVarEh = np.zeros(nh)
                 for reshid, h in enumerate(stat_hfields):
@@ -837,7 +732,7 @@ def LoadEnergyFromFile(foldername, filename, numsites, nb, stat_temps,
 
                     if (Mean_VarE_Sq - Mean_VarE ** 2 >= 0) :
                         ErrVarEh[reshid] = np.sqrt(((nbb-nbb_drop)/(nbb-nbb_drop-1)**3)*Sum_VarE_Sq - 1/(nbb-nbb_drop-1)**3 * Sum_VarE**2)
-                        ErrCh[reshid] = (numsites / (T ** 2)) * ErrVarEh
+                        ErrCh[reshid] = (numsites[nmin] / (T ** 2)) * ErrVarEh
                     else:
                         assert(Mean_VarE_Sq - Mean_VarE ** 2 >= -1e-15)
 
@@ -859,32 +754,31 @@ def LoadEnergyFromFile(foldername, filename, numsites, nb, stat_temps,
         C0 = np.zeros((nt, nh))
         
         # Estimator of the specific heat:
-        if nt == len(temperatures):
+        if nt == len(temperatures[nmin]):
             VarE0 = (t_h_MeanEsq - t_h_MeanE**2)
-            C0 = numsites * (VarE0/ (np.array(temperatures)[:,np.newaxis] ** 2))
+            C0 = numsites[nmin] * (VarE0/ (np.array(temperatures[nmin])[:,np.newaxis] ** 2))
         else:
             for resid, t in enumerate(stat_temps):
-                C0[t,:] = numsites * (VarE0[t,:]/ (temperatures[t] ** 2))
+                C0[t,:] = numsites[nmin] * (VarE0[t,:]/ (temperatures[nmin][t] ** 2))
         # 2 - for each bin, evaluate on all but this bin
          
         VarEs = np.zeros((nbb-nbb_drop, nt, nh))
         Cs = np.zeros((nbb-nbb_drop, nt, nh))
         #   load
-        bsth_E = hkl.load(backup+"_"+name+"_final.hkl")
         for b in range(nbb-nbb_drop):
             #print("b: ", b, " 2**l: ", 2**l)
             
             mE= np.mean(np.delete(bsth_E[:,0,:,:], np.arange((2**l)*(b+nbb_drop),(2**l)*(b+nbb_drop+1)), axis = 0), axis = 0) # mean over all but 1 bin
             mESq = np.mean(np.delete(bsth_E[:,1,:,:], np.arange((2**l)*(b+nbb_drop),(2**l)*(b+nbb_drop+1)), axis = 0), axis = 0)
             
-            if nt == len(temperatures):
+            if nt == len(temperatures[nmin]):
                 # shape: nbb, nt, nh
                 VarEs[b,:,:] =  (mESq- mE **2)
-                Cs[b,:,:] =  numsites * (VarEs[b,:,:]/ (np.array(temperatures)[:, np.newaxis] ** 2))
+                Cs[b,:,:] =  numsites[nmin] * (VarEs[b,:,:]/ (np.array(temperatures[nmin])[:, np.newaxis] ** 2))
             else:
                 for resid, t in enumerate(stat_temps):
                     VarEs[b,resid,:]=(mESq[t,:]- mE[t,:] **2)
-                    Cs[b,resid,:] = numsites * (VarEs[b,resid,:]/ (temperatures[t] ** 2))
+                    Cs[b,resid,:] = numsites[nmin] * (VarEs[b,resid,:]/ (temperatures[nmin][t] ** 2))
               
         # 3 - Compute C
         VarEdot = np.mean(VarEs,axis = 0)
@@ -899,16 +793,16 @@ def LoadEnergyFromFile(foldername, filename, numsites, nb, stat_temps,
             warnings.warn("Significant disagreement on C")
         
             plt.figure()
-            plt.semilogx(temperatures, C0[:,0], label = 'C0')
-            plt.semilogx(temperatures, Cdot[:,0], label = 'Cdot')
-            plt.plot(temperatures, C[:,0], label = 'C')
+            plt.semilogx(temperatures[nmin], C0[:,0], label = 'C0')
+            plt.semilogx(temperatures[nmin], Cdot[:,0], label = 'Cdot')
+            plt.plot(temperatures[nmin], C[:,0], label = 'C')
             plt.legend()
             plt.show()
 
 
             plt.figure()
-            plt.semilogx(temperatures, C0[:,0]-Cdot[:,0], label = 'C0 - Cdot')
-            plt.semilogx(temperatures, C[:,0]-C0[:,0], label = 'C - C0')
+            plt.semilogx(temperatures[nmin], C0[:,0]-Cdot[:,0], label = 'C0 - Cdot')
+            plt.semilogx(temperatures[nmin], C[:,0]-C0[:,0], label = 'C - C0')
             plt.legend()
             plt.show()
         
@@ -923,44 +817,180 @@ def LoadEnergyFromFile(foldername, filename, numsites, nb, stat_temps,
         VarEstimC = np.mean((Cs-Cdot)**2, axis = 0)
         ErrC = np.sqrt((nbb - nbb_drop - 1)*VarEstimC) # check this!
         print("Shape of ErrC : ", ErrC.shape)
-        #print(ErrC)
 
-    # end of the jackknife implementation
+         
     RS = kwargs.get('RS', False)
-    if RS and not mergeruns and not pair: # if mergeruns / pair, will be computed on average C
-        S0 = kwargs.get('S0', np.log(2))
-        
-        DeltaSmin = np.zeros((nt, nh))
-        DeltaS = np.zeros((nt, nh))
-        DeltaSmax = np.zeros((nt, nh))
-            
-        Carray = np.array(C)
-        CoverT = np.copy(Carray)
-        CminoverT = np.copy(np.array(C - ErrC))
-        CmaxoverT = np.copy(np.array(C + ErrC))
-        for tid in range(nt):
-            CminoverT[tid,:]= CminoverT[tid,:]/temperatures[tid]
-            CoverT[tid,:]= Carray[tid,:]/temperatures[tid]
-            CmaxoverT[tid,:]= CmaxoverT[tid,:]/temperatures[tid]
-        #going through the temperatures in decreasing order
-        for tid in range(nt-2, -1, -1):
-            for hid, h in enumerate(stat_hfields):
-                DeltaSmin[tid,hid] =                DeltaSmin[tid+1,hid] + np.trapz(CminoverT[tid:tid+2, hid],
-                           temperatures[tid:tid+2])
-                DeltaS[tid,hid] =                DeltaS[tid+1,hid] + np.trapz(CoverT[tid:tid+2, hid],
-                           temperatures[tid:tid+2])
-                DeltaSmax[tid,hid] =                DeltaSmax[tid+1,hid] + np.trapz(CmaxoverT[tid:tid+2, hid],
-                           temperatures[tid:tid+2])
-
-        t_h_Smin = S0*np.ones((nt, nh)) - DeltaSmax;
-        t_h_S = S0*np.ones((nt, nh)) - DeltaS;
-        t_h_Smax = S0*np.ones((nt, nh)) - DeltaSmin;
+    mergeruns = kwargs.get('mergeruns', False)
+    if RS: #else, we compute on the average C
+        [t_h_S, t_h_Smin, t_h_Smax] =        ComputeEntropy(C, ErrC, temperatures[nmin], stat_hfields[nmin], nt, nh,**kwargs)
     else:
-        t_h_Smin = []
-        t_h_S = []
-        t_h_Smax = []
+        [t_h_S, t_h_Smin, t_h_Smax] = [[],[],[]]
     
-    return t_h_MeanE, t_h_MeanEsq, t_h_varMeanE, t_h_varMeanEsq,            VarE, ErrVarE, C, ErrC, t_h_S, t_h_Smin, t_h_Smax
+    
+    return t_h_MeanE, t_h_MeanEsq, t_h_varMeanE, t_h_varMeanEsq,    VarE, ErrVarE, C, ErrC, t_h_S, t_h_Smin, t_h_Smax
+
+
+# In[ ]:
+
+
+def ExtractStatisticsEnergy(nmin, nmax, backups, idfunc, name,
+                             nb, stat_temps, stat_hfields, sq = 0, **kwargs):
+    '''
+        This function gets the statistics from a run saved over a few files and
+        computes the expectation values and variances of 
+        the operator corresponding to idfunc
+        
+        sq = 0 -> not square stats
+        sq = 1 -> square stats
+    '''
+    nb_drop = kwargs.get('nb_drop', 0)
+    
+    nb_stattuples = [[] for r in range(nmax-nmin)]
+    nbtot = 0
+    for r in range(nmax-nmin):
+        nb_stattuples[r] = hkl.load(backups[r]+"_"+name+"_final.hkl")
+        nbtot += nb[nmin+r]
+        
+    l = kwargs.get('binning_level', 0) # binning level: how many bins together for specific heat
+    
+    nt = len(stat_temps[nmin])
+    nh = len(stat_hfields[nmin])
+    
+    nb_stattuple = np.array(nb_stattuples).reshape(nbtot, 2, nt, nh) # group all
+    
+    t_h_meanfunc = nb_stattuple[nb_drop:nbtot].sum(0)/(nbtot-nb_drop)
+    t_h_meanfunc = t_h_meanfunc[sq]
+    
+    
+    binning = kwargs.get('binning', False)
+
+    t_h_varmeanfunc = np.zeros(t_h_meanfunc.shape)
+    #t_h_varmeanfunc_control = np.zeros(t_h_meanfunc.shape)
+    
+    t_h_varmeanfunc =  ((nb_stattuple[nb_drop:nbtot,sq,:,:] - t_h_meanfunc[np.newaxis,:,:])  ** 2).sum(0)/((nbtot -nb_drop)* (nbtot -nb_drop - 1))
+        
+    #for resid, t in enumerate(stat_temps):
+    #    for reshid, h in enumerate(stat_hfields):
+    #        for b in range(nb_drop, nb):
+    #            t_h_varmeanfunc_control[resid,reshid] += ((nb_stattuple[b, sq, resid, reshid] - t_h_meanfunc[resid][reshid]) ** 2)
+    #            # note that this is like t_h_varmeanfunc[resid,reshid, :]
+    #        t_h_varmeanfunc_control[resid, reshid] = t_h_varmeanfunc_control[resid, reshid]/((nb -nb_drop)* (nb -nb_drop - 1))
+        
+    if binning:
+        print("Binning..." + name)
+        t_h_varmeanfunc = Binning(t_h_meanfunc,t_h_varmeanfunc, nb_stattuple[nb_drop:,sq,:,:], nbtot-nb_drop,
+                                stat_temps[nmin], stat_hfields[nmin], name = name, sq = sq, **kwargs)
+        
+        if name == "FirstCorrelations":
+            print(t_h_varmeanfunc[0][0])
+    return t_h_meanfunc, t_h_varmeanfunc
+
+
+# In[ ]:
+
+
+def LoadEnergy(foldername, filenamelist, numsites,
+               nb, stat_temps, temperatures, stat_hfields,
+               listfunctions, **kwargs):
+    
+    n = len(filenamelist)
+    
+    
+    mergeruns = kwargs.get('mergeruns', False)
+    print("Merge runs?", mergeruns)
+    group = kwargs.get('groupruns', 1)
+    print("Group runs by...", group)
+    assert group != 0
+    
+    t_h_MeanE = [[] for _ in range(n//group)]
+    t_h_MeanEsq = [[] for _ in range(n//group)]
+    t_h_varMeanE = [[] for _ in range(n//group)]
+    t_h_varMeanEsq = [[] for _ in range(n//group)]
+    
+    t_h_VarE= [[] for _ in range(n//group)]
+    t_h_ErrVarE= [[] for _ in range(n//group)]
+    C = [[] for _ in range(n//group)]
+    ErrC = [[] for _ in range(n//group)]
+    
+    t_h_S= [[] for _ in range(n//group)]
+    t_h_Smin= [[] for _ in range(n//group)]
+    t_h_Smax= [[] for _ in range(n//group)]
+    
+    
+    for nrun in range(n//group):
+        nmin = group*nrun
+        nmax = group*(nrun+1)
+        
+        if 'Energy' in listfunctions[nmin]:
+            
+            idfunc = listfunctions[nmin].index('Energy')
+            [t_h_MeanE[nrun], t_h_MeanEsq[nrun], t_h_varMeanE[nrun], t_h_varMeanEsq[nrun],
+             t_h_VarE[nrun], t_h_ErrVarE[nrun], C[nrun], ErrC[nrun],
+             t_h_S[nrun], t_h_Smin[nrun], t_h_Smax[nrun]] =\
+            LoadEnergyFromRuns(nmin, nmax, foldername, filenamelist, numsites,
+                              nb, stat_temps, temperatures, stat_hfields, idfunc, **kwargs)
+        else:
+            [t_h_MeanE[nf], t_h_MeanEsq[nf], t_h_varMeanE[nf],
+             t_h_varMeanEsq[nf], C[nf], ErrC[nf],
+             t_h_S[nf], t_h_Smin[nf], t_h_Smax[nf]] = \
+            [[],[],[],[],[],[],[],[],[]]
+    
+    print(t_h_MeanE[0].shape)
+    print("Load Energy: C[0].shape; before merge", C[0].shape)
+    ####
+    [Merged_t_h_MeanE, Merged_t_h_MeanEsq, 
+    Merged_t_h_varMeanE, Merged_t_h_varMeanEsq,
+    Merged_t_h_VarE, Merged_t_h_ErrVarE,Merged_C, Merged_ErrC, Merged_t_h_S, Merged_t_h_Smin,
+    Merged_t_h_Smax] = \
+    [[],[],[],[],[],[],[],[],[],[],[]]
+    
+    newn = n//group
+    if mergeruns:
+        # Recompute averages
+        for nf in range(newn):
+            if nf == 0:
+                Merged_t_h_MeanE = np.copy(t_h_MeanE[0])/newn
+                Merged_t_h_MeanEsq = np.copy(t_h_MeanEsq[0])/newn
+                Merged_C = np.copy(C[0])/newn
+                Merged_t_h_VarE = np.copy(t_h_VarE[0])/newn
+            else:
+                Merged_t_h_MeanE += t_h_MeanE[nf]/newn
+                Merged_t_h_MeanEsq += t_h_MeanEsq[nf]/newn
+                Merged_C += C[nf]/newn
+                Merged_t_h_VarE += t_h_VarE[nf]/newn
+    
+        # Recompute errors
+        for nf in range(newn):
+            if nf == 0:
+                Merged_t_h_varMeanE = (t_h_MeanE[0]-Merged_t_h_MeanE)**2 / (newn*(newn-1))
+                Merged_t_h_varMeanEsq = (t_h_MeanEsq[0]-Merged_t_h_MeanEsq)**2 / (newn*(newn-1))
+                Merged_ErrC =(C[0]-Merged_C)**2 /(newn*(newn-1))
+                Merged_t_h_ErrVarE = (t_h_VarE[0]-Merged_t_h_VarE)**2 /(newn*(newn-1))
+            else:
+                Merged_t_h_varMeanE += (t_h_MeanE[nf]-Merged_t_h_MeanE)**2 / (newn*(newn-1))
+                Merged_t_h_varMeanEsq += (t_h_MeanEsq[nf]-Merged_t_h_MeanEsq)**2 / (newn*(newn-1))
+                Merged_ErrC +=(C[nf]-Merged_C)**2 /(newn*(newn-1)) ## check if variance or std in normal case!!!
+                Merged_t_h_ErrVarE +=(t_h_VarE[nf]-Merged_t_h_VarE)**2 /(newn*(newn-1)) ## check if variance or std in normal case!!!
+                
+        # So that ErrC is in the right form
+
+        Merged_ErrC = np.sqrt(Merged_ErrC)
+        
+        # Compute S:
+        RS = kwargs.get('RS', False)
+        nt = len(stat_temps[0])
+        nh = len(stat_hfields[0])
+        if RS: # if mergeruns, we compute on average C
+            [Merged_t_h_S, Merged_t_h_Smin, Merged_t_h_Smax] =            ComputeEntropy(Merged_C, Merged_ErrC, temperatures[0], stat_hfields[0], nt, nh,**kwargs)
+    
+    MergedData = [[Merged_t_h_MeanE], [Merged_t_h_MeanEsq], 
+        [Merged_t_h_varMeanE], [Merged_t_h_varMeanEsq],[Merged_t_h_VarE],[Merged_t_h_ErrVarE],
+        [Merged_C],[Merged_ErrC], [Merged_t_h_S],[Merged_t_h_Smin],
+        [Merged_t_h_Smax]]
+    
+    #####
+    
+    return t_h_MeanE, t_h_MeanEsq, t_h_varMeanE, t_h_varMeanEsq,  t_h_VarE, t_h_ErrVarE,C, ErrC,            t_h_S, t_h_Smin, t_h_Smax, MergedData
 
 
 # In[ ]:
@@ -1836,11 +1866,13 @@ def BulkPlotsE(L, n, hid, tidmin, tidmax, temperatures_plots, foldername,
     put_legend = kwargs.get('put_legend', True)
     ncol = kwargs.get('ncol', 1)
     loc = kwargs.get('loc', 'best')
+    fmts = kwargs.get('fmts', ['.' for i in range(n)])
+    
     plt.figure(figsize=figsize,dpi=300)
     plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
     for i in range(n):
         plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]],
-                         t_h_MeanE[i][tidmin:tidmax[i]][:,hid],'.', markersize=markersize,\
+                         t_h_MeanE[i][tidmin:tidmax[i]][:,hid],fmts[i], markersize=markersize,\
                           label = r'$it$ = {0}'.format(i))
         plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]],
                          (t_h_MeanE[i][tidmin:tidmax[i]][:,hid]
@@ -1848,7 +1880,7 @@ def BulkPlotsE(L, n, hid, tidmin, tidmax, temperatures_plots, foldername,
                          (t_h_MeanE[i][tidmin:tidmax[i]][:,hid]
                           + np.sqrt(t_h_varMeanE[i][tidmin:tidmax[i]][:,hid])),\
                          alpha=alpha)
-    plt.xlabel(r'$T$')
+    plt.xlabel(r'$T/|J_2|$')
     plt.ylabel(r'$E$')
     plt.grid(which = 'both', linestyle = '--', alpha = 0.3)
     if put_legend:
@@ -1862,12 +1894,12 @@ def BulkPlotsE(L, n, hid, tidmin, tidmax, temperatures_plots, foldername,
     for i in range(n):
         plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]],
                      t_h_VarE[i][tidmin:tidmax[i]][:,hid],
-                     '.', markersize=markersize, label = r'$it$ = {0}'.format(i))
+                     fmts[i], markersize=markersize, label = r'$it$ = {0}'.format(i))
         plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]],
                      t_h_VarE[i][tidmin:tidmax[i]][:,hid]- t_h_ErrVarE[i][tidmin:tidmax[i]][:,hid],
                      t_h_VarE[i][tidmin:tidmax[i]][:,hid]+ t_h_ErrVarE[i][tidmin:tidmax[i]][:,hid],    
                      alpha = alpha)
-    plt.xlabel(r'$T$ ')
+    plt.xlabel(r'$T/|J_2|$ ')
     plt.ylabel(r'Var($E$)')
     plt.grid(which = 'both', linestyle = '--', alpha = 0.3)
     if put_legend:
@@ -1883,14 +1915,14 @@ def BulkPlotsE(L, n, hid, tidmin, tidmax, temperatures_plots, foldername,
         #col = [0 + i/n, (1 - i/n)**2, 1 - i/n]
         plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]],
                      C[i][tidmin:tidmax[i]][:,hid],
-                     '.', markersize=markersize, label = r'$it$ = {0}'.format(i))
+                     fmts[i], markersize=markersize, label = r'$it$ = {0}'.format(i))
         plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]],
                          (C[i][tidmin:tidmax[i]][:,hid]
                           - ErrC[i][tidmin:tidmax[i]][:,hid]),
                          (C[i][tidmin:tidmax[i]][:,hid]
                           + ErrC[i][tidmin:tidmax[i]][:,hid]),
                          alpha = alpha)
-    plt.xlabel(r'$T$ ')
+    plt.xlabel(r'$T/|J_2|$ ')
     plt.ylabel(r'$c$')
     plt.grid(which = 'both', linestyle = '--', alpha = 0.3)
     if put_legend:
@@ -1908,7 +1940,7 @@ def BulkPlotsE(L, n, hid, tidmin, tidmax, temperatures_plots, foldername,
         #col = [0 + i/n, (1 - i/n)**2, 1 - i/n]
         plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]],
                      C[i][tidmin:tidmax[i]][:,hid] / temperatures_plots[i][tidmin:tidmax[i]],
-                     '.', markersize=markersize, label = r'$it$ = {0}'.format(i))
+                     fmts[i], markersize=markersize, label = r'$it$ = {0}'.format(i))
         plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]],
                          (C[i][tidmin:tidmax[i]][:,hid]
                           - ErrC[i][tidmin:tidmax[i]][:,hid]
@@ -1917,7 +1949,7 @@ def BulkPlotsE(L, n, hid, tidmin, tidmax, temperatures_plots, foldername,
                           + ErrC[i][tidmin:tidmax[i]][:,hid]
                          )/temperatures_plots[i][tidmin:tidmax[i]],\
                          alpha = alpha)
-    plt.xlabel(r'$T$ ')
+    plt.xlabel(r'$T/|J_2|$ ')
     plt.ylabel(r'$\frac{c}{T}$')
     plt.grid(which = 'both', linestyle = '--', alpha = 0.3)
     if put_legend:
@@ -1936,12 +1968,12 @@ def BulkPlotsE(L, n, hid, tidmin, tidmax, temperatures_plots, foldername,
         #col = [0 + i/n, (1 - i/n)**2, 1 - i/n]
         plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]],
                      t_h_S[i][tidmin:tidmax[i]][:,hid],
-                     '.', markersize=markersize, label = r'$it$ = {0}'.format(i))
+                     fmts[i], markersize=markersize, label = r'$it$ = {0}'.format(i))
         plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]],
                          t_h_Smin[i][tidmin:tidmax[i]][:,hid],
                          t_h_Smax[i][tidmin:tidmax[i]][:,hid],\
                          alpha = alpha)
-    plt.xlabel(r'$T$ ')
+    plt.xlabel(r'$T/|J_2|$ ')
     plt.ylabel(r'$S$')
     if n == 1:
         plt.ylim([0,0.7])
@@ -1960,7 +1992,7 @@ def BulkPlotsE(L, n, hid, tidmin, tidmax, temperatures_plots, foldername,
         #col = [0 + i/n, (1 - i/n)**2, 1 - i/n]
         plt.plot(temperatures_plots[i][tidmin:tidmax[i]],
                      C[i][tidmin:tidmax[i]][:,hid] / temperatures_plots[i][tidmin:tidmax[i]],
-                     '.', markersize=markersize, label = r'$it$ = {0}'.format(i))
+                     fmts[i], markersize=markersize, label = r'$it$ = {0}'.format(i))
         plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]],
                          (C[i][tidmin:tidmax[i]][:,hid]
                           - ErrC[i][tidmin:tidmax[i]][:,hid]
@@ -1969,7 +2001,7 @@ def BulkPlotsE(L, n, hid, tidmin, tidmax, temperatures_plots, foldername,
                           + ErrC[i][tidmin:tidmax[i]][:,hid]
                          )/temperatures_plots[i][tidmin:tidmax[i]],\
                          alpha = alpha)
-    plt.xlabel(r'$T$ ')
+    plt.xlabel(r'$T/|J_2|$ ')
     plt.xlim([0,None])
     plt.ylabel(r'$\frac{c}{T}$')
     plt.grid(which = 'both', linestyle = '--', alpha = 0.3)
@@ -1990,13 +2022,13 @@ def BulkPlotsE(L, n, hid, tidmin, tidmax, temperatures_plots, foldername,
         #col = [0 + i/n, (1 - i/n)**2, 1 - i/n]
         plt.plot(temperatures_plots[i][tidmin:tidmax[i]],
                      t_h_S[i][tidmin:tidmax[i]][:,hid],
-                     '.', markersize=markersize, label = r'$it$ = {0}'.format(i))
+                     fmts[i], markersize=markersize, label = r'$it$ = {0}'.format(i))
         plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]],
                          t_h_Smin[i][tidmin:tidmax[i]][:,hid],
                          t_h_Smax[i][tidmin:tidmax[i]][:,hid],\
                          alpha = alpha)
 
-    plt.xlabel(r'$T$ ')
+    plt.xlabel(r'$T/|J_2|$ ')
     plt.xlim([0,temperatures_plots[0][tidmax[0]-1]])
     plt.ylim([0,0.7])
     plt.ylabel(r'$S$')
