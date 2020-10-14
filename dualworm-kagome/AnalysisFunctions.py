@@ -17,6 +17,9 @@ import warnings
 import os
 import itertools
 
+# spline
+from scipy.interpolate import InterpolatedUnivariateSpline
+
 
 # In[ ]:
 
@@ -559,9 +562,9 @@ def LoadGroundStatesFromFile(foldername, filename, L, nh,iters, **kwargs):
 def ComputeEntropy(C, ErrC, temperatures, stat_hfields, nt, nh,**kwargs):
     RS = kwargs.get('RS', False)
     S0 = kwargs.get('S0', np.log(2))
-        
-    print("CE : nt = ", nt)
-    print("CE : nh = ", nh)
+    nS = kwargs.get('nS', 2000)
+    ts = np.array(temperatures)
+    
     DeltaSmin = np.zeros((nt, nh))
     DeltaS = np.zeros((nt, nh))
     DeltaSmax = np.zeros((nt, nh))
@@ -570,20 +573,24 @@ def ComputeEntropy(C, ErrC, temperatures, stat_hfields, nt, nh,**kwargs):
     CoverT = np.copy(Carray)
     CminoverT = np.copy(np.array(C - ErrC))
     CmaxoverT = np.copy(np.array(C + ErrC))
-    for tid in range(nt):
-        CminoverT[tid,:]= CminoverT[tid,:]/temperatures[tid]
-        CoverT[tid,:]= Carray[tid,:]/temperatures[tid]
-        CmaxoverT[tid,:]= CmaxoverT[tid,:]/temperatures[tid]
+    #for tid in range(nt):
+    CminoverT= CminoverT/ts[:,np.newaxis] # newaxis is for the magnetic field
+    CoverT= Carray/ts[:,np.newaxis]
+    CmaxoverT= CmaxoverT/ts[:,np.newaxis]
     
-    for tid in range(nt-2, -1, -1):
-        for hid, h in enumerate(stat_hfields):
-            DeltaSmin[tid,hid] =            DeltaSmin[tid+1,hid] + np.trapz(CminoverT[tid:tid+2, hid],
-                       temperatures[tid:tid+2])
-            DeltaS[tid,hid] =            DeltaS[tid+1,hid] + np.trapz(CoverT[tid:tid+2, hid],
-                       temperatures[tid:tid+2])
-            DeltaSmax[tid,hid] =            DeltaSmax[tid+1,hid] + np.trapz(CmaxoverT[tid:tid+2, hid],
-                       temperatures[tid:tid+2])
+    print("CE: CoverT shape ", CoverT.shape) 
+    # integrate and build S
+    for hid, h in enumerate(stat_hfields):
+        # fit
+        splmin = InterpolatedUnivariateSpline(ts, CminoverT[:,hid])
+        spl = InterpolatedUnivariateSpline(ts, CoverT[:,hid])
+        splmax = InterpolatedUnivariateSpline(ts, CmaxoverT[:,hid])
 
+        for tid in range(nt):
+            DeltaSmin[tid,hid] =            splmin.integral(ts[tid], ts[-1])
+            DeltaS[tid,hid] =            spl.integral(ts[tid], ts[-1])
+            DeltaSmax[tid,hid] =            splmax.integral(ts[tid], ts[-1])
+            
     t_h_Smin = S0*np.ones((nt, nh)) - DeltaSmax;
     t_h_S = S0*np.ones((nt, nh)) - DeltaS;
     t_h_Smax = S0*np.ones((nt, nh)) - DeltaSmin;
@@ -710,9 +717,13 @@ def LoadEnergyFromRuns(nmin, nmax, foldername, filenamelist, numsites,
             # Momentaneously: we want the variance of the population, and not the error on the mean, because we expect it
             # could be shifted...
             #ErrVarE = np.sqrt(((nbb-nbb_drop)/(nbb-nbb_drop-1)**2)*Sum_VarE_Sq - 1/(nbb-nbb_drop-1)**2 * Sum_VarE**2)
+         
+            # So that everything lies within 2 sigmas:
+            ErrVarE = 2*ErrVarE
             
             ErrC = ((numsites[nmin]) * ErrVarE)/(np.array(temperatures[nmin])[:,np.newaxis] ** 2)
             
+        
         else:
             for resid, t in enumerate(stat_temps):
                 T = temperatures[nmin][t]
@@ -973,8 +984,8 @@ def LoadEnergy(foldername, filenamelist, numsites,
                 Merged_t_h_ErrVarE +=(t_h_VarE[nf]-Merged_t_h_VarE)**2 /(newn*(newn-1)) ## check if variance or std in normal case!!!
                 
         # So that ErrC is in the right form
-
-        Merged_ErrC = np.sqrt(Merged_ErrC)
+        Merged_t_h_ErrVarE = 2*np.sqrt(Merged_t_h_ErrVarE)
+        Merged_ErrC = 2*np.sqrt(Merged_ErrC)
         
         # Compute S:
         RS = kwargs.get('RS', False)
@@ -1867,6 +1878,7 @@ def BulkPlotsE(L, n, hid, tidmin, tidmax, temperatures_plots, foldername,
     ncol = kwargs.get('ncol', 1)
     loc = kwargs.get('loc', 'best')
     fmts = kwargs.get('fmts', ['.' for i in range(n)])
+    pltfill = kwargs.get('pltfill',[True for i in range(n)])
     
     plt.figure(figsize=figsize,dpi=300)
     plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
@@ -1874,12 +1886,13 @@ def BulkPlotsE(L, n, hid, tidmin, tidmax, temperatures_plots, foldername,
         plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]],
                          t_h_MeanE[i][tidmin:tidmax[i]][:,hid],fmts[i], markersize=markersize,\
                           label = r'$it$ = {0}'.format(i))
-        plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]],
-                         (t_h_MeanE[i][tidmin:tidmax[i]][:,hid]
-                          - np.sqrt(t_h_varMeanE[i][tidmin:tidmax[i]][:,hid])),
-                         (t_h_MeanE[i][tidmin:tidmax[i]][:,hid]
-                          + np.sqrt(t_h_varMeanE[i][tidmin:tidmax[i]][:,hid])),\
-                         alpha=alpha)
+        if pltfill[i]:
+            plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]],
+                             (t_h_MeanE[i][tidmin:tidmax[i]][:,hid]
+                              - np.sqrt(t_h_varMeanE[i][tidmin:tidmax[i]][:,hid])),
+                             (t_h_MeanE[i][tidmin:tidmax[i]][:,hid]
+                              + np.sqrt(t_h_varMeanE[i][tidmin:tidmax[i]][:,hid])),\
+                             alpha=alpha)
     plt.xlabel(r'$T/|J_2|$')
     plt.ylabel(r'$E$')
     plt.grid(which = 'both', linestyle = '--', alpha = 0.3)
@@ -1895,10 +1908,11 @@ def BulkPlotsE(L, n, hid, tidmin, tidmax, temperatures_plots, foldername,
         plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]],
                      t_h_VarE[i][tidmin:tidmax[i]][:,hid],
                      fmts[i], markersize=markersize, label = r'$it$ = {0}'.format(i))
-        plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]],
-                     t_h_VarE[i][tidmin:tidmax[i]][:,hid]- t_h_ErrVarE[i][tidmin:tidmax[i]][:,hid],
-                     t_h_VarE[i][tidmin:tidmax[i]][:,hid]+ t_h_ErrVarE[i][tidmin:tidmax[i]][:,hid],    
-                     alpha = alpha)
+        if pltfill[i]:
+            plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]],
+                         t_h_VarE[i][tidmin:tidmax[i]][:,hid]- t_h_ErrVarE[i][tidmin:tidmax[i]][:,hid],
+                         t_h_VarE[i][tidmin:tidmax[i]][:,hid]+ t_h_ErrVarE[i][tidmin:tidmax[i]][:,hid],    
+                         alpha = alpha)
     plt.xlabel(r'$T/|J_2|$ ')
     plt.ylabel(r'Var($E$)')
     plt.grid(which = 'both', linestyle = '--', alpha = 0.3)
@@ -1916,7 +1930,8 @@ def BulkPlotsE(L, n, hid, tidmin, tidmax, temperatures_plots, foldername,
         plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]],
                      C[i][tidmin:tidmax[i]][:,hid],
                      fmts[i], markersize=markersize, label = r'$it$ = {0}'.format(i))
-        plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]],
+        if pltfill[i]:
+            plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]],
                          (C[i][tidmin:tidmax[i]][:,hid]
                           - ErrC[i][tidmin:tidmax[i]][:,hid]),
                          (C[i][tidmin:tidmax[i]][:,hid]
@@ -1941,7 +1956,8 @@ def BulkPlotsE(L, n, hid, tidmin, tidmax, temperatures_plots, foldername,
         plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]],
                      C[i][tidmin:tidmax[i]][:,hid] / temperatures_plots[i][tidmin:tidmax[i]],
                      fmts[i], markersize=markersize, label = r'$it$ = {0}'.format(i))
-        plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]],
+        if pltfill[i]:
+            plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]],
                          (C[i][tidmin:tidmax[i]][:,hid]
                           - ErrC[i][tidmin:tidmax[i]][:,hid]
                          )/temperatures_plots[i][tidmin:tidmax[i]],
@@ -1969,7 +1985,8 @@ def BulkPlotsE(L, n, hid, tidmin, tidmax, temperatures_plots, foldername,
         plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]],
                      t_h_S[i][tidmin:tidmax[i]][:,hid],
                      fmts[i], markersize=markersize, label = r'$it$ = {0}'.format(i))
-        plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]],
+        if pltfill[i]:
+            plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]],
                          t_h_Smin[i][tidmin:tidmax[i]][:,hid],
                          t_h_Smax[i][tidmin:tidmax[i]][:,hid],\
                          alpha = alpha)
@@ -2023,7 +2040,8 @@ def BulkPlotsE(L, n, hid, tidmin, tidmax, temperatures_plots, foldername,
         plt.plot(temperatures_plots[i][tidmin:tidmax[i]],
                      t_h_S[i][tidmin:tidmax[i]][:,hid],
                      fmts[i], markersize=markersize, label = r'$it$ = {0}'.format(i))
-        plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]],
+        if pltfill[i]:
+            plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]],
                          t_h_Smin[i][tidmin:tidmax[i]][:,hid],
                          t_h_Smax[i][tidmin:tidmax[i]][:,hid],\
                          alpha = alpha)
