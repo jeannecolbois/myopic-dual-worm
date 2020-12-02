@@ -363,7 +363,7 @@ def plot_honeycomb_chargestate(chargestate, ijl_c, L, a, c1_color = 'red', c2_co
         plot_honeycomb_charges(c4, ijl_c, L, a, color = c4_color, uponly = uponly, label = '-3')
 
 
-# In[ ]:
+# In[1]:
 
 
 #FUNCTION ALLOWING TO PLOT THE FULL STATE
@@ -391,7 +391,6 @@ def plotstate(temp_id, L, d_ijl, ijl_s, sidlist, didlist, s2_d, states, spinstat
         right = False,
         labelleft = False) # labels along the bottom edge are off
     
-    return fig, ax
 
 
 # In[ ]:
