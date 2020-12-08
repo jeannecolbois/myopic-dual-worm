@@ -562,7 +562,7 @@ def LoadGroundStatesFromFile(foldername, filename, L, nh,iters, **kwargs):
 def ComputeEntropy(C, ErrC, temperatures, stat_hfields, nt, nh,**kwargs):
     RS = kwargs.get('RS', False)
     S0 = kwargs.get('S0', np.log(2))
-    nS = kwargs.get('nS', 2000)
+    #nS = kwargs.get('nS', 2000)
     ts = np.array(temperatures)
     
     DeltaSmin = np.zeros((nt, nh))
@@ -594,6 +594,46 @@ def ComputeEntropy(C, ErrC, temperatures, stat_hfields, nt, nh,**kwargs):
     t_h_Smin = S0*np.ones((nt, nh)) - DeltaSmax;
     t_h_S = S0*np.ones((nt, nh)) - DeltaS;
     t_h_Smax = S0*np.ones((nt, nh)) - DeltaSmin;
+
+    return t_h_S, t_h_Smin, t_h_Smax
+
+
+# In[ ]:
+
+
+def ComputeEntropyFromE(t_h_MeanE, t_h_varMeanE, temperatures, stat_hfields, nt, nh, EGS = 0, **kwargs):
+    #RS = kwargs.get('RS', False)
+    S0 = kwargs.get('S0', np.log(2))
+
+    ts = np.array(temperatures)[::-1]
+    betas = 1/ts;
+    
+    
+    DeltaSmin = np.zeros((nt, nh))
+    DeltaS = np.zeros((nt, nh))
+    DeltaSmax = np.zeros((nt, nh))
+
+    for hid, h in enumerate(stat_hfields):
+        # fit
+        DEmin = t_h_MeanE[::-1,hid]-2*np.sqrt(t_h_varMeanE[::-1,hid])-EGS;
+        DE = t_h_MeanE[::-1,hid]-EGS;
+        DEmax = t_h_MeanE[::-1,hid]+2*np.sqrt(t_h_varMeanE[::-1,hid])-EGS;
+        
+        splmin = InterpolatedUnivariateSpline(betas, DEmin)
+        spl = InterpolatedUnivariateSpline(betas, DE)
+        splmax = InterpolatedUnivariateSpline(betas, DEmax)
+
+        for betaid in range(nt):
+            DeltaSmin[betaid,hid] =                splmin.integral(betas[0], betas[betaid])-                betas[betaid]*DEmin[betaid] + betas[0]*DEmin[0];
+            DeltaS[betaid,hid] =            spl.integral(betas[0], betas[betaid])- betas[betaid]*DE[betaid]+ betas[0]*DE[0];
+            DeltaSmax[betaid,hid] =            splmax.integral(betas[0], betas[betaid])- betas[betaid]*DEmax[betaid]+ betas[0]*DEmax[0];
+      
+            #Sshifted = S0- Int[bidmin:bidmax] + betas[bidmin:bidmax]*DE[bidmin:bidmax]- betas[bidmin]*DE[bidmin];
+    
+    t_h_Smin = S0*np.ones((nt, nh)) - DeltaSmax[::-1,:];
+    t_h_S = S0*np.ones((nt, nh)) - DeltaS[::-1,:];
+    t_h_Smax = S0*np.ones((nt, nh)) - DeltaSmin[::-1,:];
+
 
     return t_h_S, t_h_Smin, t_h_Smax
 
@@ -643,6 +683,7 @@ def LoadEnergyFromRuns(nmin, nmax, foldername, filenamelist, numsites,
     backups = ["./"+foldername+filenamelist[nf] for nf in range(nmin, nmax)]
     
     mergeruns = kwargs.get('mergeruns', False)
+    EGS = kwargs.get('EGS', 0)
     name = "Energy"
     
     t_h_MeanE, t_h_varMeanE =    ExtractStatisticsEnergy(nmin, nmax, backups, idfunc, name,
@@ -834,11 +875,12 @@ def LoadEnergyFromRuns(nmin, nmax, foldername, filenamelist, numsites,
     mergeruns = kwargs.get('mergeruns', False)
     if RS: #else, we compute on the average C
         [t_h_S, t_h_Smin, t_h_Smax] =        ComputeEntropy(C, ErrC, temperatures[nmin], stat_hfields[nmin], nt, nh,**kwargs)
+        [t_h_SE, t_h_SEmin, t_h_SEmax] =        ComputeEntropyFromE(t_h_MeanE, t_h_varMeanE, temperatures[nmin], stat_hfields[nmin], nt, nh,**kwargs)
     else:
         [t_h_S, t_h_Smin, t_h_Smax] = [[],[],[]]
     
     
-    return t_h_MeanE, t_h_MeanEsq, t_h_varMeanE, t_h_varMeanEsq,    VarE, ErrVarE, C, ErrC, t_h_S, t_h_Smin, t_h_Smax
+    return t_h_MeanE, t_h_MeanEsq, t_h_varMeanE, t_h_varMeanEsq,    VarE, ErrVarE, C, ErrC, t_h_S, t_h_Smin, t_h_Smax,    t_h_SE, t_h_SEmin, t_h_SEmax
 
 
 # In[ ]:
@@ -927,7 +969,12 @@ def LoadEnergy(foldername, filenamelist, numsites,
     t_h_Smin= [[] for _ in range(n//group)]
     t_h_Smax= [[] for _ in range(n//group)]
     
+    t_h_SE= [[] for _ in range(n//group)]
+    t_h_SEmin= [[] for _ in range(n//group)]
+    t_h_SEmax= [[] for _ in range(n//group)]
     
+    EGS = kwargs.get("EGSs",[0 for i in range(n//group)])
+            
     for nrun in range(n//group):
         nmin = group*nrun
         nmax = group*(nrun+1)
@@ -937,9 +984,10 @@ def LoadEnergy(foldername, filenamelist, numsites,
             idfunc = listfunctions[nmin].index('Energy')
             [t_h_MeanE[nrun], t_h_MeanEsq[nrun], t_h_varMeanE[nrun], t_h_varMeanEsq[nrun],
              t_h_VarE[nrun], t_h_ErrVarE[nrun], C[nrun], ErrC[nrun],
-             t_h_S[nrun], t_h_Smin[nrun], t_h_Smax[nrun]] =\
+             t_h_S[nrun], t_h_Smin[nrun], t_h_Smax[nrun],
+             t_h_SE[nrun], t_h_SEmin[nrun], t_h_SEmax[nrun]] =\
             LoadEnergyFromRuns(nmin, nmax, foldername, filenamelist, numsites,
-                              nb, stat_temps, temperatures, stat_hfields, idfunc, **kwargs)
+                              nb, stat_temps, temperatures, stat_hfields, idfunc, EGS = EGS[nrun], **kwargs)
         else:
             [t_h_MeanE[nf], t_h_MeanEsq[nf], t_h_varMeanE[nf],
              t_h_varMeanEsq[nf], C[nf], ErrC[nf],
@@ -951,9 +999,10 @@ def LoadEnergy(foldername, filenamelist, numsites,
     ####
     [Merged_t_h_MeanE, Merged_t_h_MeanEsq, 
     Merged_t_h_varMeanE, Merged_t_h_varMeanEsq,
-    Merged_t_h_VarE, Merged_t_h_ErrVarE,Merged_C, Merged_ErrC, Merged_t_h_S, Merged_t_h_Smin,
-    Merged_t_h_Smax] = \
-    [[],[],[],[],[],[],[],[],[],[],[]]
+    Merged_t_h_VarE, Merged_t_h_ErrVarE,Merged_C, Merged_ErrC,
+    Merged_t_h_S, Merged_t_h_Smin,Merged_t_h_Smax,
+    Merged_t_h_SE, Merged_t_h_SEmin,Merged_t_h_SEmax] = \
+    [[],[],[],[],[],[],[],[],[],[],[],[],[],[]]
     
     newn = n//group
     if mergeruns:
@@ -993,15 +1042,19 @@ def LoadEnergy(foldername, filenamelist, numsites,
         nh = len(stat_hfields[0])
         if RS: # if mergeruns, we compute on average C
             [Merged_t_h_S, Merged_t_h_Smin, Merged_t_h_Smax] =            ComputeEntropy(Merged_C, Merged_ErrC, temperatures[0], stat_hfields[0], nt, nh,**kwargs)
+            [Merged_t_h_SE, Merged_t_h_SEmin, Merged_t_h_SEmax] =            ComputeEntropyFromE(Merged_t_h_MeanE, Merged_t_h_varMeanE,
+                                temperatures[0], stat_hfields[0], nt, nh,
+                                EGS = EGS[0], **kwargs)
     
     MergedData = [[Merged_t_h_MeanE], [Merged_t_h_MeanEsq], 
         [Merged_t_h_varMeanE], [Merged_t_h_varMeanEsq],[Merged_t_h_VarE],[Merged_t_h_ErrVarE],
-        [Merged_C],[Merged_ErrC], [Merged_t_h_S],[Merged_t_h_Smin],
-        [Merged_t_h_Smax]]
+        [Merged_C],[Merged_ErrC],
+        [Merged_t_h_S],[Merged_t_h_Smin],[Merged_t_h_Smax],
+        [Merged_t_h_SE],[Merged_t_h_SEmin],[Merged_t_h_SEmax]]
     
     #####
     
-    return t_h_MeanE, t_h_MeanEsq, t_h_varMeanE, t_h_varMeanEsq,  t_h_VarE, t_h_ErrVarE,C, ErrC,            t_h_S, t_h_Smin, t_h_Smax, MergedData
+    return t_h_MeanE, t_h_MeanEsq, t_h_varMeanE, t_h_varMeanEsq,  t_h_VarE, t_h_ErrVarE,C, ErrC,            t_h_S, t_h_Smin, t_h_Smax, t_h_SE, t_h_SEmin, t_h_SEmax, MergedData
 
 
 # In[ ]:
@@ -1867,7 +1920,8 @@ def BasicPlotsE(L, i, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
 
 def BulkPlotsE(L, n, hid, tidmin, tidmax, temperatures_plots, foldername,
                 results_foldername, filenamelist, t_h_MeanE, t_h_MeanEsq, t_h_varMeanE,
-                t_h_varMeanEsq, t_h_VarE, t_h_ErrVarE, C, ErrC, J1, J2, J3, J4, t_h_S, t_h_Smin, t_h_Smax, **kwargs):
+                t_h_varMeanEsq, t_h_VarE, t_h_ErrVarE, C, ErrC, J1, J2, J3, J4, 
+                t_h_S, t_h_Smin, t_h_Smax, t_h_SE, t_h_SEmin, t_h_SEmax, **kwargs):
     
     margin = [0.15, 0.15, 0.02, 0.1]
     addsave = kwargs.get('addsave', "")
@@ -2002,7 +2056,33 @@ def BulkPlotsE(L, n, hid, tidmin, tidmax, temperatures_plots, foldername,
 
     plt.figure(figsize=figsize, dpi=300)
     plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
+    plt.gca().set_prop_cycle(None)
+    for i in range(n):
+        C[i] = np.array(C[i])
+        ErrC[i] = np.array(ErrC[i])
+        #col = [0 + i/n, (1 - i/n)**2, 1 - i/n]
+        plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]],
+                     t_h_SE[i][tidmin:tidmax[i]][:,hid],
+                     fmts[i], markersize=markersize, label = r'$it$ = {0}'.format(i))
+        if pltfill[i]:
+            plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]],
+                         t_h_SEmin[i][tidmin:tidmax[i]][:,hid],
+                         t_h_SEmax[i][tidmin:tidmax[i]][:,hid],\
+                         alpha = alpha)
 
+    plt.xlabel(r'$T/|J_2|$ ')
+    plt.ylabel(r'$S$ from $E$')
+    if n == 1:
+        plt.ylim([0,0.7])
+    plt.grid(which = 'both', linestyle = '--', alpha = 0.3)
+    if put_legend:
+        plt.legend(loc= loc, ncol = ncol, framealpha=0.5)
+    plt.savefig('./' + foldername  + results_foldername+ '/EntropyFromE'+addsave+'.pdf')
+    plt.savefig('./' + foldername  + results_foldername+ '/EntropyFromE'+addsave+'.png')
+    
+    plt.figure(figsize=figsize, dpi=300)
+    plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
+    plt.gca().set_prop_cycle(None)
     for i in range(n):
         C[i] = np.array(C[i])
         ErrC[i] = np.array(ErrC[i])
@@ -2055,6 +2135,93 @@ def BulkPlotsE(L, n, hid, tidmin, tidmax, temperatures_plots, foldername,
         plt.legend(loc= loc, ncol = ncol, framealpha=0.5)
     plt.savefig('./' + foldername  + results_foldername+ '/Entropy_Linear'+addsave+'.pdf')
     plt.savefig('./' + foldername  + results_foldername+ '/Entropy_Linear'+addsave+'.png')
+    
+    plt.figure(figsize=figsize, dpi=300)
+    plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
+    plt.plot([0,temperatures_plots[0][tidmax[0]-1]], [np.log(2), np.log(2)], '--')
+    plt.gca().set_prop_cycle(None)
+    for i in range(n):
+        C[i] = np.array(C[i])
+        ErrC[i] = np.array(ErrC[i])
+        #col = [0 + i/n, (1 - i/n)**2, 1 - i/n]
+        plt.plot(temperatures_plots[i][tidmin:tidmax[i]],
+                     t_h_SE[i][tidmin:tidmax[i]][:,hid],
+                     fmts[i], markersize=markersize, label = r'$it$ = {0}'.format(i))
+        if pltfill[i]:
+            plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]],
+                         t_h_SEmin[i][tidmin:tidmax[i]][:,hid],
+                         t_h_SEmax[i][tidmin:tidmax[i]][:,hid],\
+                         alpha = alpha)
+
+    plt.xlabel(r'$T/|J_2|$ ')
+    plt.xlim([0,temperatures_plots[0][tidmax[0]-1]])
+    plt.ylim([0,0.7])
+    plt.ylabel(r'$S$ from $E$')
+    plt.grid(which = 'both', linestyle = '--', alpha = 0.3)
+    if put_legend:
+        plt.legend(loc= loc, ncol = ncol, framealpha=0.5)
+    plt.savefig('./' + foldername  + results_foldername+ '/EntropyFromE_Linear'+addsave+'.pdf')
+    plt.savefig('./' + foldername  + results_foldername+ '/EntropyFromE_Linear'+addsave+'.png')
+    
+    plt.figure(figsize=figsize, dpi=300)
+    plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
+    plt.gca().set_prop_cycle(None)
+    for i in range(n):
+        C[i] = np.array(C[i])
+        ErrC[i] = np.array(ErrC[i])
+        #col = [0 + i/n, (1 - i/n)**2, 1 - i/n]
+        plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]],
+                     t_h_SE[i][tidmin:tidmax[i]][:,hid]-t_h_S[i][tidmin:tidmax[i]][:,hid],
+                     fmts[i], markersize=markersize, label = r'$it$ = {0}'.format(i))
+        if pltfill[i]:
+            plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]],
+                             t_h_SE[i][tidmin:tidmax[i]][:,hid]-t_h_Smin[i][tidmin:tidmax[i]][:,hid],
+                             t_h_SE[i][tidmin:tidmax[i]][:,hid]-t_h_Smax[i][tidmin:tidmax[i]][:,hid],\
+                         alpha =2*alpha)
+            plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]],
+                             t_h_SEmin[i][tidmin:tidmax[i]][:,hid]-t_h_S[i][tidmin:tidmax[i]][:,hid],
+                             t_h_SEmax[i][tidmin:tidmax[i]][:,hid]-t_h_S[i][tidmin:tidmax[i]][:,hid],\
+                         alpha = alpha)
+
+    plt.xlabel(r'$T/|J_2|$ ')
+    plt.ylabel(r'$S_E$ - $S$')
+    plt.grid(which = 'both', linestyle = '--', alpha = 0.3)
+    if put_legend:
+        plt.legend(loc= loc, ncol = ncol, framealpha=0.5)
+    plt.savefig('./' + foldername  + results_foldername+ '/Entropy_Difference'+addsave+'.pdf')
+    plt.savefig('./' + foldername  + results_foldername+ '/Entropy_Difference'+addsave+'.png')
+    
+    plt.figure(figsize=figsize, dpi=300)
+    plt.axes(margin[:2] + [1-margin[0]-margin[2], 1-margin[1]-margin[3]])
+    plt.gca().set_prop_cycle(None)
+    for i in range(n):
+        C[i] = np.array(C[i])
+        ErrC[i] = np.array(ErrC[i])
+        #col = [0 + i/n, (1 - i/n)**2, 1 - i/n]
+        plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]],
+                     t_h_SE[i][tidmin:tidmax[i]][:,hid],
+                     ".", markersize=markersize, label = r'$it$ = {0}'.format(i))
+        if pltfill[i]:
+            plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]],
+                             t_h_SEmin[i][tidmin:tidmax[i]][:,hid],
+                             t_h_SEmax[i][tidmin:tidmax[i]][:,hid],\
+                         alpha =2*alpha)
+        plt.semilogx(temperatures_plots[i][tidmin:tidmax[i]],
+                     t_h_S[i][tidmin:tidmax[i]][:,hid],
+                     "x", markersize=markersize, label = r'$it$ = {0}'.format(i))
+        if pltfill[i]:
+            plt.fill_between(temperatures_plots[i][tidmin:tidmax[i]],
+                             t_h_Smin[i][tidmin:tidmax[i]][:,hid],
+                             t_h_Smax[i][tidmin:tidmax[i]][:,hid],\
+                         alpha = alpha)
+
+    plt.xlabel(r'$T/|J_2|$ ')
+    plt.ylabel(r'$S_E$ vs $S$')
+    plt.grid(which = 'both', linestyle = '--', alpha = 0.3)
+    if put_legend:
+        plt.legend(loc= loc, ncol = ncol, framealpha=0.5)
+    plt.savefig('./' + foldername  + results_foldername+ '/Entropy_Comparison'+addsave+'.pdf')
+    plt.savefig('./' + foldername  + results_foldername+ '/Entropy_Comparison'+addsave+'.png')
 
 
 # In[ ]:
