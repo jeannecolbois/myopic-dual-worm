@@ -33,16 +33,22 @@ def correlationsTester(state, latsize, d_ijl, ijl_d, L):
     EJ2 = dw.compute_energy(hamiltonian, state, latsize)
     
     # J3 #
-    couplings = {'J1':0, 'J2' : 0, 'J3' : 1.0, 'J3st':1.0}
+    couplings = {'J1':0, 'J2' : 0, 'J3' : 1.0, 'J3st':0}
     hamiltonian = dw.Hamiltonian(couplings, d_ijl, ijl_d, L)
     EJ3 = dw.compute_energy(hamiltonian, state, latsize)
+    
+    # J3* #
+    couplings = {'J1':0, 'J2' : 0, 'J3' : 0, 'J3st':1.0}
+    hamiltonian = dw.Hamiltonian(couplings, d_ijl, ijl_d, L)
+    EJ3st = dw.compute_energy(hamiltonian, state, latsize)
+    
     
     # J4 #
     couplings = {'J1':0, 'J2' : 0, 'J3' : 0, 'J3st':0, 'J4': 1.0}
     hamiltonian = dw.Hamiltonian(couplings, d_ijl, ijl_d, L)
     EJ4 = dw.compute_energy(hamiltonian, state, latsize)
     
-    config = {'J1':EJ1, 'J2': EJ2, 'J3':EJ3, 'J4': EJ4}
+    config = {'J1':EJ1, 'J2': EJ2, 'J3':EJ3, 'J3st': EJ3st, 'J4': EJ4}
     
     return config
 
@@ -1242,10 +1248,12 @@ def BasicPlotsFirstCorrelations(L, i, t_h_MeanFc, temperatures_plots, t_h_varMea
     createfig = kwargs.get('createfig', True)
     markersize = kwargs.get('markersize', 10)
     alpha = kwargs.get('alpha', 0.3)
+    TNvals = kwargs.get('TNvals', [])
+    
     print(createfig)
     if createfig:
         fig, ax = plt.subplots(1,1,figsize=figsize, dpi = dpi)
-    
+    ## NN
     if log:
         ax.semilogx(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,hid,0],'.',markersize = markersize,label = r'$c_1$')
     else:
@@ -1254,6 +1262,12 @@ def BasicPlotsFirstCorrelations(L, i, t_h_MeanFc, temperatures_plots, t_h_varMea
     ax.fill_between(temperatures_plots[i][tmin:],
                     t_h_MeanFc[i][tmin:,hid,0]-np.sqrt(t_h_varMeanFc[i][tmin:,hid,0]),
                     t_h_MeanFc[i][tmin:,hid,0]+np.sqrt(t_h_varMeanFc[i][tmin:,hid,0]), alpha = alpha)
+   
+    if len(TNvals)>=2:
+        c = TNvals[1];
+        ax.plot(temperatures_plots[i][tmin], c,'o', color = "blue", markersize = markersize,
+                label = r"TN value $c_{1}$")
+    ## N2
     if log:
         ax.semilogx(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,hid,1],'x',markersize = markersize,label = r'$c_2$')
     else: 
@@ -1262,6 +1276,11 @@ def BasicPlotsFirstCorrelations(L, i, t_h_MeanFc, temperatures_plots, t_h_varMea
     ax.fill_between(temperatures_plots[i][tmin:],
                     t_h_MeanFc[i][tmin:,hid,1]-np.sqrt(t_h_varMeanFc[i][tmin:,hid,1]),
                     t_h_MeanFc[i][tmin:,hid,1]+np.sqrt(t_h_varMeanFc[i][tmin:,hid,1]), alpha = alpha)
+    if len(TNvals)>=3:
+        c = TNvals[2];
+        ax.plot(temperatures_plots[i][tmin], c,'o', color = "orange", markersize = markersize,
+                label = r"TN value $c_{2}$") 
+    ## N3||
     if log:
         ax.semilogx(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,hid,2],'v',markersize = markersize,label = r'$c_{3||}$')
     else:
@@ -1269,6 +1288,12 @@ def BasicPlotsFirstCorrelations(L, i, t_h_MeanFc, temperatures_plots, t_h_varMea
     ax.fill_between(temperatures_plots[i][tmin:],
                     t_h_MeanFc[i][tmin:,hid,2]-np.sqrt(t_h_varMeanFc[i][tmin:,hid,2]),
                     t_h_MeanFc[i][tmin:,hid,2]+np.sqrt(t_h_varMeanFc[i][tmin:,hid,2]), alpha = alpha)
+    
+    if len(TNvals)>=4:
+        c = TNvals[3];
+        ax.plot(temperatures_plots[i][tmin], c,'o', color = "green", markersize = markersize,
+                label = r"TN value $c_{3||}$") 
+    ## N3*
     if log:
         ax.semilogx(temperatures_plots[i][tmin:],t_h_MeanFc[i][tmin:,hid,3],'*',markersize = markersize,label =r'$c_{3\star}$ ')
     else:
@@ -1277,6 +1302,11 @@ def BasicPlotsFirstCorrelations(L, i, t_h_MeanFc, temperatures_plots, t_h_varMea
     ax.fill_between(temperatures_plots[i][tmin:],
                     t_h_MeanFc[i][tmin:,hid,3]-np.sqrt(t_h_varMeanFc[i][tmin:,hid,3]),
                     t_h_MeanFc[i][tmin:,hid,3]+np.sqrt(t_h_varMeanFc[i][tmin:,hid,3]), alpha = alpha)
+   
+    if len(TNvals)>=5:
+        c = TNvals[4];
+        ax.plot(temperatures_plots[i][tmin], c,'o', color = "red", markersize = markersize,
+                label = r"TN value $c_{3\star}$") 
     if createfig:
         ax.set_title(addtitle)
         ax.set_xlabel(r"$T/J_1$")
@@ -1897,6 +1927,8 @@ def BasicPlotsM(L, i, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
     expmerr = kwargs.get('expmerr', 0)
     addsave = kwargs.get('addsave', "")
     alpha = kwargs.get('alpha', 0.2)
+    TNvals = kwargs.get('TNvals', [])
+    
     ## Magnetisation
     t_h_MeanM = np.array(t_h_MeanM)
     t_h_MeanMsq =  np.array(t_h_MeanMsq)
@@ -1904,6 +1936,8 @@ def BasicPlotsM(L, i, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
     t_h_varMeanMsq =  np.array(t_h_varMeanMsq)
     Chi = np.array(Chi)
     ErrChi = np.array(ErrChi)
+    
+    
     #Magnetisation:
     margin = [0.08, 0.08, 0.02, 0.1]
     
@@ -1928,6 +1962,8 @@ def BasicPlotsM(L, i, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
                     plt.fill_between([min(hfileds_plots[i]),max(hfields_plots[i])],[expm-expmerr,expm-expmerr],
                                      [expm+expmerr, expm+expmerr], alpha = alpha, label = r'$m$ - exp')
 
+        if len(TNvals)>0:
+            plt.plot(hfields_plots[i][0], TNvals[0], '*', label = "TN value", color = "blue")
         plt.xlabel(r'Magnetic field $h$')
         plt.ylabel(r'Magnetisation per site $m$')
         plt.grid(which='both')
@@ -1956,11 +1992,13 @@ def BasicPlotsM(L, i, tidmin, tidmax, temperatures_plots, hfields_plots, foldern
                     plt.fill_between([temperatures_plots[i][tidmin],temperatures_plots[i][tidmax[i]-1]],
                                      [expm-expmerr,expm-expmerr],
                                      [expm+expmerr, expm+expmerr], alpha = alpha, label = r'$m$ - exp')
+        if len(TNvals)>0:
+            plt.plot(temperatures_plots[i][tidmin], TNvals[0], '*', markersize = 10, label = "TN value", color = "blue")
         plt.xlabel(r'Temperature $T$ ')
         plt.ylabel('Magnetisation per site')
         plt.title('Filename: '+filenamelist[i])
         plt.grid(which='both')
-        plt.legend(loc= 'best', framealpha = alpha)
+        plt.legend(loc= 'upper right', framealpha = alpha)
         plt.savefig('./' + foldername  + results_foldername+ '/M'+addsave+'.png')
         if pgf:
             plt.savefig('./' + foldername  + results_foldername+ '/M'+addsave+'.pgf')
