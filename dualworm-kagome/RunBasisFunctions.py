@@ -164,10 +164,11 @@ def StatesAndEnergyInit(args, backup, loadbackup,hamiltonian, ids2walker,
         print('Magnetisation initialisation = ', magninit)
         maxflip = args.maxflip
         magnstripes = args.magnstripes
+        testinit = args.testinit
 
         kwinit = {'random': randominit, 'same': same, 
                   'magninit': magninit, 'maxflip':maxflip,
-                 'magnstripes': magnstripes}
+                 'magnstripes': magnstripes, 'test': testinit}
 
         hkl.dump(kwinit, backup+".hkl", path = "/parameters/kwinit", mode = 'r+')
         

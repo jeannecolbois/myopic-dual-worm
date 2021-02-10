@@ -64,24 +64,32 @@ def createspinsitetable(L):
 
 
 @lru_cache(maxsize = None)
-def graphdice(L, a):
+def graphdice(L, a, PBC = True):
     '''
         For the dice lattice:
         Returns two vertex <-> (i, j, l) tables, a table linking edge to the two corresponding vertices, as well as a dictionary giving the position (x,y) of each vertex
     '''
+    print("graphdice called")
     #vertices table
-    v_ijl = [(i, j, l) for i in range(-1, 2*L+1) for j in range(-1, 2*L+1) for l in range(3) if (i+j >= L-2) and (i+j <= 3*L - 1)]
-    
+    if PBC:
+        v_ijl = [(i, j, l) for i in range(-1, 2*L+1) for j in range(-1, 2*L+1) for l in range(3) if (i+j >= L-2) and (i+j <= 3*L - 1)]
+    else:
+        v_ijl = [(i, j, l) for i in range(2*L) for j in range(2*L) for l in range(3) if (i+j > L-2) and (i+j < 3*L - 1)]
     #vertices dictionary:
     ijl_v = {}
     for v, triplet in enumerate(v_ijl):
         ijl_v[triplet] = v
     
+    
     #create the edges (v1, v2)
     #table of where to look at 
     nv = [(0, -1, 2), (0, 0, 1), (0, 0, 2), (-1, 1, 1), (-1, 0, 2), (-1, 0, 1)]
     #edge -> vertex: l from 0 to 5 indicates the edge
-    e_2v = [((i, j, 0),(i + nv[l][0], j + nv[l][1], nv[l][2])) for i in range(-1, 2*L+1) for j in range(-1, 2*L+1) for l in range(6) if (i+j >= L-2) and (i+j <= 3*L - 1)]
+    if PBC:
+        e_2v = [((i, j, 0),(i + nv[l][0], j + nv[l][1], nv[l][2])) for i in range(-1, 2*L+1) for j in range(-1, 2*L+1) for l in range(6) if (i+j >= L-2) and (i+j <= 3*L - 1)]
+    else:
+        e_2v = [((i, j, 0),(i + nv[l][0], j + nv[l][1], nv[l][2])) for i in range(2*L) for j in range(2*L) for l in range(6) if (i+j > L-2) and (i+j < 3*L - 1)]
+            
     e_2v = [(ijl_v[i, j, l], ijl_v[ni, nj, nl]) for ((i, j, l), (ni, nj, nl)) in e_2v if (ni, nj, nl) in v_ijl]
     #position
     pos = {} #empty dictionary
@@ -96,6 +104,7 @@ def graphdice(L, a):
             x = a * (i + j / 2.0 + 1.0 / 2.0)
             y = a * (j * np.sqrt(3) / 2.0 + 1.0/ (2.0 * np.sqrt(3.0)))
         pos[v] = (x,y)
+    print("graphdice done")
     return v_ijl, ijl_v, e_2v, pos
 
 
@@ -121,13 +130,16 @@ def reducedgraphdice(L, a, d_ijl, v_ijl, ijl_v):
 
 
 @lru_cache(maxsize = None)
-def graphkag(L, a):
+def graphkag(L, a, PBC=True):
     '''
         For the kagomé lattice:
         Returns two vertex <-> (i, j, l) tables, a table linking edge to the two corresponding vertices, as well as a dictionary giving the position (x,y) of each vertex
     '''
     #vertices table
-    sv_ijl = [(i, j, l) for i in range(-1, 2*L+1) for j in range(-1, 2*L+1) for l in range(3) if (i+j >= L-2) and (i+j <= 3*L - 1)]
+    if PBC:
+        sv_ijl = [(i, j, l) for i in range(-1, 2*L+1) for j in range(-1, 2*L+1) for l in range(3) if (i+j >= L-2) and (i+j <= 3*L - 1)]
+    else:
+        sv_ijl = [(i, j, l) for i in range(2*L) for j in range(2*L) for l in range(3) if (i+j > L-2) and (i+j < 3*L-1)]
     
     #vertices dictionary:
     ijl_sv = {}
@@ -138,7 +150,11 @@ def graphkag(L, a):
     #table of where to look at 
     nv = [[(0, 0, 1), (1, 0, 2)],[(-1, 1, 0), (1, 0, 2)], [(0, 0, 1), (-1, 1, 0)]]
     #edge -> vertex: l from 0 to 5 indicates the edge
-    e_2sv = [((i, j, l),(i + nv[l][u][0], j + nv[l][u][1], nv[l][u][2])) for i in range(-1, 2*L+1) for j in range(-1, 2*L+1) for l in range(3) for u in range(2) if (i+j >= L-2) and (i+j <= 3*L - 1)]
+    if PBC:
+        e_2sv = [((i, j, l),(i + nv[l][u][0], j + nv[l][u][1], nv[l][u][2])) for i in range(-1, 2*L+1) for j in range(-1, 2*L+1) for l in range(3) for u in range(2) if (i+j >= L-2) and (i+j <= 3*L - 1)]
+    else:
+        e_2sv = [((i, j, l),(i + nv[l][u][0], j + nv[l][u][1], nv[l][u][2])) for i in range(2*L) for j in range(2*L) for l in range(3) for u in range(2) if (i+j > L-2) and (i+j < 3*L - 1)]
+        
     e_2sv = [(ijl_sv[i, j, l], ijl_sv[ni, nj, nl]) for ((i, j, l), (ni, nj, nl)) in e_2sv if (ni, nj, nl) in sv_ijl]
     #position
     pos = {} #empty dictionary
@@ -209,14 +225,14 @@ def edge2dimer(L, a, d_ijl, v_ijl, ijl_v, e_2v):
 # In[ ]:
 
 
-def plot_dice_nodes(L, a, color='black', s=1, **kargs):
-    (v_ijl, ijl_v, e_2v, pos) = graphdice(L, a)
-    gdw.draw_nodes(pos, list(pos.keys()), c=color, s=s, **kargs)
-def plot_dice_dimers(dimers, d_ijl, L, a, **kargs):
+def plot_dice_nodes(L, a, color='black', s=1, PBC = True, **kargs):
+    (v_ijl, ijl_v, e_2v, pos) = graphdice(L, a, PBC = PBC)
+    gdw.draw_nodes(pos, list(pos.keys()), c=color, s=s,**kargs)
+def plot_dice_dimers(dimers, d_ijl, L, a, PBC = True, **kargs):
     """
         :param dimers: list of dimers indices (for instance [3, 5, 2, ...])
     """
-    (v_ijl, ijl_v, e_2v, pos) = graphdice(L, a)
+    (v_ijl, ijl_v, e_2v, pos) = graphdice(L, a, PBC = PBC)
     e_d = edge2dimer(L, a, d_ijl, v_ijl, ijl_v, e_2v)
     dimersthere = [] # list of vertex pairs on the dice lattice where there is a dimer
     for e, (v1, v2) in enumerate(e_2v):
@@ -224,12 +240,13 @@ def plot_dice_dimers(dimers, d_ijl, L, a, **kargs):
         if e_d[e] in dimers:
             dimersthere.append((v1,v2))
     gdw.draw_edges(pos, dimersthere, **kargs)
-def plot_dice_dimerstate(state, d_ijl, L, a, node_color = 'black', dim_color = 'black', no_dim_color = 'lightgrey', linewidth = 1, **kargs):
-    plot_dice_nodes(L, a, color = node_color, **kargs)
+def plot_dice_dimerstate(state, d_ijl, L, a,node_color = 'black', dim_color = 'black', no_dim_color = 'lightgrey', linewidth = 1,  PBC = True, **kargs):
+    plot_dice_nodes(L, a, color = node_color, PBC = PBC, **kargs)
+    print("dice nodes plotted")
     dimers = [d for d, dstate in enumerate(state) if dstate == 1]
     nodimers = [d for d, dstate in enumerate(state) if dstate == -1]
-    plot_dice_dimers(dimers, d_ijl, L, a, color = dim_color, linewidth = linewidth)
-    plot_dice_dimers(nodimers, d_ijl, L, a, color = no_dim_color)
+    plot_dice_dimers(dimers, d_ijl, L, a, color = dim_color, linewidth = linewidth, PBC = PBC)
+    plot_dice_dimers(nodimers, d_ijl, L, a, color = no_dim_color, PBC = PBC)
 
 
 # In[ ]:
@@ -267,40 +284,38 @@ def chargevertex2charge(L,a, ijl_c, cv_ijl):
 # In[ ]:
 
 
-def plot_kag_nodes(L, a, color='blue', s=20, **kargs):
-    (sv_ijl, ijl_sv, e_2sv, poskag) = graphkag(L,a)
-    node_collection = gdw.draw_nodes(poskag, list(poskag.keys()), c = color, s = s, **kargs)
-    return node_collection
-def plot_kag_edges(L, a, color='lightblue', **kargs):
-    sv_ijl, ijl_sv, e_2sv, pos = graphkag(L, a)
+def plot_kag_nodes(L, a, color='blue', s=20, PBC = True, **kargs):
+    (sv_ijl, ijl_sv, e_2sv, poskag) = graphkag(L,a, PBC = PBC)
+    gdw.draw_nodes(poskag, list(poskag.keys()), c = color, s = s, **kargs)
+
+def plot_kag_edges(L, a, color='lightblue', PBC = True, **kargs):
+    sv_ijl, ijl_sv, e_2sv, pos = graphkag(L, a,PBC = PBC)
     gdw.draw_edges(pos, e_2sv, color = color, **kargs)
     
-def plot_kag_spins(spins, ijl_s, L, a, color = 'red', **kargs):
+def plot_kag_spins(spins, ijl_s, L, a, color = 'red', PBC = True, **kargs):
     """
         :param spins: list of spins indices (for instance [3, 5, 2, ...])
     """
-    (sv_ijl, ijl_sv, e_2sv, poskag) = graphkag(L,a)
+    (sv_ijl, ijl_sv, e_2sv, poskag) = graphkag(L,a, PBC = PBC)
     sv_s = spinvertex2spin(L,a, ijl_s, sv_ijl)
     spinsthere = []
     for sv, ijl in enumerate(sv_ijl): #for each key
         if sv_s[sv] in spins:# look for corresponding spin in spins
             spinsthere.append(sv) #list of keys
-    node_collection = gdw.draw_nodes(poskag, spinsthere, c = color, **kargs)
-    return node_collection
-
-def plot_kag_spinstate(spinstate, ijl_s, L, a, edge_color = 'lightblue', up_color = 'blue', down_color = 'red', **kargs):
+    gdw.draw_nodes(poskag, spinsthere, c = color, **kargs)
+    
+def plot_kag_spinstate(spinstate, ijl_s, L, a, edge_color = 'lightblue', up_color = 'blue', down_color = 'red', PBC = True, **kargs):
     """
         :param spins: list of spins indices (for instance [3, 5, 2, ...])
     """
-    plot_kag_nodes(L, a, **kargs)
-    plot_kag_edges(L, a, color = edge_color, **kargs)
+    plot_kag_nodes(L, a, PBC = PBC, **kargs)
+    plot_kag_edges(L, a, color = edge_color, PBC = PBC, **kargs)
     spinsup = [s for s, sstate in enumerate(spinstate) if sstate == 1]
     spinsdown = [s for s, sstate in enumerate(spinstate) if sstate == -1]
     if len(spinsup) != 0:
-        nodesup = plot_kag_spins(spinsup, ijl_s, L, a, color = up_color, label = 'spin up')
+        plot_kag_spins(spinsup, ijl_s, L, a, color = up_color, PBC = PBC, label = 'spin up')
     if len(spinsdown) != 0:
-        nodesdown = plot_kag_spins(spinsdown, ijl_s, L, a, color = down_color, label = 'spin down')
-    return nodesup, nodesdown
+        plot_kag_spins(spinsdown, ijl_s, L, a, color = down_color, PBC = PBC, label = 'spin down')
 
 
 # In[ ]:
@@ -310,50 +325,64 @@ def plot_honeycomb_nodes(L, a, color = 'blue', s = 20, **kargs):
     (cv_ijl, ijl_cv, posh) = graphhoneycomb(L,a)
     gdw.draw_nodes(posh, list(posh.keys()), c = color, s = s, **kargs)
     
-def plot_honeycomb_charges(charges, ijl_c, L, a, color = 'red', **kargs):
+def plot_honeycomb_charges(charges, ijl_c, L, a, color = 'red', uponly = False, **kargs):
     """
-        :param spins: list of charge indices (for instance [3, 5, 2, ...])
+        :param charges: list of charge indices (for instance [3, 5, 2, ...])
     """
     (cv_ijl, ijl_cv, posh) = graphhoneycomb(L,a)
     cv_c = chargevertex2charge(L,a, ijl_c, cv_ijl)
     chargesthere = []
-    for cv, ijl in enumerate(cv_ijl): #for each key
-        if cv_c[cv] in charges:# look for corresponding spin in spins
-            chargesthere.append(cv) #list of keys
+    for cv, (i,j,l) in enumerate(cv_ijl): #for each key
+        if uponly:
+            if l == 1:
+                if cv_c[cv] in charges:# look for corresponding charge in charges
+                    chargesthere.append(cv) #list of keys
+        else:
+            if cv_c[cv] in charges:# look for corresponding charge in charges
+                chargesthere.append(cv) #list of keys
     gdw.draw_nodes(posh, chargesthere, c = color, **kargs)    
 
-def plot_honeycomb_chargestate(chargestate, ijl_c, L, a, c1_color = 'red', c2_color = 'green', c3_color = 'green', c4_color = 'red',edge_color = 'lightblue', **kargs):
+def plot_honeycomb_chargestate(chargestate, ijl_c, L, a, c1_color = 'red', c2_color = 'green',
+                               c3_color = 'green', c4_color = 'red',edge_color = 'lightblue',
+                               uponly = False, **kargs):
     """
-        :param spins: list of spins indices (for instance [3, 5, 2, ...])
+        
     """
-    plot_honeycomb_nodes(L, a, **kargs)
+    #plot_honeycomb_nodes(L, a, **kargs)
     c1 = [c for c, cstate in enumerate(chargestate) if cstate == 3]
     c2 = [c for c, cstate in enumerate(chargestate) if cstate == 1]
     c3 = [c for c, cstate in enumerate(chargestate) if cstate == -1]
     c4 = [c for c, cstate in enumerate(chargestate) if cstate == -3]
     if len(c1) != 0:
-        plot_honeycomb_charges(c1, ijl_c, L, a, color = c1_color, label = '+3')
+        plot_honeycomb_charges(c1, ijl_c, L, a, color = c1_color, uponly = uponly, label = '+3')
     if len(c2) != 0:
-        plot_honeycomb_charges(c2, ijl_c, L, a, color = c2_color, label = '+1')
+        plot_honeycomb_charges(c2, ijl_c, L, a, color = c2_color, uponly = uponly, label = '+1')
     if len(c3) != 0:
-        plot_honeycomb_charges(c3, ijl_c, L, a, color = c3_color, label = '-1')
+        plot_honeycomb_charges(c3, ijl_c, L, a, color = c3_color, uponly = uponly, label = '-1')
     if len(c4) != 0:
-        plot_honeycomb_charges(c4, ijl_c, L, a, color = c4_color, label = '-3')
+        plot_honeycomb_charges(c4, ijl_c, L, a, color = c4_color, uponly = uponly, label = '-3')
 
 
-# In[ ]:
+# In[1]:
 
 
 #FUNCTION ALLOWING TO PLOT THE FULL STATE
 
-def plotstate(temp_id, L, d_ijl, ijl_s, sidlist, didlist, s2_d, states, spinstates, dim_node_color = 'black', dim_color ='black', no_dim_color = 'lightgrey', spin_edge_color = 'lightblue', spin_up_color = 'blue', spin_down_color = 'red', dimerlinewidth = 5, spinlinewidth = 1, **kargs):    
+def plotstate(temp_id, L, d_ijl, ijl_s, sidlist, didlist, s2_d, states, spinstates,
+              PBC = True,
+              dim_node_color = 'black', dim_color ='black',
+              no_dim_color = 'lightgrey', spin_edge_color = 'lightblue',
+              spin_up_color = 'blue', spin_down_color = 'red', dimerlinewidth = 5, spinlinewidth = 1, figsize = 0, dpi = 200, **kargs):    
 
     a = 2 #lattice parameter
-    fig, ax = plt.subplots(figsize = (2*L, 2*L))
-    plot_dice_dimerstate(states[temp_id], d_ijl, L, a, dim_node_color, dim_color, no_dim_color, linewidth = dimerlinewidth, **kargs)
-    plot_kag_spinstate(spinstates[temp_id], ijl_s, L, a, spin_edge_color, spin_up_color, spin_down_color, linewidth = spinlinewidth, **kargs)
-    ax.axis('equal')
-    ax.tick_params(  
+    
+    if figsize == 0:
+        figsize = (2*L, 2*L)
+    plt.figure(figsize = figsize, dpi = dpi)
+    plt.axis('equal')
+    plot_dice_dimerstate(states[temp_id], d_ijl, L, a, dim_node_color, dim_color, no_dim_color, PBC = PBC,linewidth = dimerlinewidth, **kargs)
+    plot_kag_spinstate(spinstates[temp_id], ijl_s, L, a, spin_edge_color, spin_up_color, spin_down_color, PBC = PBC,linewidth = spinlinewidth, **kargs)
+    plt.tick_params(  
         which = 'both',      # both major and minor ticks are affected
         bottom = False,      # ticks along the bottom edge are off
         top = False,         # ticks along the top edge are off
@@ -362,7 +391,6 @@ def plotstate(temp_id, L, d_ijl, ijl_s, sidlist, didlist, s2_d, states, spinstat
         right = False,
         labelleft = False) # labels along the bottom edge are off
     
-    return fig, ax
 
 
 # In[ ]:

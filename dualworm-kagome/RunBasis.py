@@ -337,6 +337,8 @@ if __name__ == "__main__":
     parser.add_argument('--same', default = False, action = 'store_true',
                         help = '''initialise all temperatures with the same
                         state (debug purposes)''')
+    parser.add_argument('--testinit', default = False, action = 'store_true',
+                        help = '''test some given initialisation''')
     parser.add_argument('--magninit', default = False, action = 'store_true',
                         help = '''initialise all the temperature with
                         one of the m=1/3 GS''')
