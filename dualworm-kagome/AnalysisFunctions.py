@@ -131,7 +131,7 @@ def LoadParameters(foldername, filenamelist, **kwargs):
                 okforgroup = False
                 raise Exception(" You required grouping the runs but runs "+ nf-1 +" and " + nf + "are not compatible")
            
-    return L, numsites, J1, J2, J3, J3st, J4, nb, num_in_bin,             htip, Ttip, pswitch, uponly, path,             temperatures, nt,             stat_temps, temperatures_plots, hfields, nh,             stat_hfields, hfields_plots, listfunctions, sref, ids2walker
+    return L, numsites, J1, J2, J3, J3st, J4, np.array(nb), num_in_bin,             htip, Ttip, pswitch, uponly, path,             temperatures, nt,             stat_temps, temperatures_plots, hfields, nh,             stat_hfields, hfields_plots, listfunctions, sref, ids2walker
 
 
 # In[ ]:
@@ -1392,18 +1392,20 @@ def SwapsAnalysis(L, n, tidmin, tidmax, temperatures, hfields, foldername, resul
 
     for i in range(n):
         plt.figure()
-        plt.loglog(temperatures[i][tidmin:tidmax[i]-1], swapst[i][tidmin:tidmax[i]-1], '.', color = 'green')
+        plt.semilogx(temperatures[i][tidmin:tidmax[i]-1], swapst[i][tidmin:tidmax[i]-1], '.', color = 'green')
         plt.xlabel('Temperature')
         plt.ylabel('Ratio of swaps')
+        plt.ylim([0,1])
         plt.title('Ratio of swaps as a function of the temperature')
         plt.savefig('./' + foldername  + results_foldername+ '/NumberSwapsTemperature_L={0}_SimId={1}.png'.format(L[i],i))
 
         nh = len(hfields[i])
         if nh > 1:
             plt.figure()
-            plt.semilogy(hfields[i], swapsh[i], '.', color = 'orange')
+            plt.plot(hfields[i], swapsh[i], '.', color = 'orange')
             plt.xlabel('Magnetic field')
             plt.ylabel('Ratio of swaps')
+            plt.ylim([0,1])
             plt.title('Ratio of swaps as a function of the magnetic field')
             plt.grid(which='both')
             plt.savefig('./' + foldername  + results_foldername+ '/NumberSwapsField_L={0}_SimId={1}.png'.format(L[i], i))
