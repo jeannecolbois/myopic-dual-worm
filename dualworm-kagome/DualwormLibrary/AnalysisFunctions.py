@@ -1141,7 +1141,7 @@ def LoadMagnetisationFromFile(foldername, filename, numsites, nb, stat_temps,
                 ErrChih.append(0)
         ErrChi.append(ErrChih)
     
-    return  t_h_MeanM,  t_h_MeanMsq, t_h_varMeanM, t_h_varMeanMsq, Chi, ErrChi
+    return  t_h_MeanM,  t_h_MeanMsq, t_h_varMeanM, t_h_varMeanMsq, np.array(Chi), np.array(ErrChi)
 
 
 # In[ ]:
