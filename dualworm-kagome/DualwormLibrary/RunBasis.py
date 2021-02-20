@@ -6,13 +6,13 @@
 
 import numpy as np
 import dimers as dim
-import DualwormFunctions as dw
-import StartStates as strst
-import Observables as obs
-import RunBasisFunctions as rbf
+from DualwormLibrary import DualwormFunctions as dw
+from KagomeLattice import StartStates as strst
+from DualwormLibrary import Observables as obs
+from DualwormLibrary import RunBasisFunctions as rbf
 
 import hickle as hkl
-from safe import safe
+from DualwormLibrary.safe import safe
 import os
 import warnings
 

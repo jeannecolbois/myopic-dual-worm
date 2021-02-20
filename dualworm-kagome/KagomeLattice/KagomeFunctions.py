@@ -389,6 +389,84 @@ def path_for_measupdate(s_ijl, ijl_s, s2_d, L, version = 0):
                                             path.append(ijl_s[(i,j,l)])
                                 else: # doing the bottom corner
                                     path.append(ijl_s[(i,j,1)])
+    elif version == 8: # overlapping tip 1 - variant on path 5
+        order = [True, False]
+        for const in range(0, 5*L):
+            for line in range(2):
+                for forward in order:
+                    if forward:
+                        irange = range(0, 2*L, 1)
+                    else:
+                        irange = range(2*L -1, -1, -1)
+                    for i in irange:
+                        j = (const - i)//2 # twice same j in a row
+                        jmax = (const-i)/2
+
+                        if (i+j > L-2) and (i+j < 3*L-1) and j>= 0 and j < 2*L :
+                            if line == 0: # going through 0 and 2, do triangles
+                                if j == jmax: # doing the triangle corners
+                                    if forward:
+                                        for l in [2,0]:
+                                            path.append(ijl_s[(i,j,l)])
+                                    else:
+                                        for l in [0,2]:
+                                            path.append(ijl_s[(i,j,l)])
+                                else: # doing the bottom part
+                                    if forward:
+                                        for l in [2,1,0]:
+                                            path.append(ijl_s[(i,j,l)])
+                                    else:
+                                        for l in [0,1,2]:
+                                            path.append(ijl_s[(i,j,l)])
+                            else: # going through 1, do wiggly lines
+                                if j == jmax: # doing the top part
+                                    if forward:
+                                        for l in [2,1,0]:
+                                            path.append(ijl_s[(i,j,l)])
+                                    else:
+                                        for l in [0,1,2]:
+                                            path.append(ijl_s[(i,j,l)])
+                                else: # doing the bottom corner
+                                    path.append(ijl_s[(i,j,1)])
+                                    
+        #scanning from top to bottom, again:
+        for const in range(0, 5*L):
+            for line in range(2):
+                for forward in order:
+                    if forward:
+                        irange = range(0, 2*L, 1)
+                    else:
+                        irange = range(2*L -1, -1, -1)
+                    for i in irange:
+                        j = (const - i)//2 # twice same j in a row
+                        jmax = (const-i)/2
+
+                        if (i+j > L-2) and (i+j < 3*L-1) and j>= 0 and j < 2*L :
+                            if line == 0: # going through 0 and 2, do triangles
+                                if j == jmax: # doing the triangle corners
+                                    if forward:
+                                        for l in [2,0]:
+                                            path.append(ijl_s[(i,j,l)])
+                                    else:
+                                        for l in [0,2]:
+                                            path.append(ijl_s[(i,j,l)])
+                                else: # doing the bottom part
+                                    if forward:
+                                        for l in [2,1,0]:
+                                            path.append(ijl_s[(i,j,l)])
+                                    else:
+                                        for l in [0,1,2]:
+                                            path.append(ijl_s[(i,j,l)])
+                            else: # going through 1, do wiggly lines
+                                if j == jmax: # doing the top part
+                                    if forward:
+                                        for l in [2,1,0]:
+                                            path.append(ijl_s[(i,j,l)])
+                                    else:
+                                        for l in [0,1,2]:
+                                            path.append(ijl_s[(i,j,l)])
+                                else: # doing the bottom corner
+                                    path.append(ijl_s[(i,j,1)])
     #elif version == 7: # some variant on version 1 (PBC)
     #    path, bonus = spins_dimers_for_update(s_ijl, ijl_s, s2_d, L)
     #elif version == 8: #some variant on version 0 (PBC)
@@ -595,7 +673,7 @@ def NN3parpairs(ijl_s, s_ijl, L):
 
     #without worrying about the PBC:
     nn3parpairs = [[[(i+nnpairslist[p][u][0], j+nnpairslist[p][u][1], nnpairslist[p][u][2]) for u in range(2)]
-               for p in range(6)] for (i,j,l) in s_ijl if l == 0]
+               for p in range(6)] for (i,j,l) in s_ijl if l == 0] # for each hexagon, we build the neighbours.
     nn3parpairs = [[ijl_s[fixbc(si, sj, sl, L)] for (si, sj, sl) in p]  for listsp in nn3parpairs for p in listsp]
                        
     return nn3parpairs
@@ -616,6 +694,45 @@ def NN3starpairs(ijl_s, s_ijl, L):
     nn3starpairs = [[ijl_s[fixbc(si, sj, sl, L)] for (si, sj, sl) in p]  for listsp in nn3starpairs for p in listsp]
 
     return nn3starpairs
+
+
+# In[ ]:
+
+
+def NN4pairs(ijl_s, s_ijl, L):
+    nnpairslist = [[(0,0,0),(0,-1,2)],
+                    [(0,0,0),(-1,0,1)],
+                    [(0,0,1),(0,-1,0)],
+                    [(0,0,1),(0,-1,2)],
+                    [(0,0,2),(1,-1,1)],
+                    [(0,0,2),(0,-1,0)],
+                    [(-1,0,0),(1,0,2)],
+                    [(-1,0,0),(1,-1,1)],
+                    [(0,-1,1),(-1,1,0)],
+                    [(0,-1,1),(1,0,2)],
+                    [(1,-1,2),(-1,0,1)],
+                    [(1,-1,2),(-1,1,0)]]
+                    
+    #without worrying about the PBC:
+    nn4pairs = [[[(i+nnpairslist[p][u][0], j+nnpairslist[p][u][1], nnpairslist[p][u][2]) for u in range(2)]
+               for p in range(12)] for (i,j,l) in s_ijl if l == 0]
+    nn4pairs = [[ijl_s[fixbc(si, sj, sl, L)] for (si, sj, sl) in p]  for listsp in nn4pairs for p in listsp]
+
+    return nn4pairs
+
+
+# In[ ]:
+
+
+def NN5pairs(ijl_s, s_ijl, L):
+    nnpairslist = [[(1,-1,1),(-1,1,0)],[(-1,1,0),(0,-1,2)],[(0,-1,2),(1,-1,1)],
+                   [(0,-1,0),(1,0,2)],[(1,0,2),(-1,0,1)],[(-1,0,1),(0,-1,0)]]
+                    
+    #without worrying about the PBC:
+    nn5pairs = [[[(i+nnpairslist[p][u][0], j+nnpairslist[p][u][1], nnpairslist[p][u][2]) for u in range(2)]
+               for p in range(6)] for (i,j,l) in s_ijl if l == 0]
+    nn5pairs = [[ijl_s[fixbc(si, sj, sl, L)] for (si, sj, sl) in p]  for listsp in nn5pairs for p in listsp]
+    return nn5pairs
 
 
 # In[ ]:

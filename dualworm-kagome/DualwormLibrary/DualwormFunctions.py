@@ -6,8 +6,8 @@
 
 import numpy as np
 import dimers as dim
-import KagomeFunctions as lattice
-import Observables as obs
+from KagomeLattice import KagomeFunctions as lattice
+from DualwormLibrary import Observables as obs
 from scipy.special import erfc
 from time import time
 import itertools
@@ -429,6 +429,20 @@ def NN3starpairs(ijl_s, s_ijl, L):
 # In[ ]:
 
 
+def NN4pairs(ijl_s, s_ijl, L):
+    return lattice.NN4pairs(ijl_s, s_ijl, L)
+
+
+# In[ ]:
+
+
+def NN5pairs(ijl_s, s_ijl, L):
+    return lattice.NN5pairs(ijl_s, s_ijl, L)
+
+
+# In[ ]:
+
+
 def reducedgraph(L, s_ijl, ijl_s):
     '''
         Returns exactly one position per spin coordinate.
@@ -739,7 +753,7 @@ def onestate_dimers2spins(sidlist, didlist, states,
                          np.array(sidlist, dtype='int32'), 
                          np.array(didlist, dtype='int32'),
                          ncores, randspinupdate)
-    return
+    return np.array(spinstates, dtype='int32')
 
 
 # In[ ]:
@@ -761,29 +775,6 @@ def states_dimers2spins(sidlist, didlist, states, spinstates,
 
 
 ############ EVOLUTION ############
-
-
-# In[ ]:
-
-
-#def measupdatespin(tid, sidlist, states, spinstates,nnspins, s2p, p):
-#    spinstate = spinstates[tid]
-#    for sid in range(len(spinstate)):
-#        s = spinstate[sid]
-#        if s == 1 :
-#            #if the spin is down, check if we can flip it
-#            neispinstates = np.array([spinstate[snei] for snei in nnspins[sid]])
-#            #if it costs no energy:
-#            if neispinstates.sum() == 0:
-#                if np.random.random_sample() < p:
-#                    #flip the spin
-#                    spinstates[tid][sid] = -1
-#                    for did in s2p[sid]:
-#                        # and flip the corresponding dimers
-#                        states[tid][did] *= -1
-#            #endif
-#        #endif
-#    #endfor
 
 
 # In[ ]:

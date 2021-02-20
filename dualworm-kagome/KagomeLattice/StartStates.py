@@ -4,7 +4,7 @@
 # In[ ]:
 
 
-from DualwormFunctions import compute_energy
+from DualwormLibrary.DualwormFunctions import compute_energy
 import numpy as np
 
 

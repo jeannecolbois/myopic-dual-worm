@@ -8,11 +8,11 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import hickle as hkl
-import KagomeFunctions as kf # "library" allowing to work on Kagome
-import DualwormFunctions as dw
-import KagomeDrawing as kdraw
-import KagomeFT as kft
-import Observables as obs
+from KagomeLattice import KagomeFunctions as kf # "library" allowing to work on Kagome
+from DualwormLibrary import DualwormFunctions as dw
+from KagomeLattice import KagomeDrawing as kdraw
+from KagomeLattice import KagomeFT as kft
+from DualwormLibrary import Observables as obs
 import warnings
 import os
 import itertools
@@ -131,7 +131,7 @@ def LoadParameters(foldername, filenamelist, **kwargs):
                 okforgroup = False
                 raise Exception(" You required grouping the runs but runs "+ nf-1 +" and " + nf + "are not compatible")
            
-    return L, numsites, J1, J2, J3, J3st, J4, nb, num_in_bin,             htip, Ttip, pswitch, uponly, path,             temperatures, nt,             stat_temps, temperatures_plots, hfields, nh,             stat_hfields, hfields_plots, listfunctions, sref, ids2walker
+    return L, numsites, J1, J2, J3, J3st, J4, np.array(nb), num_in_bin,             htip, Ttip, pswitch, uponly, path,             temperatures, nt,             stat_temps, temperatures_plots, hfields, nh,             stat_hfields, hfields_plots, listfunctions, sref, ids2walker
 
 
 # In[ ]:
@@ -1002,13 +1002,12 @@ def LoadEnergy(foldername, filenamelist, numsites,
             LoadEnergyFromRuns(nmin, nmax, foldername, filenamelist, numsites,
                               nb, stat_temps, temperatures, stat_hfields, idfunc, EGS = EGS[nrun], **kwargs)
         else:
-            [t_h_MeanE[nf], t_h_MeanEsq[nf], t_h_varMeanE[nf],
-             t_h_varMeanEsq[nf], C[nf], ErrC[nf],
-             t_h_S[nf], t_h_Smin[nf], t_h_Smax[nf]] = \
-            [[],[],[],[],[],[],[],[],[]]
+            [t_h_MeanE[nrun], t_h_MeanEsq[nrun], t_h_varMeanE[nrun],
+             t_h_varMeanEsq[nrun], C[nrun], ErrC[nrun],
+             t_h_S[nrun], t_h_Smin[nrun], t_h_Smax[nrun],
+             t_h_SE[nrun], t_h_SEmin[nrun], t_h_SEmax[nrun]] = \
+            [[],[],[],[],[],[],[],[],[],[],[],[]]
     
-    print(t_h_MeanE[0].shape)
-    print("Load Energy: C[0].shape; before merge", C[0].shape)
     ####
     [Merged_t_h_MeanE, Merged_t_h_MeanEsq, 
     Merged_t_h_varMeanE, Merged_t_h_varMeanEsq,
@@ -1392,18 +1391,20 @@ def SwapsAnalysis(L, n, tidmin, tidmax, temperatures, hfields, foldername, resul
 
     for i in range(n):
         plt.figure()
-        plt.loglog(temperatures[i][tidmin:tidmax[i]-1], swapst[i][tidmin:tidmax[i]-1], '.', color = 'green')
+        plt.semilogx(temperatures[i][tidmin:tidmax[i]-1], swapst[i][tidmin:tidmax[i]-1], '.', color = 'green')
         plt.xlabel('Temperature')
         plt.ylabel('Ratio of swaps')
+        plt.ylim([0,1])
         plt.title('Ratio of swaps as a function of the temperature')
         plt.savefig('./' + foldername  + results_foldername+ '/NumberSwapsTemperature_L={0}_SimId={1}.png'.format(L[i],i))
 
         nh = len(hfields[i])
         if nh > 1:
             plt.figure()
-            plt.semilogy(hfields[i], swapsh[i], '.', color = 'orange')
+            plt.plot(hfields[i], swapsh[i], '.', color = 'orange')
             plt.xlabel('Magnetic field')
             plt.ylabel('Ratio of swaps')
+            plt.ylim([0,1])
             plt.title('Ratio of swaps as a function of the magnetic field')
             plt.grid(which='both')
             plt.savefig('./' + foldername  + results_foldername+ '/NumberSwapsField_L={0}_SimId={1}.png'.format(L[i], i))

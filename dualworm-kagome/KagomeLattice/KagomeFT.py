@@ -13,8 +13,8 @@
 
 
 import numpy as np
-import KagomeFunctions as kf # library allowing to work on kagome
-import KagomeDrawing as kdraw # library allowing to plot kagome and its reciprocal lattice
+from KagomeLattice import KagomeFunctions as kf # library allowing to work on kagome
+from KagomeLattice import KagomeDrawing as kdraw # library allowing to plot kagome and its reciprocal lattice
 import matplotlib.pyplot as plt
 #import numba
 

@@ -5,7 +5,7 @@
 
 
 from functools import lru_cache
-import GraphDrawing as gdw
+from DualwormLibrary import GraphDrawing as gdw
 import numpy as np
 import matplotlib.pyplot as plt
 
