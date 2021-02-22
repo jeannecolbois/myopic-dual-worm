@@ -39,3 +39,4 @@ dualworm-kagome/AnalysisCode_PSI/*.png
 dualworm-kagome/AnalysisCode_PSI/*.pdf
 dualworm-kagome/AnalysisCode_PSI/*.pgf
 dualworm-kagome/AnalysisCode_PSI/*.svg
+*.code-workspace
