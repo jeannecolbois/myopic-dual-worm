@@ -95,11 +95,9 @@ def magnetisedInitStripes(spinstates, nt, nh,
         print("Magnetised init - stripes")
         versions = [np.random.randint(0,3) for w in range(nt*nh)]
         
-        signs = [np.sign(h) for t in range(nt) for h in hfields]
+        signs = [np.sign(h) if np.sign(h) != 0 else  np.random.randint(0,2, dtype = 'int8')*2-1 for t in range(nt) for h in hfields]
         
         for w in range(nt*nh):
-            if signs[w] == 0:
-                signs[w] = np.random.randint(0,2, dtype = 'int8')*2-1
             for s, (i,j,l) in enumerate(s_ijl):
                 if l == versions[w]:
                     spinstates[w][s] = -signs[w]
@@ -1184,23 +1182,18 @@ def statesinit(nt, nh, hfields, id2walker, d_ijl, d_2s, s_ijl,
             DipolarToJ4Init(spinstates, nt*nh, s_ijl, same)
         else:
             print("Something went wrong and you get something random instead")
-    states = np.array(states, 'int32')
+   
+    states = np.array(states, 'int32')  
     spinstates = np.array(spinstates, 'int32')
+     
     ##initialise the dimer state according to the spin state
     for bid in range(nt):
         for hid in range(nh): 
             i = id2walker[bid, hid]
-            for id_dim in range(len(d_ijl)):
-                [id_s1, id_s2] = d_2s[id_dim]
-                s1 = spinstates[i][id_s1]
-                s2 = spinstates[i][id_s2]
-                if (s1 == s2):
-                    states[i][id_dim] = 1
-                else:
-                    states[i][id_dim] = -1
-                    
+            states[i] =np.array([1 if(spinstates[i][d_2s[id_dim][0]] == spinstates[i][d_2s[id_dim][1]]) else -1 for id_dim in range(len(d_ijl))], 'int8')
             states[i] = states[i].astype('int8')
-            
+     
+      
     # compute the energy of the initialized states (via the function in c++)
     en_states = [[compute_energy(hamiltonian, states[id2walker[bid, hid]])
                   - hfields[hid]*spinstates[id2walker[bid,hid]].sum()

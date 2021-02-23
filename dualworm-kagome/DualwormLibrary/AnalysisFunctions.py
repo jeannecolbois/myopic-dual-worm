@@ -389,7 +389,17 @@ def LoadSwapsFromFile(foldername, filename, nb, num_in_bin, nh, nt):
 
 # In[ ]:
 
+def LoadAutocorrelation(foldername, filenamelist):
+    n = len(filenamelist)
+    autocorrelations = [[] for _ in range(n)]
+    for nf, filename in enumerate(filenamelist):
+        autocorrelations[nf] =\
+        LoadAutocorrelationFromFile(foldername, filename)
+    return autocorrelations
 
+def LoadAutocorrelationFromFile(foldername, filename):
+    backup = "./"+foldername+filename+"_AutocorrelationSpins_final.hkl"
+    return hkl.load(backup)
 def LoadUpdates(foldername, filenamelist, nb, num_in_bin, size, **kwargs):
     n = len(filenamelist)
     failedupdates_th = [[] for _ in range(n)]

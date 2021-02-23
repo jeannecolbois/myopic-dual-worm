@@ -89,8 +89,8 @@ def main(args):
                   hfields, nh, ids2walker, nt)
     print("Energies Checked")
     
-    rbf.CheckStates(spinstates, states, d_2s)
-    print("States Checked")
+    #rbf.CheckStates(spinstates, states, d_2s)
+    #print("States Checked")
 
     ### INITIALISATION FOR THE MEASUREMENTS
     # Observables to measure
@@ -163,8 +163,8 @@ def main(args):
                   hfields, nh, ids2walker, nt)
     print("Energies Checked")
     
-    rbf.CheckStates(spinstates, states, d_2s)
-    print("States Checked")
+    #rbf.CheckStates(spinstates, states, d_2s)
+    #print("States Checked")
     measupdate = args.measupdate
     
     if genMode and not ok and not measupdate:
@@ -249,7 +249,7 @@ def main(args):
           'namefunctions': namefunctions, 'srefs':srefs,
           'backup': backup,
           'genMode': genMode, 'fullstateupdate': fullssf, 
-          'saveupdates':saveupdates,'verbose':args.verbose}
+          'saveupdates':saveupdates,'verbose':args.verbose, 'autospins':args.autospins}
           
         # Run measurements
 
@@ -275,8 +275,8 @@ def main(args):
                   hfields, nh, ids2walker, nt)
     print("Energies Checked")
     
-    rbf.CheckStates(spinstates, states, d_2s)
-    print("States Checked")
+    #rbf.CheckStates(spinstates, states, d_2s)
+    #print("States Checked")
     
     #Save the final results and the order in which to read them...
     hkl.dump(walker2params, backup+"_walker2params.hkl")
@@ -406,6 +406,8 @@ if __name__ == "__main__":
                     measurements''') 
     
     #MEASUREMENTS PARAMETERS
+    parser.add_argument('--autospins', default = False, action = 'store_true',
+                        help = 'activate if you want to save the autocorrelation')
     parser.add_argument('--generatingMode', default = False, action = 'store_true',
                         help = 'activate if you want to generate a number of ground states and low energy states')
     parser.add_argument('--energy', default = False, action = 'store_true',

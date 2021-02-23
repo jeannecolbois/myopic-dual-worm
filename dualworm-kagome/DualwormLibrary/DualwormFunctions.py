@@ -12,6 +12,9 @@ from scipy.special import erfc
 from time import time
 import itertools
 import hickle as hkl
+#parallel statistics:
+import functools
+import multiprocessing
 
 
 # In[ ]:
@@ -780,7 +783,7 @@ def states_dimers2spins(sidlist, didlist, states, spinstates,
 # In[ ]:
 
 
-def statistics(tid, resid, hid, reshid, bid, states, statesen, statstables,
+def oldstatistics(tid, resid, hid, reshid, bid, states, statesen, statstables,
                spinstates,statsfunctions, sidlist, didlist, L, s_ijl, ijl_s,
                num_in_bin, stlen, magnfuncid, ids2walker, **kwargs):
     '''
@@ -819,7 +822,92 @@ def statistics(tid, resid, hid, reshid, bid, states, statesen, statstables,
 
         statstables[stat_id][bid][1][resid][reshid] += (func_per_site ** 2) / num_in_bin
 
+""" def statupdate(stat_temps, stat_fields, bid, states, statesen, statstables,
+               spinstates,statsfunctions, sidlist, didlist, L, s_ijl, ijl_s,
+               num_in_bin, stlen, magnfuncid, ids2walker, stat_id,**kwargs):
+        for resid,tid in enumerate(stat_temps):
+            for reshid, hid in enumerate(stat_fields):
+                wid = ids2walker[tid, hid]
+                func_per_site = statsfunctions[stat_id](stlen, states[wid],
+                                                statesen[tid, hid], 
+                                                spinstates[wid],
+                                                s_ijl, ijl_s,
+                                                **kwargs)
+                 
+                #evaluation depends on the temperature index
+                statstables[stat_id][bid][0][resid][reshid] += func_per_site / num_in_bin 
+                #storage depends on the result index
+                statstables[stat_id][bid][1][resid][reshid] += (func_per_site ** 2) / num_in_bin
 
+ """
+""" def parallelstatistics(stat_temps, stat_fields, bid, states, statesen, statstables,
+               spinstates,statsfunctions, sidlist, didlist, L, s_ijl, ijl_s,
+               num_in_bin, stlen, magnfuncid, ids2walker, **kwargs):
+    '''
+        This function updates the statistics in statstables given the states,
+        the states energy, the statistical functions, the list of spins and
+        dimers for updates,
+        the system size and the number of states in a bin
+    '''
+    # bin index = integer division of the iteration and the number
+    # of iterations in a bin
+    #   Before doing any measurement, the spinstate must be updated.
+    #   But it is not necessary to update the spinstate
+    #   if no measurement is performed, since the code runs on dimer
+    #   configurations.
+    #   Hence, we can feed the statistics threads with only the temperatures
+    #   indices for which we are interested in
+    #   the statistics.
+    
+    
+    #statstables = list(map(statupdate, statstables, range(len(statstables))))
+    mono_arg_updt = functools.partial(statupdate, stat_temps, stat_fields, bid, states, statesen, statstables,
+               spinstates,statsfunctions, sidlist, didlist, L, s_ijl, ijl_s,
+               num_in_bin, stlen, magnfuncid, ids2walker, **kwargs)
+
+    print("multiprocessing")
+    with multiprocessing.Pool(processes = kwargs.get('ncores',8)) as pool:
+        pool.map(mono_arg_updt, range(len(statstables))) """
+
+def statistics(stat_temps, stat_fields, bid, states, statesen, statstables,
+               spinstates,statsfunctions, sidlist, didlist, L, s_ijl, ijl_s,
+               num_in_bin, stlen, magnfuncid, ids2walker, **kwargs):
+    '''
+        This function updates the statistics in statstables given the states,
+        the states energy, the statistical functions, the list of spins and
+        dimers for updates,
+        the system size and the number of states in a bin
+    '''
+    # bin index = integer division of the iteration and the number
+    # of iterations in a bin
+    #   Before doing any measurement, the spinstate must be updated.
+    #   But it is not necessary to update the spinstate
+    #   if no measurement is performed, since the code runs on dimer
+    #   configurations.
+    #   Hence, we can feed the statistics threads with only the temperatures
+    #   indices for which we are interested in
+    #   the statistics.
+    
+    
+    def statupdate(statstable, stat_id):
+        for resid,tid in enumerate(stat_temps):
+            for reshid, hid in enumerate(stat_fields):
+                wid = ids2walker[tid, hid]
+                func_per_site = statsfunctions[stat_id](stlen, states[wid],
+                                                statesen[tid, hid], 
+                                                spinstates[wid],
+                                                s_ijl, ijl_s,
+                                                **kwargs)
+                 
+                #evaluation depends on the temperature index
+                statstable[bid][0][resid][reshid] += func_per_site / num_in_bin 
+                #storage depends on the result index
+                statstable[bid][1][resid][reshid] += (func_per_site ** 2) / num_in_bin
+        return statstable
+    
+    statstables = list(map(statupdate, statstables, range(len(statstables))))
+
+        
 # In[ ]:
 
 
@@ -993,7 +1081,8 @@ def swapfields(tid, hid, up, statesen, betas, hfields, spinstates,
 
 # In[ ]:
 
-
+def autocorrelation(state, refstate):
+    return np.mean(state*refstate)
 def mcs_swaps(states, spinstates, statesen, 
               betas, stat_temps, stat_fields, **kwargs):
     '''
@@ -1092,6 +1181,7 @@ def mcs_swaps(states, spinstates, statesen,
     ssf = kwargs.get('ssf', False)
     ssffurther = kwargs.get('ssffurther', False)
     alternate = kwargs.get('alternate', False)
+    autospins = kwargs.get('autospins', False)
     
     genMode = kwargs.get('genMode', False)
     saveupdates = kwargs.get('saveupdates', False)
@@ -1118,6 +1208,7 @@ def mcs_swaps(states, spinstates, statesen,
     else:
         statstables =  []
         
+    
     stat_paramsid = np.array(list(itertools.product(stat_temps, stat_fields)))
     
     ## Iterate
@@ -1141,6 +1232,13 @@ def mcs_swaps(states, spinstates, statesen,
     swapst = np.array([0 for tid in range(nt)], dtype='int32')
     swapsh = np.array([0 for hid in range(nh)], dtype='int32')
     
+    if autospins:
+        autocorrelation_spins = obs.initautocorrel_spins(itermcs//measperiod, stat_temps, stat_fields)
+        refspinstates = np.copy(spinstates)
+        refids2walker = np.copy(ids2walker)
+    else:
+        autocorrelation_spins = []
+
     failedupdates = np.array([[0 for hid in range(nh)] for bid in range(nt)],dtype ='int32')
     failedssfupdates = np.array([[0 for hid in range(nh)] for bid in range(nt)],dtype ='int32')
     if saveupdates:
@@ -1219,7 +1317,7 @@ def mcs_swaps(states, spinstates, statesen,
         t_tempering +=(t3-t2)/itermcs
         
         #### STATS 
-        # note that the spin states have been updated already
+        # note that depending on the update the spin states have been updated already
         if randspinupdate:
             # update the mapids2walker function;
             # note that it is only needed here because we don't update ALL
@@ -1265,24 +1363,31 @@ def mcs_swaps(states, spinstates, statesen,
                                    walker2ids, updatelists, 4, saveupdates)
                     
 
-                for resid,tid in enumerate(stat_temps):
-                    for reshid, hid in enumerate(stat_fields):
-                        statistics(tid, resid, hid, reshid, binid, states, statesen,
+                statistics(stat_temps, stat_fields, binid,states, statesen,
                                    statstables,  spinstates,statsfunctions,
                                    sidlist, didlist, L, s_ijl, ijl_s,
                                    num_in_bin, stlen,
                                    magnfuncid, ids2walker,\
                                    c2s = c2s, csign = csign,nnlists = nnlists, srefs = srefs)
+            
                 if genMode:
                     wid = ids2walker[0, 0]
                     hkl.dump(states[wid], backup+"_groundstate_it{0}.hkl".format(it//measperiod+1))
                     hkl.dump(spinstates[wid], backup+"_groundspinstate_it{0}.hkl".format(it//measperiod+1))
-                # it would probably be worth it to parallelise this in c++
+                # it would be worth it to parallelise this in c++
                 # ideally I should do it before the spins update, then 
                 # perform the spin update and possibly the replicas in c++.
+
+            if autospins: 
+                t = it//measperiod # MC time
+                # compare to reference spin state
+
+                if verbose:
+                    print("auto correlations: ", autocorrelation(spinstates[ids2walker[0,0]], refspinstates[refids2walker[0,0]]))
+                autocorrelation_spins[t] = np.array([[autocorrelation(spinstates[ids2walker[tid,hid]], refspinstates[refids2walker[tid,hid]])
+                    for hid in stat_fields] for tid in stat_temps])
+                    
                 
-                
- 
             if backup and (it//measperiod)/num_in_bin == binid:
                 if binid == 0:
                     for funcid in range(len(statsfunctions)):
@@ -1323,7 +1428,11 @@ def mcs_swaps(states, spinstates, statesen,
                     backup+"_"+namefunctions[funcid]+"_final.hkl",
                     mode = 'w')
         
-    return statstables, swapst, swapsh,            failedupdates, failedssfupdates, updatelists
+    if autospins:
+        hkl.dump(autocorrelation_spins,
+                    backup+"_AutocorrelationSpins_final.hkl",
+                    mode = 'w')
+    return statstables, swapst, swapsh,failedupdates, failedssfupdates, updatelists
     
     
 

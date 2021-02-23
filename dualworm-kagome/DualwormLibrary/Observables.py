@@ -16,7 +16,7 @@ def centralcorrelations(stlen, state, en_state, spinstate, s_ijl, ijl_s, srefs =
 def si(stlen, state, en_state, spinstate, s_ijl, ijl_s,**kwargs):
     return np.array(spinstate, dtype = 'int8')
 
-def firstcorrelations(stlen, state, en_state, spinstate, s_ijl, ijl_s, nnlists = [], m = 0, **kwargs):
+def firstcorrelations(stlen, state, en_state, spinstate, s_ijl, ijl_s, nnlists = [], **kwargs):
     firstcorr = [sum([spinstate[s1]*spinstate[s2] for (s1,s2) in nnlist])/len(nnlist) for nnlist in nnlists]
     return np.array(firstcorr)
 
@@ -49,3 +49,8 @@ def initstatstables(namefunctions, nb, c2s, nnlists,
                                        len(stat_fields), len(nnlists)))
     
     return statstables
+
+def initautocorrel_spins(nit, stat_temps, stat_fields):
+    autocorrelation_spins = np.zeros((nit, len(stat_temps), len(stat_fields)))
+    
+    return autocorrelation_spins
