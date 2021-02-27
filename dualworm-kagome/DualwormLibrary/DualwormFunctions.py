@@ -17,6 +17,8 @@ import functools
 import multiprocessing
 
 
+from scipy.interpolate import UnivariateSpline
+
 # In[ ]:
 
 
@@ -638,6 +640,7 @@ def walkerstable(betas, nt, hfields, nh):
     #paramstable = np.zeros((nt, nh,3))
     walker2params = np.zeros((nt*nh, 2))
     walker2ids = np.zeros((nt*nh,2), dtype='int32')
+    walkerlasttemp = np.zeros((nt,nh), dtype = 'int8')
     for bid, beta in enumerate(betas):
         for hid, h in enumerate(hfields):
             wid = bid*nh+hid # this is ONLY true during initialization
@@ -646,7 +649,10 @@ def walkerstable(betas, nt, hfields, nh):
             walker2params[wid,:] = np.array((beta, h))
             walker2ids[wid,:] = np.array((bid, hid), dtype = 'int32')
             
-    return walker2params, walker2ids, ids2walker
+    nup = np.zeros(nt)
+    ndown = np.zeros(nt)
+            
+    return walker2params, walker2ids, ids2walker, walkerlasttemp, nup, ndown
 
 
 # In[ ]:
@@ -822,53 +828,6 @@ def oldstatistics(tid, resid, hid, reshid, bid, states, statesen, statstables,
 
         statstables[stat_id][bid][1][resid][reshid] += (func_per_site ** 2) / num_in_bin
 
-""" def statupdate(stat_temps, stat_fields, bid, states, statesen, statstables,
-               spinstates,statsfunctions, sidlist, didlist, L, s_ijl, ijl_s,
-               num_in_bin, stlen, magnfuncid, ids2walker, stat_id,**kwargs):
-        for resid,tid in enumerate(stat_temps):
-            for reshid, hid in enumerate(stat_fields):
-                wid = ids2walker[tid, hid]
-                func_per_site = statsfunctions[stat_id](stlen, states[wid],
-                                                statesen[tid, hid], 
-                                                spinstates[wid],
-                                                s_ijl, ijl_s,
-                                                **kwargs)
-                 
-                #evaluation depends on the temperature index
-                statstables[stat_id][bid][0][resid][reshid] += func_per_site / num_in_bin 
-                #storage depends on the result index
-                statstables[stat_id][bid][1][resid][reshid] += (func_per_site ** 2) / num_in_bin
-
- """
-""" def parallelstatistics(stat_temps, stat_fields, bid, states, statesen, statstables,
-               spinstates,statsfunctions, sidlist, didlist, L, s_ijl, ijl_s,
-               num_in_bin, stlen, magnfuncid, ids2walker, **kwargs):
-    '''
-        This function updates the statistics in statstables given the states,
-        the states energy, the statistical functions, the list of spins and
-        dimers for updates,
-        the system size and the number of states in a bin
-    '''
-    # bin index = integer division of the iteration and the number
-    # of iterations in a bin
-    #   Before doing any measurement, the spinstate must be updated.
-    #   But it is not necessary to update the spinstate
-    #   if no measurement is performed, since the code runs on dimer
-    #   configurations.
-    #   Hence, we can feed the statistics threads with only the temperatures
-    #   indices for which we are interested in
-    #   the statistics.
-    
-    
-    #statstables = list(map(statupdate, statstables, range(len(statstables))))
-    mono_arg_updt = functools.partial(statupdate, stat_temps, stat_fields, bid, states, statesen, statstables,
-               spinstates,statsfunctions, sidlist, didlist, L, s_ijl, ijl_s,
-               num_in_bin, stlen, magnfuncid, ids2walker, **kwargs)
-
-    print("multiprocessing")
-    with multiprocessing.Pool(processes = kwargs.get('ncores',8)) as pool:
-        pool.map(mono_arg_updt, range(len(statstables))) """
-
 def statistics(stat_temps, stat_fields, bid, states, statesen, statstables,
                spinstates,statsfunctions, sidlist, didlist, L, s_ijl, ijl_s,
                num_in_bin, stlen, magnfuncid, ids2walker, **kwargs):
@@ -912,7 +871,7 @@ def statistics(stat_temps, stat_fields, bid, states, statesen, statstables,
 
 
 def replicas(it, nt, nh, statesen, betas, hfields, states, spinstates,
-             swapst, swapsh,ids2walker, walker2ids, walker2params, verbose):
+             swapst, swapsh,ids2walker, walker2ids, walker2params, walkerlasttemp,feedback, verbose):
     '''
         Given the number of temperatures and magnetic fields, 
         the states, and the mapping from walker to parameter ids,
@@ -927,7 +886,7 @@ def replicas(it, nt, nh, statesen, betas, hfields, states, spinstates,
             for hid in range(nh):
                 for tid in range(0,nt-1,2):
                     swaptemps(tid, hid, statesen, betas, hfields, ids2walker,
-                              walker2ids, walker2params, swapst)
+                              walker2ids, walker2params, swapst, walkerlasttemp, feedback)
 
         elif it%4 == 1:
             # even h swap:
@@ -936,19 +895,19 @@ def replicas(it, nt, nh, statesen, betas, hfields, states, spinstates,
                 for tid in range(0, nt):
                     for hid in range(0, nh-1, 2):
                         swapfields(tid, hid, up, statesen, betas, hfields, spinstates,
-                                   ids2walker, walker2ids, walker2params, swapsh)
+                                   ids2walker, walker2ids, walker2params, swapsh, walkerlasttemp, feedback)
             else:
                 up = False
                 for tid in range(0, nt):
                     for hid in range(1, nh, 2):
                         swapfields(tid, hid, up, statesen, betas, hfields, spinstates,
-                                   ids2walker, walker2ids, walker2params, swapsh)
+                                   ids2walker, walker2ids, walker2params, swapsh, walkerlasttemp, feedback)
         elif it%4 == 2:
             #odd t swap
             for hid in range(nh):
                 for tid in range(1,nt-1,2):
                     swaptemps(tid, hid, statesen, betas, hfields, ids2walker,
-                              walker2ids, walker2params, swapst)
+                              walker2ids, walker2params, swapst, walkerlasttemp, feedback)
 
         elif it%4 == 3:
             # odd h swap:
@@ -957,13 +916,13 @@ def replicas(it, nt, nh, statesen, betas, hfields, states, spinstates,
                 for tid in range(0, nt):
                     for hid in range(1, nh-1, 2):
                         swapfields(tid, hid, up, statesen, betas, hfields, spinstates,
-                                   ids2walker, walker2ids, walker2params, swapsh)
+                                   ids2walker, walker2ids, walker2params, swapsh, walkerlasttemp, feedback)
             else:
                 up = False
                 for tid in range(0, nt):
                     for hid in range(2, nh, 2):
                         swapfields(tid, hid, up, statesen, betas, hfields, spinstates,
-                                   ids2walker, walker2ids, walker2params, swapsh)
+                                   ids2walker, walker2ids, walker2params, swapsh, walkerlasttemp, feedback)
     else:
         if verbose:
             print("it % 4 = ", it%4)
@@ -973,35 +932,35 @@ def replicas(it, nt, nh, statesen, betas, hfields, states, spinstates,
                 # down to up
                 for tid in range(0,nt-1,2):
                     swaptemps(tid, hid, statesen, betas, hfields, ids2walker,
-                              walker2ids, walker2params, swapst, verbose= verbose)
+                              walker2ids, walker2params, swapst, walkerlasttemp, feedback,verbose= verbose)
         elif it%4 == 1:
             #odd t swap
             for hid in range(nh):
                 #down to up
                 for tid in range(1,nt-1,2):
                     swaptemps(tid, hid, statesen, betas, hfields, ids2walker,
-                              walker2ids, walker2params, swapst, verbose= verbose)
+                              walker2ids, walker2params, swapst, walkerlasttemp, feedback, verbose= verbose)
         elif it%4 == 2:
             # even t swap
             for hid in range(nh):
                 # up to down
                 for tid in range(nt,-1,2):
                     swaptemps(tid, hid, statesen, betas, hfields, ids2walker,
-                              walker2ids, walker2params, swapst, verbose= verbose)
+                              walker2ids, walker2params, swapst, walkerlasttemp, feedback, verbose= verbose)
         elif it%4 == 3:    
             # odd t swap
             for hid in range(nh):
                 # up to down
                 for tid in range(nt-1,-1,2):
                     swaptemps(tid, hid, statesen, betas, hfields, ids2walker,
-                              walker2ids, walker2params, swapst, verbose= verbose)
+                              walker2ids, walker2params, swapst, walkerlasttemp, feedback, verbose= verbose)
 
 
 # In[ ]:
 
 
 def swaptemps(tid, hid, statesen, betas, hfields,
-              ids2walker, walker2ids, walker2params, swapst, verbose = False):
+              ids2walker, walker2ids, walker2params, swapst, walkerlasttemp, feedback = False, verbose = False):
     '''
         Offers to swap temperatures and accepts or reject based on
         detailed balance
@@ -1023,18 +982,31 @@ def swaptemps(tid, hid, statesen, betas, hfields,
                  * (betas[tid+1] - betas[tid]))):
         swap = True
         
+    if feedback:
+        if tid == 0:
+            # in the lowest temperature we update the last temperature
+            walkerlasttemp[tid, hid] = 1
+        if tid+1 == betas.shape[0]-1:
+            # in the highest temperature we update the last temperature
+            walkerlasttemp[tid+1,hid] =2
     if swap:
         swapst[tid]+=1
-        
-        ids2walker[tid, hid], ids2walker[tid+1, hid] =        ids2walker[tid+1, hid], ids2walker[tid, hid]
-        
-        walker2ids[wid, 0], walker2ids[wid2, 0] =        walker2ids[wid2, 0], walker2ids[wid,0] # 0, cause we are swapping the temperatures
-        
-        
-        walker2params[wid, 0], walker2params[wid2,0] =        walker2params[wid2, 0], walker2params[wid,0]
-        
+        ids2walker[tid, hid], ids2walker[tid+1, hid] = ids2walker[tid+1, hid], ids2walker[tid, hid]
+        walker2ids[wid, 0], walker2ids[wid2, 0] =  walker2ids[wid2, 0], walker2ids[wid,0] # 0, cause we are swapping the temperatures
+        walker2params[wid, 0], walker2params[wid2,0] = walker2params[wid2, 0], walker2params[wid,0]
+        if feedback: 
+            # we exchange as well their last temperatures
+            walkerlasttemp[tid, hid], walkerlasttemp[tid +1, hid] = walkerlasttemp[tid+1, hid], walkerlasttemp[tid, hid]
+            # we set the ones at the extremes for the measurements
+            if tid == 0:
+                # in the lowest temperature we update the last temperature
+                walkerlasttemp[tid, hid] = 1
+            if tid == betas.shape[0]-1:
+                # in the highest temperature we update the last temperature
+                walkerlasttemp[tid+1,hid] = 2
+
         # update the energy
-        statesen[tid, hid],  statesen[tid+1, hid] =        statesen[tid+1, hid],  statesen[tid, hid]
+        statesen[tid, hid],  statesen[tid+1, hid] = statesen[tid+1, hid],  statesen[tid, hid]
         
     
 
@@ -1043,7 +1015,7 @@ def swaptemps(tid, hid, statesen, betas, hfields,
 
 
 def swapfields(tid, hid, up, statesen, betas, hfields, spinstates,
-               ids2walker, walker2ids, walker2params, swapsh):
+               ids2walker, walker2ids, walker2params, swapsh, walkerlasttemp, feedback):
     '''
         Offers to swap magnetic fields and accepts or reject
         based on detailed balance
@@ -1071,7 +1043,9 @@ def swapfields(tid, hid, up, statesen, betas, hfields, spinstates,
         walker2ids[wid, 1], walker2ids[wid2,1] =        walker2ids[wid2, 1], walker2ids[wid,1] 
         
         walker2params[wid, 1], walker2params[wid2,1] =        walker2params[wid2, 1], walker2params[wid,1]
-        
+        if feedback:
+            # update the last temperature the walkers went through
+            walkerlasttemp[tid, hid], walkerlasttemp[tid, nhid] = walkerlasttemp[tid, nhid], walkerlasttemp[tid, hid]
         # update the energy
         deltaE = statesen[tid, nhid] - statesen[tid, hid]
         
@@ -1080,9 +1054,59 @@ def swapfields(tid, hid, up, statesen, betas, hfields, spinstates,
 
 
 # In[ ]:
+def feedbackupdate(Nswaps, nt, nup, ndown, fuplist, temperatureslist, temperatures):
+    '''
+        Update for feedback optimized selection of the temperatures in the
+        parallel tempering. We follow Helmut G. Katzgraber et al. J. Stat. Mech. 2006
+    '''
+   
+    # compute density of up and down replicas
+    fup = np.nan_to_num(nup /(nup + ndown)) # replacing nans with zeros
+    fuplist.append(fup)
+
+    #derivative of fup
+    spl = UnivariateSpline(temperatures, fup,s = 0.002)
+    dv = spl.derivative()
+    DT = (temperatures[1:] - temperatures[:-1])
+
+    # compute the former eta and the new one
+    eta = 1/(DT*(nt-1))
+    neweta = np.sqrt(eta*np.abs(dv((temperatures[1:]+temperatures[:-1])/2)))
+    neweta = neweta/np.sum(neweta*DT) # normalize by integral
+
+    # find the new temperatures:
+    ## 1. primitive of neweta
+    prim = np.array([np.sum(neweta[:i]*DT[:i]) for i in range(nt)])
+    newtemperatures = np.copy(temperatures)
+    ## 2. find the new temperatures according to the prescription by Katzgraber
+    ## (only the two extermal temperatures are not updated)
+    convergedtemps = True
+    for k in range(1,nt):
+        tid = np.argmax(prim>=(k+1)/nt)
+        if abs(prim[tid] - (k+1)/nt) < 1e-6:
+            # directly match the temperature
+            newtemperatures[k] = temperatures[tid]
+            print(k)
+        else:
+            # if we need to update one of the temperatures then it's not converged
+            convergedtemps = False 
+            dy = (k+1)/nt - prim[tid-1]
+            # compute the intermediate temperature between temperatures[tid-1] and temperatures[tid]
+            newtemperatures[k] = temperatures[tid-1]+dy/neweta[tid-1]
+    
+    # re-initialize histograms
+    nup = np.zeros(nt)
+    ndown = np.zeros(nt)
+    Nswaps = 2*Nswaps
+
+    temperatures = newtemperatures
+    temperatureslist.append(np.copy(temperatures))
+    return Nswaps, nup, ndown, fuplist, temperatureslist, convergedtemps
+
 
 def autocorrelation(state, refstate):
     return np.mean(state*refstate)
+
 def mcs_swaps(states, spinstates, statesen, 
               betas, stat_temps, stat_fields, **kwargs):
     '''
@@ -1178,6 +1202,11 @@ def mcs_swaps(states, spinstates, statesen,
     walker2params = kwargs.get('walker2params',[])
     walker2ids = kwargs.get('walker2ids', [])
     ids2walker = kwargs.get('ids2walker', [])
+    feedback = kwargs.get('feedback', False)
+    walkerlasttemp = kwargs.get('walkerlasttemp', [])
+    nup = kwargs.get('nup', [])
+    ndown = kwargs.get('ndown', [])
+    
     ssf = kwargs.get('ssf', False)
     ssffurther = kwargs.get('ssffurther', False)
     alternate = kwargs.get('alternate', False)
@@ -1260,8 +1289,17 @@ def mcs_swaps(states, spinstates, statesen,
         hkl.dump(states[wid], backup+"_groundstate_it{0}.hkl".format(0))
         hkl.dump(spinstates[wid], backup+"_groundspinstate_it{0}.hkl".format(0))
 
-
-    for it in range(itermcs):
+    convergedtemps = False
+    if feedback : 
+        Nswaps = kwargs.get('Nswaps', itermcs/16)
+        nextSwaps = Nswaps
+    else:
+        nextSwaps = 0 
+    fuplist = []
+    temperatureslist = [1/betas]
+    it = 0
+    while it < itermcs and not convergedtemps:
+        
         #### EVOLVE using the mcsevolve function of the dimer
         #### module (C)
         # Note that states, betas, statesen get updated
@@ -1306,13 +1344,34 @@ def mcs_swaps(states, spinstates, statesen,
 
         #### TEMPERING perform "parallel" tempering ( actually, replicas)
         # if nh == 1, we only do replica in temperature
+        
+        # if we are doing feedback optimized seletion of the temperature, we need to record the histogram.
+        # Note that the table saying whether the last temperature was lowest (1) or highest(2) is
+        # updated in the replicas function
+
+        
         for riter in range(nrps):
             if verbose:
                 print("replicat iter = ", it + riter)
             replicas(it+riter, nt, nh, statesen, betas, hfields, states, 
                      spinstates, swapst, swapsh, ids2walker,
-                     walker2ids, walker2params, verbose)
-    
+                     walker2ids, walker2params, walkerlasttemp, feedback, verbose)
+        if feedback and it == nextSwaps:
+            # estimate optimized temperature distribution
+            [Nswaps, nup, ndown, fuplist, temperatureslist,convergedtemps] =\
+                feedbackupdate(Nswaps, nt, nup, ndown, fuplist, temperatureslist,1/betas)
+            # next time to stop
+            nextSwaps = it + Nswaps
+            # update the temperatures
+            betas = 1/temperatureslist[-1]
+            # update the walker2params table
+            walker2params[:, 0] = np.array([betas[walker2ids[wid,0]] for wid in range(nt*nh)])
+            print(fuplist[-1])
+        
+        if feedback:
+            #update histograms
+            nup += (walkerlasttemp == 1).sum(axis = 1)
+            ndown += (walkerlasttemp == 2).sum(axis = 1)
         t3 = time()
         t_tempering +=(t3-t2)/itermcs
         
@@ -1406,6 +1465,8 @@ def mcs_swaps(states, spinstates, statesen,
         t4 = time()
         t_spins += (t4-t3)/itermcs
 
+        it += 1 # increment interation
+
     # ENDFOR
 
     # verifications
@@ -1432,7 +1493,13 @@ def mcs_swaps(states, spinstates, statesen,
         hkl.dump(autocorrelation_spins,
                     backup+"_AutocorrelationSpins_final.hkl",
                     mode = 'w')
-    return statstables, swapst, swapsh,failedupdates, failedssfupdates, updatelists
+    if feedback:
+        hkl.dump(fuplist,
+                    backup+"_fuplist_final.hkl",
+                    mode = 'w')
+        print("Feedback : are temperatures converged? ", convergedtemps)
+    feedbacklist = [temperatureslist, fuplist]
+    return statstables, swapst, swapsh,failedupdates, failedssfupdates, updatelists, feedbacklist, betas
     
     
 

@@ -70,16 +70,18 @@ def main(args):
             ids2walker = hkl.load(loadbackup+"/backup_ids2walker.hkl")
         except OSError:
             warnings.warn("error ids2walker load")
-            [walker2params, walker2ids, ids2walker] =            dw.walkerstable(betas, nt, hfields, nh)
+            [walker2params, walker2ids, ids2walker,walkerlasttemp, nup, ndown] = dw.walkerstable(betas, nt, hfields, nh)
             
-       
+        walkerlasttemp = np.zeros((nt,nh))
+        nup = np.zeros((nt,nh))
+        ndown = np.zeros((nt,nh))
     else:
-        [walker2params, walker2ids, ids2walker] =        dw.walkerstable(betas, nt, hfields, nh)
+        [walker2params, walker2ids, ids2walker,walkerlasttemp, nup, ndown] = dw.walkerstable(betas, nt, hfields, nh)
     print("ids2walker shape", ids2walker.shape)
     # Saving the status:
     
     ## SIMULATION INITIALISATION
-    (states, energies, spinstates, ref_energies, checkgsid)=    rbf.StatesAndEnergyInit(args, backup, loadbackup,hamiltonian,
+    (states, energies, spinstates, ref_energies, checkgsid)= rbf.StatesAndEnergyInit(args, backup, loadbackup,hamiltonian,
                             ids2walker, nt, nh, hfields, d_ijl,
                             d_2s, s_ijl, couplings, L)
     # Checks
@@ -110,7 +112,7 @@ def main(args):
 
     print("-----------Thermalisation------------------")
     nb = 1 # only one bin, no statistics
-    num_in_bin = args.nst# mcs iterations per bins
+    num_in_bin = args.nst//nb# mcs iterations per bins
     iterworm = nips = args.nips # maximal number of MCS iterations
     # before considering swaps (one iteration = one system size update)
     nrps = args.nrps # number of replica loop iterations in a MC step
@@ -134,22 +136,23 @@ def main(args):
           'sidlist':sidlist,'didlist':didlist,'s_ijl':s_ijl,'ijl_s':ijl_s,
           'L':L, 'nh':nh, 'hfields':hfields,
           'walker2params':walker2params,'walker2ids':walker2ids,
-          'ids2walker':ids2walker,
+          'ids2walker':ids2walker, 'walkerlasttemp':walkerlasttemp, 'nup':nup, 'ndown':ndown,
           's2p':s2p, 'ssf':ssf, 'ssffurther': ssffurther,
           'alternate':alternate, 'fullstateupdate': True,
-          'verbose':verbose
+          'verbose':verbose,'feedback': args.feedback,
          }
 
 
     t1 = time()
     (statstableth, swapst_th, swapsh_th, failedupdatesth, 
-     failedssfupdatesth, updateliststh) = \
+     failedssfupdatesth, updateliststh, feedbacklist, betas) = \
     dw.mcs_swaps(states, spinstates, energies, betas, [],[], **kw)
     t2 = time()
 
     print('Time for all thermalisation steps = ', t2-t1)
 
-
+    feedback = {'fuplist':feedbacklist[1],'updatedtemperatures': feedbacklist[0]}
+    hkl.dump(feedback,backup+".hkl", path = "/parameters/feedback", mode = 'r+')
     thermres = {'swapst_th':swapst_th, 'swapsh_th':swapsh_th,
                'failedupdatesth':failedupdatesth,
                 'failedssfupdatesth':failedssfupdatesth, 'totaltime':t2-t1}
@@ -254,7 +257,8 @@ def main(args):
         # Run measurements
 
     t1 = time()
-    (statstable, swapst, swapsh, failedupdates, failedssfupdates, updatelists) =    dw.mcs_swaps(states, spinstates, energies, betas, stat_temps, stat_hfields,**kw)
+    (statstable, swapst, swapsh, failedupdates, failedssfupdates, updatelists, feedbacklistm, betas) =\
+            dw.mcs_swaps(states, spinstates, energies, betas, stat_temps, stat_hfields,**kw)
     #print("Energies = ", energies)
     t2 = time()
 
@@ -288,7 +292,7 @@ def main(args):
     hkl.dump(spinstates, backup+"_spinstates.hkl")
     
     print("Job done")
-    return statstable, swapst, swapsh, failedupdatesth, failedupdates, failedssfupdates
+    return statstable, swapst, swapsh, failedupdatesth, failedupdates, failedssfupdates, feedbacklist
 
 
 # In[ ]:
@@ -391,6 +395,11 @@ if __name__ == "__main__":
                         help = 'list of number of temperatures in between the given limiting temperatures')
     parser.add_argument('--log_tlist', default = False, action='store_true',
                         help = 'state whether you want the temperature be spaced log-like or linear-like (activate if you want log)')
+    parser.add_argument('--t_list_from_file', default = False, action = 'store_true',
+                        help = 'give to give tlist from a file')
+    parser.add_argument('--t_list_file', default = "", help='file to take tlist from')
+    parser.add_argument('--feedback', default = False, action = 'store_true',
+                        help = 'activate for feedback optimized parallel tempering')
     parser.add_argument('--stat_temps_lims', nargs = '+', type = float,
                         help = '''limiting temperatures for the various ranges of
                         measurements''') 

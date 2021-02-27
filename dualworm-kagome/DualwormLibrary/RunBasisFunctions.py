@@ -63,6 +63,7 @@ def SimulationParameters(args, backup, loadfromfile, d_ijl,
     else:
         J3st = J3
     J4 = args.J4
+
     
     print('J1 ', J1)
     print('J2 ', J2)
@@ -102,13 +103,25 @@ def SimulationParameters(args, backup, loadfromfile, d_ijl,
     t_list = [t for t in args.t_list]
     nt_list = args.nt_list
     loglist = args.log_tlist
-    if loglist:
-        temperatures = dw.create_log_temperatures(nt_list, t_list)
+
+    if "t_list_from_file" in args and args.t_list_from_file:
+        print("temperatures list from file")
+        temperatures = np.loadtxt(args.t_list_file)
     else:
-        temperatures = dw.create_temperatures(nt_list, t_list)
+        print("temperatures list from args")
+        t_list = [t for t in args.t_list]
+        nt_list = args.nt_list
+        loglist = args.log_tlist
+        if loglist:
+            temperatures = dw.create_log_temperatures(nt_list, t_list)
+        else:
+            temperatures = dw.create_temperatures(nt_list, t_list)
+    
     betas = 1/temperatures
     # total number of different temperatures
     nt = len(temperatures)
+
+
     if args.h_list:
         h_list = [h for h in args.h_list]
         nh_list = args.nh_list
@@ -118,7 +131,7 @@ def SimulationParameters(args, backup, loadfromfile, d_ijl,
         hfields = np.array([h])
         nh = 1
     
-    physical = {'temperatures': temperatures, 'nt':nt, 'nh':nh,
+    physical = {'inittemperatures': temperatures, 'nt':nt, 'nh':nh,
                 'hfields': hfields}
     hkl.dump(physical,backup+".hkl", path = "/parameters/physical", mode = 'r+')
     

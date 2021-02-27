@@ -94,7 +94,7 @@ def LoadParameters(foldername, filenamelist, **kwargs):
     
     sref = [[] for _ in range(n)]
     ids2walker = [0 for _ in range(n)]
-    
+    feedback = [[] for _ in range(n)]
         
     merge = kwargs.get('mergeruns', False)
     group = kwargs.get('groupruns', 1)
@@ -107,7 +107,7 @@ def LoadParameters(foldername, filenamelist, **kwargs):
          num_in_bin[nf], htip[nf], Ttip[nf], pswitch[nf],uponly[nf], path[nf],
          temperatures[nf], nt[nf], stat_temps[nf], temperatures_plots[nf],
          hfields[nf], nh[nf], stat_hfields[nf], hfields_plots[nf],
-         listfunctions[nf], sref[nf], ids2walker[nf]] = LoadParametersFromFile(foldername, filename)
+         listfunctions[nf], sref[nf], ids2walker[nf], feedback[nf]] = LoadParametersFromFile(foldername, filename)
         if merge: # check that it makes sense to merge
             test = (L[nf] == L[0] and
                     J1[nf] == J1[0] and J2[nf] == J2[0] and 
@@ -131,7 +131,11 @@ def LoadParameters(foldername, filenamelist, **kwargs):
                 okforgroup = False
                 raise Exception(" You required grouping the runs but runs "+ nf-1 +" and " + nf + "are not compatible")
            
-    return L, numsites, J1, J2, J3, J3st, J4, np.array(nb), num_in_bin,             htip, Ttip, pswitch, uponly, path,             temperatures, nt,             stat_temps, temperatures_plots, hfields, nh,             stat_hfields, hfields_plots, listfunctions, sref, ids2walker
+    return L, numsites, J1, J2, J3, J3st, J4, np.array(nb), num_in_bin,\
+        htip, Ttip, pswitch, uponly, path,\
+        temperatures, nt,\
+        stat_temps, temperatures_plots, hfields, nh,\
+        stat_hfields, hfields_plots, listfunctions, sref, ids2walker,feedback
 
 
 # In[ ]:
@@ -171,9 +175,16 @@ def LoadParametersFromFile(foldername, filename):
         path = 1
 
     physical = hkl.load(backup, path = "/parameters/physical")
-    temperatures = physical['temperatures'].tolist()
-    nt = physical['nt']
+    try:
+        temperatures = physical['temperatures'].tolist()
+        feedback = []
+    except:
+        inittemperatures = physical['inittemperatures'].tolist()
+        feedback = hkl.load(backup, path = "/parameters/feedback")
+        temperatures = feedback['updatedtemperatures'][-1]
+        feedback = feedback['fuplist']
     
+    nt = physical['nt']
     stat_temps = hkl.load(backup, path = "/parameters/stat_temps")
     temperatures_plots = [temperatures[t] for t in stat_temps]
     
@@ -198,7 +209,11 @@ def LoadParametersFromFile(foldername, filename):
         warnings.warn("ids2walker not found, not loaded!")
         
 
-    return L, numsites, J1, J2, J3, J3st, J4, nb, num_in_bin,             htip, Ttip, pswitch, uponly, path,             temperatures, nt,             stat_temps, temperatures_plots, hfields, nh,             stat_hfields, hfields_plots, listfunctions, srefs, ids2walker
+    return L, numsites, J1, J2, J3, J3st, J4, nb, num_in_bin,\
+        htip, Ttip, pswitch, uponly, path, \
+        temperatures, nt,\
+        stat_temps, temperatures_plots, hfields, nh,\
+        stat_hfields, hfields_plots, listfunctions, srefs, ids2walker,feedback
 
 
 # In[ ]:
@@ -1398,8 +1413,9 @@ def CorrelErrorEstimator(backup, idfunc, sref,
 
 
 def SwapsAnalysis(L, n, tidmin, tidmax, temperatures, hfields, foldername, results_foldername, swapst, swapsh):
-
+    
     for i in range(n):
+        print(tidmax[i])
         plt.figure()
         plt.semilogx(temperatures[i][tidmin:tidmax[i]-1], swapst[i][tidmin:tidmax[i]-1], '.', color = 'green')
         plt.xlabel('Temperature')
