@@ -1503,6 +1503,11 @@ def mcs_swaps(states, spinstates, statesen,
                     backup+"_AutocorrelationSpins_final.hkl",
                     mode = 'w')
     if feedback:
+        if Nswaps > itermcs:
+            fup = np.nan_to_num(nup /(nup + ndown)) # replacing nans with zeros
+            fuplist.append(fup)
+            temperatureslist.append(1/betas)
+
         hkl.dump(fuplist,
                     backup+"_fuplist_final.hkl",
                     mode = 'w')
