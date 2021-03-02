@@ -182,7 +182,7 @@ def LoadParametersFromFile(foldername, filename):
         inittemperatures = physical['inittemperatures'].tolist()
         feedback = hkl.load(backup, path = "/parameters/feedback")
         temperatures = feedback['updatedtemperatures'][-1]
-        feedback = feedback['fuplist']
+        feedback = [feedback['updatedtemperatures'],feedback['fuplist']]
     
     nt = physical['nt']
     stat_temps = hkl.load(backup, path = "/parameters/stat_temps")

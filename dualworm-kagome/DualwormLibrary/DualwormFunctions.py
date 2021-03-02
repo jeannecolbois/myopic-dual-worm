@@ -888,7 +888,7 @@ def replicas(it, nt, nh, statesen, betas, hfields, states, spinstates,
                     swaptemps(tid, hid, statesen, betas, hfields, ids2walker,
                               walker2ids, walker2params, swapst, walkerlasttemp, feedback)
 
-        elif it%4 == 1:
+        elif it%4 == 2:
             # even h swap:
             if (it-1)%8 == 0:
                 up = True
@@ -902,7 +902,7 @@ def replicas(it, nt, nh, statesen, betas, hfields, states, spinstates,
                     for hid in range(1, nh, 2):
                         swapfields(tid, hid, up, statesen, betas, hfields, spinstates,
                                    ids2walker, walker2ids, walker2params, swapsh, walkerlasttemp, feedback)
-        elif it%4 == 2:
+        elif it%4 == 1:
             #odd t swap
             for hid in range(nh):
                 for tid in range(1,nt-1,2):
@@ -940,18 +940,18 @@ def replicas(it, nt, nh, statesen, betas, hfields, states, spinstates,
                 for tid in range(1,nt-1,2):
                     swaptemps(tid, hid, statesen, betas, hfields, ids2walker,
                               walker2ids, walker2params, swapst, walkerlasttemp, feedback, verbose= verbose)
-        elif it%4 == 2:
+        elif it%4 == 3:
             # even t swap
             for hid in range(nh):
                 # up to down
-                for tid in range(nt,-1,2):
+                for tid in range(nt-2,-1,-2):
                     swaptemps(tid, hid, statesen, betas, hfields, ids2walker,
                               walker2ids, walker2params, swapst, walkerlasttemp, feedback, verbose= verbose)
-        elif it%4 == 3:    
+        elif it%4 == 2:    
             # odd t swap
             for hid in range(nh):
                 # up to down
-                for tid in range(nt-1,-1,2):
+                for tid in range(nt-3,-1,-2):
                     swaptemps(tid, hid, statesen, betas, hfields, ids2walker,
                               walker2ids, walker2params, swapst, walkerlasttemp, feedback, verbose= verbose)
 
@@ -991,6 +991,7 @@ def swaptemps(tid, hid, statesen, betas, hfields,
             walkerlasttemp[tid+1,hid] =2
     if swap:
         swapst[tid]+=1
+        swapst[tid+1]+=1
         ids2walker[tid, hid], ids2walker[tid+1, hid] = ids2walker[tid+1, hid], ids2walker[tid, hid]
         walker2ids[wid, 0], walker2ids[wid2, 0] =  walker2ids[wid2, 0], walker2ids[wid,0] # 0, cause we are swapping the temperatures
         walker2params[wid, 0], walker2params[wid2,0] = walker2params[wid2, 0], walker2params[wid,0]
@@ -1054,7 +1055,7 @@ def swapfields(tid, hid, up, statesen, betas, hfields, spinstates,
 
 
 # In[ ]:
-def feedbackupdate(Nswaps, nt, nup, ndown, fuplist, temperatureslist, temperatures):
+def feedbackupdate(Nswaps, nt, nup, ndown, fuplist, temperatureslist, temperatures, convcrit = 1.5e-2):
     '''
         Update for feedback optimized selection of the temperatures in the
         parallel tempering. We follow Helmut G. Katzgraber et al. J. Stat. Mech. 2006
@@ -1079,11 +1080,11 @@ def feedbackupdate(Nswaps, nt, nup, ndown, fuplist, temperatureslist, temperatur
     prim = np.array([np.sum(neweta[:i]*DT[:i]) for i in range(nt)])
     newtemperatures = np.copy(temperatures)
     ## 2. find the new temperatures according to the prescription by Katzgraber
-    ## (only the two extermal temperatures are not updated)
+    ## (only the two extremal temperatures are not updated)
     convergedtemps = True
     for k in range(1,nt):
         tid = np.argmax(prim>=(k+1)/nt)
-        if abs(prim[tid] - (k+1)/nt) < 1e-6:
+        if abs(prim[tid] - (k+1)/nt) < 1e-8:
             # directly match the temperature
             newtemperatures[k] = temperatures[tid]
             print(k)
@@ -1093,6 +1094,12 @@ def feedbackupdate(Nswaps, nt, nup, ndown, fuplist, temperatureslist, temperatur
             dy = (k+1)/nt - prim[tid-1]
             # compute the intermediate temperature between temperatures[tid-1] and temperatures[tid]
             newtemperatures[k] = temperatures[tid-1]+dy/neweta[tid-1]
+    
+    # check convergence with another criterion
+    convergedtemps = True
+    for tid in range(nt):
+        if (newtemperatures[tid]-temperatures[tid])/temperatures[tid] > convcrit:
+            convergedtemps = False
     
     # re-initialize histograms
     nup = np.zeros(nt)
@@ -1291,8 +1298,9 @@ def mcs_swaps(states, spinstates, statesen,
 
     convergedtemps = False
     if feedback : 
-        Nswaps = kwargs.get('Nswaps', itermcs/16)
+        Nswaps = kwargs.get('Nswaps', itermcs/2)
         nextSwaps = Nswaps
+        print("nextSwaps:", nextSwaps)
     else:
         nextSwaps = 0 
     fuplist = []
@@ -1362,6 +1370,7 @@ def mcs_swaps(states, spinstates, statesen,
                 feedbackupdate(Nswaps, nt, nup, ndown, fuplist, temperatureslist,1/betas)
             # next time to stop
             nextSwaps = it + Nswaps
+            print("nextSwaps:", nextSwaps)
             # update the temperatures
             betas = 1/temperatureslist[-1]
             # update the walker2params table

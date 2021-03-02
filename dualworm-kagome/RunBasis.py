@@ -73,10 +73,14 @@ def main(args):
             [walker2params, walker2ids, ids2walker,walkerlasttemp, nup, ndown] = dw.walkerstable(betas, nt, hfields, nh)
             
         walkerlasttemp = np.zeros((nt,nh))
-        nup = np.zeros((nt,nh))
-        ndown = np.zeros((nt,nh))
+        print("walkerlasttemp shape:", walkerlasttemp.shape)
+        nup = np.zeros(nt)
+        ndown = np.zeros(nt)
     else:
         [walker2params, walker2ids, ids2walker,walkerlasttemp, nup, ndown] = dw.walkerstable(betas, nt, hfields, nh)
+    
+
+    print("walkerlasttemp shape:", walkerlasttemp.shape)
     print("ids2walker shape", ids2walker.shape)
     # Saving the status:
     
@@ -139,7 +143,7 @@ def main(args):
           'ids2walker':ids2walker, 'walkerlasttemp':walkerlasttemp, 'nup':nup, 'ndown':ndown,
           's2p':s2p, 'ssf':ssf, 'ssffurther': ssffurther,
           'alternate':alternate, 'fullstateupdate': True,
-          'verbose':verbose,'feedback': args.feedback,
+          'verbose':verbose,'feedback': args.feedback,'Nswaps' :args.Nswaps
          }
 
 
@@ -400,6 +404,8 @@ if __name__ == "__main__":
     parser.add_argument('--t_list_file', default = "", help='file to take tlist from')
     parser.add_argument('--feedback', default = False, action = 'store_true',
                         help = 'activate for feedback optimized parallel tempering')
+    parser.add_argument('--Nswaps', default = 1024,
+                        help = 'Number of swaps for histogram')
     parser.add_argument('--stat_temps_lims', nargs = '+', type = float,
                         help = '''limiting temperatures for the various ranges of
                         measurements''') 

@@ -284,9 +284,9 @@ def chargevertex2charge(L,a, ijl_c, cv_ijl):
 # In[ ]:
 
 
-def plot_kag_nodes(L, a, color='blue', s=20, PBC = True, **kargs):
+def plot_kag_nodes(L, a, no_spin_color='blue', s=20, PBC = True, **kargs):
     (sv_ijl, ijl_sv, e_2sv, poskag) = graphkag(L,a, PBC = PBC)
-    gdw.draw_nodes(poskag, list(poskag.keys()), c = color, s = s, **kargs)
+    gdw.draw_nodes(poskag, list(poskag.keys()), c = no_spin_color, s = s, **kargs)
 
 def plot_kag_edges(L, a, color='lightblue', PBC = True, **kargs):
     sv_ijl, ijl_sv, e_2sv, pos = graphkag(L, a,PBC = PBC)
@@ -304,11 +304,11 @@ def plot_kag_spins(spins, ijl_s, L, a, color = 'red', PBC = True, **kargs):
             spinsthere.append(sv) #list of keys
     gdw.draw_nodes(poskag, spinsthere, c = color, **kargs)
     
-def plot_kag_spinstate(spinstate, ijl_s, L, a, edge_color = 'lightblue', up_color = 'blue', down_color = 'red', PBC = True, **kargs):
+def plot_kag_spinstate(spinstate, ijl_s, L, a, edge_color = 'lightblue', up_color = 'blue', down_color = 'red', PBC = True, no_spin_color = 'lightgrey', **kargs):
     """
         :param spins: list of spins indices (for instance [3, 5, 2, ...])
     """
-    plot_kag_nodes(L, a, PBC = PBC, **kargs)
+    plot_kag_nodes(L, a, PBC = PBC, no_spin_color = no_spin_color, **kargs)
     plot_kag_edges(L, a, color = edge_color, PBC = PBC, **kargs)
     spinsup = [s for s, sstate in enumerate(spinstate) if sstate == 1]
     spinsdown = [s for s, sstate in enumerate(spinstate) if sstate == -1]
@@ -331,16 +331,19 @@ def plot_honeycomb_charges(charges, ijl_c, L, a, color = 'red', uponly = False, 
     """
     (cv_ijl, ijl_cv, posh) = graphhoneycomb(L,a)
     cv_c = chargevertex2charge(L,a, ijl_c, cv_ijl)
-    chargesthere = []
+    chargesthereup = []
+    chargestheredown = []
     for cv, (i,j,l) in enumerate(cv_ijl): #for each key
-        if uponly:
-            if l == 1:
-                if cv_c[cv] in charges:# look for corresponding charge in charges
-                    chargesthere.append(cv) #list of keys
+        if l == 1:
+            if cv_c[cv] in charges:# look for corresponding charge in charges
+                chargesthereup.append(cv) #list of keys
         else:
             if cv_c[cv] in charges:# look for corresponding charge in charges
-                chargesthere.append(cv) #list of keys
-    gdw.draw_nodes(posh, chargesthere, c = color, **kargs)    
+                chargestheredown.append(cv) #list of keys
+        
+    gdw.draw_nodes(posh, chargesthereup, c = color, marker = '^', s = 50*L/a, **kargs)
+    if not uponly:
+        gdw.draw_nodes(posh, chargestheredown, c = color, marker = 'v',s =  50*L/a, **kargs)
 
 def plot_honeycomb_chargestate(chargestate, ijl_c, L, a, c1_color = 'red', c2_color = 'green',
                                c3_color = 'green', c4_color = 'red',edge_color = 'lightblue',
@@ -372,7 +375,8 @@ def plotstate(temp_id, L, d_ijl, ijl_s, sidlist, didlist, s2_d, states, spinstat
               PBC = True,
               dim_node_color = 'black', dim_color ='black',
               no_dim_color = 'lightgrey', spin_edge_color = 'lightblue',
-              spin_up_color = 'blue', spin_down_color = 'red', dimerlinewidth = 5, spinlinewidth = 1, figsize = 0, dpi = 200, **kargs):    
+              spin_up_color = 'blue', spin_down_color = 'red', no_spin_color = 'lightgrey',dimerlinewidth = 5,
+              spinlinewidth = 1, figsize = 0, dpi = 200,**kargs):    
 
     a = 2 #lattice parameter
     
@@ -381,7 +385,7 @@ def plotstate(temp_id, L, d_ijl, ijl_s, sidlist, didlist, s2_d, states, spinstat
     plt.figure(figsize = figsize, dpi = dpi)
     plt.axis('equal')
     plot_dice_dimerstate(states[temp_id], d_ijl, L, a, dim_node_color, dim_color, no_dim_color, PBC = PBC,linewidth = dimerlinewidth, **kargs)
-    plot_kag_spinstate(spinstates[temp_id], ijl_s, L, a, spin_edge_color, spin_up_color, spin_down_color, PBC = PBC,linewidth = spinlinewidth, **kargs)
+    plot_kag_spinstate(spinstates[temp_id], ijl_s, L, a, spin_edge_color, spin_up_color, spin_down_color, PBC = PBC,linewidth = spinlinewidth, no_spin_color = no_spin_color, **kargs)
     plt.tick_params(  
         which = 'both',      # both major and minor ticks are affected
         bottom = False,      # ticks along the bottom edge are off
