@@ -143,7 +143,7 @@ def main(args):
           'ids2walker':ids2walker, 'walkerlasttemp':walkerlasttemp, 'nup':nup, 'ndown':ndown,
           's2p':s2p, 'ssf':ssf, 'ssffurther': ssffurther,
           'alternate':alternate, 'fullstateupdate': True,
-          'verbose':verbose,'feedback': args.feedback,'Nswaps' :args.Nswaps
+          'verbose':verbose,'feedback': args.feedback,'Nswaps' :int(args.Nswaps)
          }
 
 
@@ -404,7 +404,7 @@ if __name__ == "__main__":
     parser.add_argument('--t_list_file', default = "", help='file to take tlist from')
     parser.add_argument('--feedback', default = False, action = 'store_true',
                         help = 'activate for feedback optimized parallel tempering')
-    parser.add_argument('--Nswaps', default = 1024,
+    parser.add_argument('--Nswaps', default = 1024,type = int,
                         help = 'Number of swaps for histogram')
     parser.add_argument('--stat_temps_lims', nargs = '+', type = float,
                         help = '''limiting temperatures for the various ranges of
