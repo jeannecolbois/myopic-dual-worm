@@ -225,7 +225,7 @@ def edge2dimer(L, a, d_ijl, v_ijl, ijl_v, e_2v):
 # In[ ]:
 
 
-def plot_dice_nodes(L, a, color='black', s=1, PBC = True, **kargs):
+def plot_dice_nodes(L, a, color='black', s=1, PBC = True,**kargs):
     (v_ijl, ijl_v, e_2v, pos) = graphdice(L, a, PBC = PBC)
     gdw.draw_nodes(pos, list(pos.keys()), c=color, s=s,**kargs)
 def plot_dice_dimers(dimers, d_ijl, L, a, PBC = True, **kargs):
@@ -240,13 +240,14 @@ def plot_dice_dimers(dimers, d_ijl, L, a, PBC = True, **kargs):
         if e_d[e] in dimers:
             dimersthere.append((v1,v2))
     gdw.draw_edges(pos, dimersthere, **kargs)
-def plot_dice_dimerstate(state, d_ijl, L, a,node_color = 'black', dim_color = 'black', no_dim_color = 'lightgrey', linewidth = 1,  PBC = True, **kargs):
+def plot_dice_dimerstate(state, d_ijl, L, a,node_color = 'black', dim_color = 'black', no_dim_color = 'lightgrey', dimlinewidth = 1,  PBC = True,
+    nodimlinewidth = 1, **kargs):
     plot_dice_nodes(L, a, color = node_color, PBC = PBC, **kargs)
     print("dice nodes plotted")
     dimers = [d for d, dstate in enumerate(state) if dstate == 1]
     nodimers = [d for d, dstate in enumerate(state) if dstate == -1]
-    plot_dice_dimers(dimers, d_ijl, L, a, color = dim_color, linewidth = linewidth, PBC = PBC)
-    plot_dice_dimers(nodimers, d_ijl, L, a, color = no_dim_color, PBC = PBC)
+    plot_dice_dimers(dimers, d_ijl, L, a, color = dim_color, linewidth = dimlinewidth, PBC = PBC, **kargs)#, ax = ax)
+    plot_dice_dimers(nodimers, d_ijl, L, a, color = no_dim_color, linewidth = nodimlinewidth,PBC = PBC,**kargs)#, ax = ax)
 
 
 # In[ ]:
@@ -292,7 +293,7 @@ def plot_kag_edges(L, a, color='lightblue', PBC = True, **kargs):
     sv_ijl, ijl_sv, e_2sv, pos = graphkag(L, a,PBC = PBC)
     gdw.draw_edges(pos, e_2sv, color = color, **kargs)
     
-def plot_kag_spins(spins, ijl_s, L, a, color = 'red', PBC = True, **kargs):
+def plot_kag_spins(spins, ijl_s, L, a, color = 'red', PBC = True, s = 2, **kargs):
     """
         :param spins: list of spins indices (for instance [3, 5, 2, ...])
     """
@@ -302,20 +303,27 @@ def plot_kag_spins(spins, ijl_s, L, a, color = 'red', PBC = True, **kargs):
     for sv, ijl in enumerate(sv_ijl): #for each key
         if sv_s[sv] in spins:# look for corresponding spin in spins
             spinsthere.append(sv) #list of keys
-    gdw.draw_nodes(poskag, spinsthere, c = color, **kargs)
+    gdw.draw_nodes(poskag, spinsthere, c = color, s = s, **kargs)
     
-def plot_kag_spinstate(spinstate, ijl_s, L, a, edge_color = 'lightblue', up_color = 'blue', down_color = 'red', PBC = True, no_spin_color = 'lightgrey', **kargs):
+def plot_kag_spinstate(spinstate, ijl_s, L, a, edge_color = 'lightblue', up_color = 'blue', down_color = 'red', 
+PBC = True, no_spin_color = 'lightgrey', s= 2, **kargs):
     """
         :param spins: list of spins indices (for instance [3, 5, 2, ...])
     """
-    plot_kag_nodes(L, a, PBC = PBC, no_spin_color = no_spin_color, **kargs)
+    plot_kag_nodes(L, a, PBC = PBC, no_spin_color = no_spin_color, s= s, **kargs)
     plot_kag_edges(L, a, color = edge_color, PBC = PBC, **kargs)
     spinsup = [s for s, sstate in enumerate(spinstate) if sstate == 1]
     spinsdown = [s for s, sstate in enumerate(spinstate) if sstate == -1]
+    p2 = [s for s, sstate in enumerate(spinstate) if sstate == 2]
+    m2 = [s for s, sstate in enumerate(spinstate) if sstate == -2]
     if len(spinsup) != 0:
-        plot_kag_spins(spinsup, ijl_s, L, a, color = up_color, PBC = PBC, label = 'spin up')
+        plot_kag_spins(spinsup, ijl_s, L, a, color = up_color, PBC = PBC, s = s, label = 'spin up', **kargs)
     if len(spinsdown) != 0:
-        plot_kag_spins(spinsdown, ijl_s, L, a, color = down_color, PBC = PBC, label = 'spin down')
+        plot_kag_spins(spinsdown, ijl_s, L, a, color = down_color, PBC = PBC, s = s, label = 'spin down', **kargs)
+    if len(p2) != 0:
+        plot_kag_spins(p2, ijl_s, L, a, color = up_color, PBC = PBC, s = s, label = 'spin : +2', **kargs)
+    if len(m2) != 0:
+        plot_kag_spins(m2, ijl_s, L, a, color = down_color, PBC = PBC, s= s,  label = 'spin : -2', **kargs)
 
 
 # In[ ]:
@@ -325,7 +333,7 @@ def plot_honeycomb_nodes(L, a, color = 'blue', s = 20, **kargs):
     (cv_ijl, ijl_cv, posh) = graphhoneycomb(L,a)
     gdw.draw_nodes(posh, list(posh.keys()), c = color, s = s, **kargs)
     
-def plot_honeycomb_charges(charges, ijl_c, L, a, color = 'red', uponly = False, **kargs):
+def plot_honeycomb_charges(charges, ijl_c, L, a, color = 'red', uponly = False,s = 20,**kargs):
     """
         :param charges: list of charge indices (for instance [3, 5, 2, ...])
     """
@@ -341,13 +349,14 @@ def plot_honeycomb_charges(charges, ijl_c, L, a, color = 'red', uponly = False, 
             if cv_c[cv] in charges:# look for corresponding charge in charges
                 chargestheredown.append(cv) #list of keys
         
-    gdw.draw_nodes(posh, chargesthereup, c = color, marker = '^', s = 50*L/a, **kargs)
-    if not uponly:
-        gdw.draw_nodes(posh, chargestheredown, c = color, marker = 'v',s =  50*L/a, **kargs)
+    if chargesthereup:
+        gdw.draw_nodes(posh, chargesthereup, c = color, marker = '^', s = s, **kargs)
+    if (not uponly) and chargestheredown:
+        gdw.draw_nodes(posh, chargestheredown, c = color, marker = 'v',s =  s, **kargs)
 
 def plot_honeycomb_chargestate(chargestate, ijl_c, L, a, c1_color = 'red', c2_color = 'green',
                                c3_color = 'green', c4_color = 'red',edge_color = 'lightblue',
-                               uponly = False, **kargs):
+                               uponly = False, chargemarkersize = 20, **kargs):
     """
         
     """
@@ -356,14 +365,26 @@ def plot_honeycomb_chargestate(chargestate, ijl_c, L, a, c1_color = 'red', c2_co
     c2 = [c for c, cstate in enumerate(chargestate) if cstate == 1]
     c3 = [c for c, cstate in enumerate(chargestate) if cstate == -1]
     c4 = [c for c, cstate in enumerate(chargestate) if cstate == -3]
+    c5 = [c for c, cstate in enumerate(chargestate) if cstate == +2]
+    c6 = [c for c, cstate in enumerate(chargestate) if cstate == -2]
+    c7 = [c for c, cstate in enumerate(chargestate) if cstate == +4]
+    c8 = [c for c, cstate in enumerate(chargestate) if cstate == -4]
     if len(c1) != 0:
-        plot_honeycomb_charges(c1, ijl_c, L, a, color = c1_color, uponly = uponly, label = '+3')
+        plot_honeycomb_charges(c1, ijl_c, L, a, color = c1_color, uponly = uponly, label = '+3', s = chargemarkersize,**kargs)
     if len(c2) != 0:
-        plot_honeycomb_charges(c2, ijl_c, L, a, color = c2_color, uponly = uponly, label = '+1')
+        plot_honeycomb_charges(c2, ijl_c, L, a, color = c2_color, uponly = uponly, label = '+1', s = chargemarkersize,**kargs)
     if len(c3) != 0:
-        plot_honeycomb_charges(c3, ijl_c, L, a, color = c3_color, uponly = uponly, label = '-1')
+        plot_honeycomb_charges(c3, ijl_c, L, a, color = c3_color, uponly = uponly, label = '-1', s = chargemarkersize,**kargs)
     if len(c4) != 0:
-        plot_honeycomb_charges(c4, ijl_c, L, a, color = c4_color, uponly = uponly, label = '-3')
+        plot_honeycomb_charges(c4, ijl_c, L, a, color = c4_color, uponly = uponly, label = '-3', s = chargemarkersize,**kargs)
+    if len(c5) != 0:
+        plot_honeycomb_charges(c5, ijl_c, L, a, color = c2_color, uponly = uponly, label = '+2', s = chargemarkersize,**kargs)
+    if len(c6) != 0:
+        plot_honeycomb_charges(c6, ijl_c, L, a, color = c3_color, uponly = uponly, label = '-2', s = chargemarkersize,**kargs)
+    if len(c7) != 0:
+        plot_honeycomb_charges(c7, ijl_c, L, a, color = c1_color, uponly = uponly, label = '+4', s = chargemarkersize,**kargs)
+    if len(c8) != 0:
+        plot_honeycomb_charges(c8, ijl_c, L, a, color = c4_color, uponly = uponly, label = '-4', s = chargemarkersize,**kargs)
 
 
 # In[1]:
@@ -373,20 +394,27 @@ def plot_honeycomb_chargestate(chargestate, ijl_c, L, a, c1_color = 'red', c2_co
 
 def plotstate(temp_id, L, d_ijl, ijl_s, sidlist, didlist, s2_d, states, spinstates,
               PBC = True,
-              dim_node_color = 'black', dim_color ='black',
               no_dim_color = 'lightgrey', spin_edge_color = 'lightblue',
-              spin_up_color = 'blue', spin_down_color = 'red', no_spin_color = 'lightgrey',dimerlinewidth = 5,
-              spinlinewidth = 1, figsize = 0, dpi = 200,**kargs):    
+              spin_up_color = 'blue', spin_down_color = 'red', no_spin_color = 'lightgrey',spinlinewidth = 1,spinmarkersize = 2,
+              dim_node_color = 'black', dim_color ='black',dimerlinewidth = 5, nodimlinewidth = 1, 
+              figsize = 0, dpi = 200, createfig = True,
+              fig = [], **kargs):    
 
     a = 2 #lattice parameter
     
     if figsize == 0:
         figsize = (2*L, 2*L)
-    plt.figure(figsize = figsize, dpi = dpi)
-    plt.axis('equal')
-    plot_dice_dimerstate(states[temp_id], d_ijl, L, a, dim_node_color, dim_color, no_dim_color, PBC = PBC,linewidth = dimerlinewidth, **kargs)
-    plot_kag_spinstate(spinstates[temp_id], ijl_s, L, a, spin_edge_color, spin_up_color, spin_down_color, PBC = PBC,linewidth = spinlinewidth, no_spin_color = no_spin_color, **kargs)
-    plt.tick_params(  
+    if createfig:
+        fig, ax = plt.subplots(1,figsize = figsize, dpi = dpi)
+    else:
+        ax = kargs.get('ax', plt.gca())
+    ax.axis('equal')
+    plot_dice_dimerstate(states[temp_id], d_ijl, L, a, dim_node_color, dim_color, no_dim_color, PBC = PBC,dimlinewidth = dimerlinewidth,
+    nodimlinewidth = nodimlinewidth, **kargs)
+    plot_kag_spinstate(spinstates[temp_id], ijl_s, L, a, spin_edge_color, spin_up_color, spin_down_color, PBC = PBC,\
+        linewidth = spinlinewidth, no_spin_color = no_spin_color, s = spinmarkersize, 
+         **kargs)
+    ax.tick_params(  
         which = 'both',      # both major and minor ticks are affected
         bottom = False,      # ticks along the bottom edge are off
         top = False,         # ticks along the top edge are off
@@ -394,6 +422,7 @@ def plotstate(temp_id, L, d_ijl, ijl_s, sidlist, didlist, s2_d, states, spinstat
         left = False,
         right = False,
         labelleft = False) # labels along the bottom edge are off
+    
     
 
 

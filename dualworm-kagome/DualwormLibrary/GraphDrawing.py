@@ -11,16 +11,25 @@ import matplotlib.pyplot as plt
 
 # In[ ]:
 
+def printArgs(my_func):
+    def wrapper(*arg, **kwargs):
+        print("{}({})".format(my_func.__name__, ','.join([str(arg),str(kwargs)])))
+        return my_func(*arg, **kwargs)
+    return wrapper
 
+
+#@printArgs
 def draw_nodes(pos, nodelist, c, **kargs):
     '''
         This function draws the nodes of a graph
     '''
     
-    ax = plt.gca()
+    ax = kargs.pop('ax', plt.gca())
+    if not ax:
+        ax = plt.gca()
 
     xy = np.asarray([pos[v] for v in nodelist])
-    node_collection = plt.scatter(xy[:, 0], xy[:, 1], c = c, **kargs)
+    node_collection = ax.scatter(xy[:, 0], xy[:, 1], c = c, **kargs)
     if isinstance(c, list):
         plt.colorbar()
     node_collection.set_zorder(2)
@@ -34,7 +43,11 @@ def draw_edges(pos, edgelist, *args, **kargs):
     '''
         This function draws the edges of a graph
     '''
-    ax = plt.gca()
+    
+    
+    ax = kargs.pop('ax', plt.gca())
+    if not ax:
+        ax = plt.gca()
 
     edge_pos = np.asarray([(pos[e[0]], pos[e[1]]) for e in edgelist])
     edge_collection = LineCollection(edge_pos, *args, **kargs)
